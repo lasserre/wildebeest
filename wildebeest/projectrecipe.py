@@ -1,0 +1,3 @@
+
+class ProjectRecipe:
+    pass
