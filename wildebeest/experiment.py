@@ -5,6 +5,7 @@ class ProcessingStep:
     Represents a single processing step in an algorithm
     '''
     def __init__(self, name:str, do_step:Callable) -> None:
+        # https://stackoverflow.com/questions/37835179/how-can-i-specify-the-function-type-in-my-type-hints
         self.name = name
         self.do_step = do_step
 

@@ -1,16 +1,5 @@
-class ProjectBuild:
-    '''
-    Represents a single build of a software project
-    '''
-    def __init__(self, folder:str) -> None:
-        # don't add this until we need it, but we could potentially add a
-        # .wildebeest file or folder in the build folder to keep bookkeeping like
-        # status (last_action = configure)
-        #
-        # this would assist in a separate tool we could run to check health/status
-        # which makes sense especially if I come back later and check on something
-        # running on a server somewhere: wildebeest status [exp_name]
-        self.folder = folder
+from .runconfig import RunConfig
+from .projectbuild import ProjectBuild
 
 class BuildSystemDriver:
     # REMEMBER: we want to be able to customize the *experiment algorithm*,
@@ -31,21 +20,28 @@ class BuildSystemDriver:
     # by the runner and just handed to us. we don't care about the overall
     # folder scheme, we just get handed a specific build and are asked to go do it
 
-    def __init__(self) -> None:
+    def __init__(self, name:str) -> None:
+        '''
+        name: The name of the build system driver. This name is used by project
+              recipes to identify which drivers they may use.
+        '''
+        self.name = name
+
+    def configure(self, runconfig:RunConfig, build:ProjectBuild):
+        '''
+        Configures the build using the options in runconfig. The code and build folders
+        should already have been created at this point.
+        '''
         pass
 
-    def init(self, build:ProjectBuild):
-        pass
-
-    def configure(self, build:ProjectBuild):
-        pass
-
-    def build(self, build:ProjectBuild):
+    def build(self, build:ProjectBuild, numjobs:int=1):
+        '''
+        Builds the project directing the build system to use the specified number of jobs
+        '''
         pass
 
     def clean(self, build:ProjectBuild):
-        pass
-
-    def destroy(self, build:ProjectBuild):
-        # if we need this, it would get rid
+        '''
+        Performs a clean using the build system
+        '''
         pass
