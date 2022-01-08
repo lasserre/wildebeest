@@ -23,7 +23,9 @@ def main():
         #
 
     # ProjectBuild('/home/cls0027/')
-    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git')
+    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git',
+            git_head='HEAD~2')
+
     test_folder = Path('/home/cls0027/test_builds')
     proj_root = test_folder/"test-programs"
     build = ProjectBuild(proj_root, proj_root/"build", recipe)
@@ -34,9 +36,7 @@ def main():
     # TODO implement with no customizations first, then use the runconfig
     driver = CmakeDriver()
 
-    from wildebeest.projectbuild import GitRepository
-    repo = GitRepository('git@github.com:lasserre/test-programs.git', proj_root, head='HEAD~2')
-    repo.init()
+    build.init()
 
     import IPython; IPython.embed()
 

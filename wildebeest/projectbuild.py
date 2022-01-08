@@ -109,7 +109,9 @@ class ProjectBuild:
         '''
         # clone the project from github if this is the first time
         if not self.project_root.exists():
-            repo = GitRepository(self.recipe.git_remote, self.project_root)
+            repo = GitRepository(self.recipe.git_remote,
+                                self.project_root,
+                                head=self.recipe.git_head)
             repo.init()
 
         # make sure build folder exists
