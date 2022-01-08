@@ -24,7 +24,8 @@ def main():
 
     # ProjectBuild('/home/cls0027/')
     recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git')
-    proj_root = Path('/home/cls0027/test_builds/test-programs')
+    test_folder = Path('/home/cls0027/test_builds')
+    proj_root = test_folder/"test-programs"
     build = ProjectBuild(proj_root, proj_root/"build", recipe)
 
     # TODO customize the compiler settings here...
@@ -32,6 +33,10 @@ def main():
 
     # TODO implement with no customizations first, then use the runconfig
     driver = CmakeDriver()
+
+    from wildebeest.projectbuild import GitRepository
+    repo = GitRepository('git@github.com:lasserre/test-programs.git', proj_root, head='HEAD~2')
+    repo.init()
 
     import IPython; IPython.embed()
 
@@ -48,3 +53,6 @@ def main():
     # and kick off jobs (serially at first)
     # 6. Finish it out to get an end-to-end funcprotos experiment
     # (keep it in phd/research/funcprotos)
+
+if __name__ == '__main__':
+    main()

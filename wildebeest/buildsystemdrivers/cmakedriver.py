@@ -1,4 +1,6 @@
 from .. import BuildSystemDriver
 
 class CmakeDriver(BuildSystemDriver):
-    pass
+    def __init__(self) -> None:
+        super().__init__('cmake')
+
