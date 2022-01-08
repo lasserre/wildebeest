@@ -1,5 +1,8 @@
+from pathlib import Path
 from wildebeest.buildsystemdrivers import CmakeDriver
 from wildebeest import ProjectBuild
+from wildebeest.projectrecipe import ProjectRecipe
+from wildebeest.runconfig import RunConfig
 
 def main():
     print('In test driver!')
@@ -13,21 +16,33 @@ def main():
     # specify the project recipe here
         # it's ok to have configure, build, clean, etc. steps be defined for
         # normal usage (even though the algorithm is configurable):
+
+        # >> have Experiment() constructor default to the DefaultBuildAlgorithm
         #
         # recipe.post_configure = myproject_configure
         #
-    # then convert to a GitRepository
-    # then create/convert to a ProjectBuild
-    # ...and pass that to the buildsystem driver
 
     # ProjectBuild('/home/cls0027/')
+    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git')
+    proj_root = Path('/home/cls0027/test_builds/test-programs')
+    build = ProjectBuild(proj_root, proj_root/"build", recipe)
 
+    # TODO customize the compiler settings here...
+    runconfig = RunConfig()
+
+    # TODO implement with no customizations first, then use the runconfig
     driver = CmakeDriver()
-    driver.init()
+
+    import IPython; IPython.embed()
+
+    # build.init()
+    # driver.configure(runconfig, build)
+    # driver.build(build, 2)
+    # driver.clean
+    # import IPython; IPython.embed()
 
     # TODO LIST:
-    # 2. Use that with a buildsystemdriver
-    # 3. Convert that to a project recipe
+    # 3. Convert this to an experiment algorithm (DefaultBuildAlgorithm + custom stuff)
     # 4. Create a basic experiment using this...add the post-processing when ready
     # 5. Implement the experiment runner to manage the experiment layout
     # and kick off jobs (serially at first)
