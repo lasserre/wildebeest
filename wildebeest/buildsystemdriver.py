@@ -32,6 +32,11 @@ class BuildSystemDriver:
         Configures the build using the options in runconfig. The code and build folders
         should already have been created at this point.
         '''
+        # TODO: the build system driver (ideally implemented in the generic one)
+        # should handle any extra pre/post steps specific to project recipes...
+        # these should NOT be considered part of the experiment ALGORITHM - these
+        # are not generic to experiment - they are project-specific steps that
+        # can be thought of as part of the build system configure/build/etc. steps
         pass
 
     def build(self, build:ProjectBuild, numjobs:int=1):

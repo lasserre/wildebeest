@@ -11,6 +11,11 @@ def main():
     # TODO pick up here
     #########################
     # specify the project recipe here
+        # it's ok to have configure, build, clean, etc. steps be defined for
+        # normal usage (even though the algorithm is configurable):
+        #
+        # recipe.post_configure = myproject_configure
+        #
     # then convert to a GitRepository
     # then create/convert to a ProjectBuild
     # ...and pass that to the buildsystem driver
