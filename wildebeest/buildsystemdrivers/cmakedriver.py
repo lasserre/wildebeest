@@ -8,10 +8,13 @@ class CmakeDriver(BuildSystemDriver):
         super().__init__('cmake')
 
     def _do_configure(self, runconfig: RunConfig, build: ProjectBuild):
-        subprocess.run(['cmake', build.project_root])
+        configure_opts = build.recipe.configure_options.cmdline_options
+        subprocess.run(['cmake', build.project_root, *configure_opts])
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs: int = 1):
-        subprocess.run(['cmake', '--build', '.', f'-j{numjobs}'])
+        build_opts = build.recipe.build_options.cmdline_options
+        subprocess.run(['cmake', '--build', '.', f'-j{numjobs}', *build_opts])
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
-        subprocess.run(['cmake', '--build', '.', '--target', 'clean'])
+        clean_opts = build.recipe.clean_options.cmdline_options
+        subprocess.run(['cmake', '--build', '.', '--target', 'clean', *clean_opts])

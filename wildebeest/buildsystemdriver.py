@@ -1,8 +1,11 @@
+from os import environ
 from typing import Any, Callable
+
+from wildebeest.sourcelanguages import LANG_C
 from .runconfig import RunConfig
 from .projectbuild import ProjectBuild
 from .projectrecipe import ProjectBuildStepOptions
-from .utils import cd
+from .utils import *
 
 class BuildSystemDriver:
     # REMEMBER: we want to be able to customize the *experiment algorithm*,
@@ -52,22 +55,34 @@ class BuildSystemDriver:
         Configures the build using the options in runconfig. The code and build folders
         should already have been created at this point.
         '''
-        self._do_build_step(runconfig, build,
-                            build.recipe.configure_options, self._do_configure)
+        # currently, the best method I've seen of specifying options on linux is
+        # using the CC/CFLAGS style environment variables. As such, we will default to
+        # setting these variables so each driver doesn't have to replicate that. If
+        # a specific build system requires something different, that driver can implement it
+        opts = build.recipe.configure_options
+        configure_env = runconfig.generate_env()
+        with env(configure_env):
+            self._do_build_step(runconfig, build, opts, self._do_configure)
 
     def build(self, runconfig:RunConfig, build:ProjectBuild, numjobs:int=1):
         '''
         Builds the project directing the build system to use the specified number of jobs
         '''
-        self._do_build_step(runconfig, build,
-                            build.recipe.build_options, self._do_build)
+        opts = build.recipe.build_options
+        build_env = runconfig.generate_env()
+        with env(build_env):
+            self._do_build_step(runconfig, build, opts, self._do_build)
 
     def clean(self, runconfig:RunConfig, build:ProjectBuild):
         '''
         Performs a clean using the build system
         '''
-        self._do_build_step(runconfig, build,
-                            build.recipe.clean_options, self._do_clean)
+        opts = build.recipe.clean_options
+        # probably unnecessary to define the env here, but more predictable
+        # this way...can remove if never used
+        clean_env = runconfig.generate_env()
+        with env(clean_env):
+            self._do_build_step(runconfig, build, opts, self._do_clean)
 
     def _do_configure(self, runconfig:RunConfig, build:ProjectBuild):
         '''

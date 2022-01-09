@@ -1,13 +1,10 @@
 from pathlib import Path
+from subprocess import run
 from wildebeest.buildsystemdrivers import CmakeDriver
-from wildebeest import ProjectBuild
-from wildebeest.projectrecipe import ProjectRecipe
+from wildebeest import *
 from wildebeest.runconfig import RunConfig
 
 def main():
-
-    # 1. put together the simplest possible makefile (and/or cmakelists.txt)
-    # for my tiny C program and get that building
 
     #########################
     # TODO pick up here
@@ -21,31 +18,37 @@ def main():
         # recipe.post_configure = myproject_configure
         #
 
-    # ProjectBuild('/home/cls0027/')
-    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git')
+    # TODO: use my compiler...
+    # export CXX="$Clang_DIR/bin/clang++"
+    # export CC="$Clang_DIR/bin/clang"
+    # export CXXFLAGS="-Xclang -load -Xclang ~/dev/clang-funcprotos/build/libfuncprotos.so -Xclang -add-plugin -Xclang funcprotos -fuse-ld=lld"
+    # export CFLAGS=$CXXFLAGS
+    recipe = ProjectRecipe('cmake',
+        'git@github.com:lasserre/test-programs.git',
+        [LANG_CPP, LANG_C])
 
     test_folder = Path('/home/cls0027/test_builds')
     proj_root = test_folder/"test-programs"
     build = ProjectBuild(proj_root, proj_root/"build", recipe)
 
-    # TODO customize the compiler settings here...
     runconfig = RunConfig()
+    clangdir = Path.home()/'software'/'llvm-features-12.0.1'
+    runconfig.c_options.compiler_path = clangdir/'bin'/'clang'
+    runconfig.cpp_options.compiler_path = clangdir/'bin'/'clang++'
 
-    # TODO implement with no customizations first, then use the runconfig
+    flags = ClangFlags.load_plugin(Path.home()/'dev'/'clang-funcprotos'/'build'/'libfuncprotos.so', 'funcprotos')
+    flags.append('-fuse-ld=lld')
+    runconfig.c_options.compiler_flags = flags
+    runconfig.cpp_options.compiler_flags = flags
+
     driver = CmakeDriver()
 
     build.init()
-    # TODO: pick up here getting vanilla build to work using cmake driver
     driver.configure(runconfig, build)
     driver.build(runconfig, build, 2)
+    #build.destroy(True)
 
     import IPython; IPython.embed()
-
-    # build.init()
-    # driver.configure(runconfig, build)
-    # driver.build(build, 2)
-    # driver.clean
-    # import IPython; IPython.embed()
 
     # TODO LIST:
     # 3. Convert this to an experiment algorithm (DefaultBuildAlgorithm + custom stuff)
