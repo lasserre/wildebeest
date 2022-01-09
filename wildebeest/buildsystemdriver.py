@@ -1,5 +1,8 @@
+from typing import Any, Callable
 from .runconfig import RunConfig
 from .projectbuild import ProjectBuild
+from .projectrecipe import ProjectBuildStepOptions
+from .utils import cd
 
 class BuildSystemDriver:
     # REMEMBER: we want to be able to customize the *experiment algorithm*,
@@ -27,26 +30,68 @@ class BuildSystemDriver:
         '''
         self.name = name
 
+    def _do_build_step(self, runconfig:RunConfig, build:ProjectBuild,
+            opts:ProjectBuildStepOptions,
+            do_step:Callable[[RunConfig, ProjectBuild], Any]):
+        '''
+        This algorithm was identical for all 3 steps, so I didn't want to
+        write it in 3 places :)
+        '''
+        with cd(build.build_folder):
+            if opts.preprocess:
+                opts.preprocess(runconfig, build)
+            if opts.override_step:
+                opts.override_step(runconfig, build)
+            else:
+                do_step(runconfig, build)
+            if opts.postprocess:
+                opts.postprocess(runconfig, build)
+
     def configure(self, runconfig:RunConfig, build:ProjectBuild):
         '''
         Configures the build using the options in runconfig. The code and build folders
         should already have been created at this point.
         '''
-        # TODO: the build system driver (ideally implemented in the generic one)
-        # should handle any extra pre/post steps specific to project recipes...
-        # these should NOT be considered part of the experiment ALGORITHM - these
-        # are not generic to experiment - they are project-specific steps that
-        # can be thought of as part of the build system configure/build/etc. steps
-        pass
+        self._do_build_step(runconfig, build,
+                            build.recipe.configure_options, self._do_configure)
 
-    def build(self, build:ProjectBuild, numjobs:int=1):
+    def build(self, runconfig:RunConfig, build:ProjectBuild, numjobs:int=1):
         '''
         Builds the project directing the build system to use the specified number of jobs
         '''
-        pass
+        self._do_build_step(runconfig, build,
+                            build.recipe.build_options, self._do_build)
 
-    def clean(self, build:ProjectBuild):
+    def clean(self, runconfig:RunConfig, build:ProjectBuild):
         '''
         Performs a clean using the build system
         '''
-        pass
+        self._do_build_step(runconfig, build,
+                            build.recipe.clean_options, self._do_clean)
+
+    def _do_configure(self, runconfig:RunConfig, build:ProjectBuild):
+        '''
+        Performs the build-system-specific configure step using the given options.
+
+        When this function is called, the current working directory will be
+        the project build folder
+        '''
+        raise NotImplementedError(f'The {self.name} build driver has not implemented _do_configure()')
+
+    def _do_build(self, runconfig:RunConfig, build:ProjectBuild, numjobs:int=1):
+        '''
+        Performs the build-system-specific build step using the given options.
+
+        When this function is called, the current working directory will be
+        the project build folder
+        '''
+        raise NotImplementedError(f'The {self.name} build driver has not implemented _do_build()')
+
+    def _do_clean(self, runconfig:RunConfig, build:ProjectBuild):
+        '''
+        Performs the build-system-specific clean step using the given options.
+
+        When this function is called, the current working directory will be
+        the project build folder
+        '''
+        raise NotImplementedError(f'The {self.name} build driver has not implemented _do_clean()')

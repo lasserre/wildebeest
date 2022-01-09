@@ -5,7 +5,6 @@ from wildebeest.projectrecipe import ProjectRecipe
 from wildebeest.runconfig import RunConfig
 
 def main():
-    print('In test driver!')
 
     # 1. put together the simplest possible makefile (and/or cmakelists.txt)
     # for my tiny C program and get that building
@@ -23,8 +22,7 @@ def main():
         #
 
     # ProjectBuild('/home/cls0027/')
-    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git',
-            git_head='HEAD~2')
+    recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git')
 
     test_folder = Path('/home/cls0027/test_builds')
     proj_root = test_folder/"test-programs"
@@ -37,6 +35,9 @@ def main():
     driver = CmakeDriver()
 
     build.init()
+    # TODO: pick up here getting vanilla build to work using cmake driver
+    driver.configure(runconfig, build)
+    driver.build(runconfig, build, 2)
 
     import IPython; IPython.embed()
 
