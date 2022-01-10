@@ -1,5 +1,6 @@
 from .buildsystemdriver import BuildSystemDriver
-from .experiment import Experiment
+from .defaultbuildalgorithm import DefaultBuildAlgorithm
+from .experiment import *
 from .gitrepository import GitRepository
 from .projectbuild import ProjectBuild, GitRepository
 from .projectrecipe import ProjectRecipe

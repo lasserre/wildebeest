@@ -18,11 +18,6 @@ def main():
         # recipe.post_configure = myproject_configure
         #
 
-    # TODO: use my compiler...
-    # export CXX="$Clang_DIR/bin/clang++"
-    # export CC="$Clang_DIR/bin/clang"
-    # export CXXFLAGS="-Xclang -load -Xclang ~/dev/clang-funcprotos/build/libfuncprotos.so -Xclang -add-plugin -Xclang funcprotos -fuse-ld=lld"
-    # export CFLAGS=$CXXFLAGS
     recipe = ProjectRecipe('cmake',
         'git@github.com:lasserre/test-programs.git',
         [LANG_CPP, LANG_C])
@@ -43,15 +38,41 @@ def main():
 
     driver = CmakeDriver()
 
-    build.init()
-    driver.configure(runconfig, build)
-    driver.build(runconfig, build, 2)
+    # build.init()
+    # driver.configure(runconfig, build)
+    # driver.build(runconfig, build, 2)
+
     #build.destroy(True)
+
+    # TODO: re-create an experiment instance here once I've finished implementing
+    # experiment.run()
+    # ----------------
+    # exp = Experiment('funcprotos', DefaultBuildAlgorithm(), runs=[])
+    # exp.algorithm.insert_after('build', ProcessingStep('postprocess'))
+    # exp.run()
+
+    # dd = {
+    #     'abc': 123,
+    #     'experiment': exp,
+    #     'driver': driver,
+    #     'nested': {
+    #         'config': runconfig
+    #     }
+    # }
+
+    # from yaml import load, dump, Loader
+    # with open('dump.yaml', 'w') as f:
+    #     f.write(dump(dd))
+
+    # with open('dump.yaml', 'r') as f:
+    #     data = load(f.read(), Loader)
 
     import IPython; IPython.embed()
 
     # TODO LIST:
     # 3. Convert this to an experiment algorithm (DefaultBuildAlgorithm + custom stuff)
+        # TODO: define default build algorithm
+        # TODO: implement the postprocessing for funcprotos!
     # 4. Create a basic experiment using this...add the post-processing when ready
     # 5. Implement the experiment runner to manage the experiment layout
     # and kick off jobs (serially at first)
