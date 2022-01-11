@@ -185,10 +185,6 @@ class Experiment:
 
         run_list = self._generate_runs()
 
-        # TODO: ...I never IMPLEMENTED the default build algorithm :P go back and
-        # fill that in quickly! (look up proper build driver from 'registry' using
-        # name in project recipe, etc...)
-
         # TODO: once the experiment is running end-to-end for N > 1 run configs
         # SERIALLY, then instantiate a job manager here to kick off each Run in
         # parallel

@@ -9,14 +9,19 @@ def main():
     #########################
     # TODO pick up here
     #########################
-    # specify the project recipe here
-        # it's ok to have configure, build, clean, etc. steps be defined for
-        # normal usage (even though the algorithm is configurable):
+    # TODO: define the post-processing steps for funcprotos on THIS experiment
+    # TODO: capture output appropriately (I can use `watch wdb status` to refresh the run/job status...)
+    # and log in log files for each run or job
+    # TODO: define a wildebeest runstate folder (maybe exp_root/.wildebeest/runstate/run1) and
+    # have each run log its state/current processing step info there (use yaml dump/load on an object?)
+    # TODO: implement QUICK cmdline for printing experiment/run status and logs
+        # make it BASIC, I can add to it later very easily...
+    # TODO: implement rerun('postprocessing') to allow redoing updated analysis on builds
+    # (see notes below)
 
-        # >> have Experiment() constructor default to the DefaultBuildAlgorithm
-        #
-        # recipe.post_configure = myproject_configure
-        #
+    # TODO: create project lists, recipes in a module and advertise them with
+    # entry points? (to reuse them as 'libraries' of projects/lists we can easily
+    # reuse across experiments)
 
     recipe = ProjectRecipe('cmake',
         'git@github.com:lasserre/test-programs.git',
@@ -36,23 +41,20 @@ def main():
     runconfig.c_options.compiler_flags = flags
     runconfig.cpp_options.compiler_flags = flags
 
-    # driver = CmakeDriver()
-
-    # build.init()
-    # driver.configure(runconfig, build)
-    # driver.build(runconfig, build, 2)
-
-    #build.destroy(True)
-
-    # TODO: re-create an experiment instance here once I've finished implementing
-    # experiment.run()
-    # ----------------
     exp = Experiment('funcprotos', DefaultBuildAlgorithm(),
         projectlist=[recipe],
         runconfigs=[runconfig],
         exp_containing_folder=Path().home()/'test_builds')
     exp.run()
 
+    # TODO: implement experiment.rerun() or runfrom() stuff using the
+    # serialized output dict state
+        # >> this allows me to build a bunch of stuff,
+        # **CHANGE THE ANALYSIS**
+        # ...and only rerun the postprocessing
+
+        # save the runstate, output dict state in a run folder after each
+        # step? (that way we could resume it)
     # dd = {
     #     'abc': 123,
     #     'experiment': exp,
@@ -70,16 +72,6 @@ def main():
     #     data = load(f.read(), Loader)
 
     import IPython; IPython.embed()
-
-    # TODO LIST:
-    # 3. Convert this to an experiment algorithm (DefaultBuildAlgorithm + custom stuff)
-        # TODO: define default build algorithm
-        # TODO: implement the postprocessing for funcprotos!
-    # 4. Create a basic experiment using this...add the post-processing when ready
-    # 5. Implement the experiment runner to manage the experiment layout
-    # and kick off jobs (serially at first)
-    # 6. Finish it out to get an end-to-end funcprotos experiment
-    # (keep it in phd/research/funcprotos)
 
 if __name__ == '__main__':
     main()
