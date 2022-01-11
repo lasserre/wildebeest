@@ -1,5 +1,6 @@
+from importlib import metadata
 from os import environ
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 from wildebeest.sourcelanguages import LANG_C
 from .runconfig import RunConfig
@@ -8,6 +9,9 @@ from .projectrecipe import ProjectBuildStepOptions
 from .utils import *
 
 class BuildSystemDriver:
+    '''
+    Interface class for build system drivers
+    '''
     # REMEMBER: we want to be able to customize the *experiment algorithm*,
     # and we will be able to do that.
     #
@@ -110,3 +114,34 @@ class BuildSystemDriver:
         the project build folder
         '''
         raise NotImplementedError(f'The {self.name} build driver has not implemented _do_clean()')
+
+class BuildSystemDriverFactory:
+    def __init__(self) -> None:
+        self.drivers = self._load_buildsystem_drivers()
+
+    def _load_buildsystem_drivers(self) -> Dict[str, BuildSystemDriver]:
+        '''
+        Loads all BuildSystemDrivers that may be found from the
+        wildebeest.build_system_drivers entry point
+        '''
+        driver_dict = {}
+        driver_eps = metadata.entry_points()['wildebeest.build_system_drivers']
+        for ep in driver_eps:
+            driver_class = ep.load()
+            driver_dict[driver_class().name] = driver_class
+        return driver_dict
+
+_driver_factory = None
+
+def get_buildsystem_driver(name:str) -> BuildSystemDriver:
+    '''
+    Returns the BuildSystemDriver with the indicated name, or None if
+    it is not a registered driver
+    '''
+    global _driver_factory
+    if not _driver_factory:
+        _driver_factory = BuildSystemDriverFactory()
+
+    if name in _driver_factory.drivers:
+        return _driver_factory.drivers[name]()  # construct a new instance
+    return None

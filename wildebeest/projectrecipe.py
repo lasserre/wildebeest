@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable, List
 from typing import TYPE_CHECKING
 
@@ -88,3 +89,8 @@ class ProjectRecipe:
         '''Custom build options specific to this project'''
         self.clean_options = clean_options
         '''Custom clean options specific to this project'''
+
+    @property
+    def project_name(self):
+        '''Extracts the project name from the git_remote URL'''
+        return Path(self.git_remote.split('/')[-1]).stem

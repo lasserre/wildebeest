@@ -1,22 +1,32 @@
 from typing import List
 
+from wildebeest.buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
+
 from .projectrecipe import ProjectRecipe
 from .experiment import *
 
-# driver = CmakeDriver()
+def init(run:Run, outputs:Dict[str,Any]):
+    run.build.init()
+    drivername = run.build.recipe.build_system
+    driver = get_buildsystem_driver(drivername)
+    if not driver:
+        raise Exception(f'No build system driver registered with the name {drivername}')
 
-# build.init()
-# driver.configure(runconfig, build)
-# driver.build(runconfig, build, 2)
+    return {
+        'driver': driver
+    }
 
-def init(rc:RunConfig, outputs:Dict[str,Any]):
-    pass
+def get_driver(outputs:Dict[str,Any]) -> BuildSystemDriver:
+    '''
+    Convenience function (for type hints), should only be used after init step
+    '''
+    return outputs['init']['driver']
 
-def configure(rc:RunConfig, outputs:Dict[str,Any]):
-    pass
+def configure(run:Run, outputs:Dict[str,Any]):
+    get_driver(outputs).configure(run.config, run.build)
 
-def build(rc:RunConfig, outputs:Dict[str,Any]):
-    pass
+def build(run:Run, outputs:Dict[str,Any]):
+    get_driver(outputs).build(run.config, run.build, numjobs=run.config.num_build_jobs)
 
 def DefaultBuildAlgorithm():
     '''

@@ -1,10 +1,28 @@
 from pathlib import Path
+import traceback
 from typing import Any, Callable, List, Dict
 
 from wildebeest.projectbuild import ProjectBuild
 
 from .runconfig import RunConfig
 from .projectrecipe import ProjectRecipe
+
+class Run:
+    '''
+    An execution of a particular configuration in the experiment design, an experiment run
+
+    This really encapsulates the state of the run and NOT the algorithm - the
+    ExperimentAlgorithm does that and is able to execute a Run.
+    '''
+    def __init__(self, name:str, build:ProjectBuild, config:RunConfig) -> None:
+        self.name = name
+        '''The name for this run'''
+
+        self.build = build
+        '''The project build for this run'''
+
+        self.config = config
+        '''The run configuration'''
 
 class ProcessingStep:
     '''
@@ -18,6 +36,12 @@ class ProcessingStep:
     If any steps require particular outputs to function properly, it is the responsibility
     of the algorithm creator to ensure the steps chain together properly. Likewise,
     each ProcessingStep should document its expected input and output parameter types.
+
+    Failure cases
+    -------------
+    If a processing step fails in some way, it should raise an exception with a meaningful
+    message. The algorithm runner will catch any exceptions in processing steps, log the
+    offending step, update the run status as failed and bail on the run at that point.
 
     Parallelism
     -----------
@@ -37,7 +61,7 @@ class ProcessingStep:
     is not acceptable, it can be prevented on an individual processing step's outputs
     by setting do_not_parallelize.
     '''
-    def __init__(self, name:str, process:Callable[[RunConfig, Dict[str, Any]], Any],
+    def __init__(self, name:str, process:Callable[[Run, Dict[str, Any]], Any],
             do_not_parallelize:bool=False) -> None:
         '''
         name: The unique name of this ProcessingStep
@@ -53,20 +77,6 @@ class ProcessingStep:
         self.do_not_parallelize = do_not_parallelize
         '''Indicates that the outputs of this processing step should not be split
         into multiple parallel jobs, even if a list is returned'''
-
-class Run:
-    '''
-    An execution of a particular configuration in the experiment design, an experiment run
-
-    This really encapsulates the state of the run and NOT the algorithm - the
-    ExperimentAlgorithm does that and is able to execute a Run.
-    '''
-    def __init__(self, build:ProjectBuild, config:RunConfig) -> None:
-        self.build = build
-        '''The project build for this run'''
-
-        self.config = config
-        '''The run configuration'''
 
 class ExperimentAlgorithm:
     def __init__(self, steps:List[ProcessingStep]) -> None:
@@ -95,65 +105,93 @@ class ExperimentAlgorithm:
 
         outputs = {}
         for step in self.steps:
-            step_output = step.process(run.config, outputs)
+            try:
+                step_output = step.process(run, outputs)
+            except Exception as e:
+                traceback.print_exc()
+                print(f"Run '{run.name}' failed during the '{step.name}' step")
+                print(e)
+                # TODO: update run status
+                return  # bail here
             # if isinstance(step_output, list) and not step.do_not_parallelize:
                 # TODO: we have the opportunity to partition these outputs into parallel
                 # jobs according to the job manager's configuration (add them to the job pool?)
-                # Job('meaningful-job-name', lambda: self.runfrom(next_step.name), job_dict)
+                # ---------
+                # for output in step_output:
+                #   job_dict = dict(outputs)
+                #   job_dict[step.name] = [output]  # only pass a subset of outputs (e.g. 1) to each job
+                #   Job('meaningful-job-name', lambda: self.runfrom(next_step.name), job_dict)
             outputs[step.name] = step_output
 
 class Experiment:
     def __init__(self, name:str, algorithm:ExperimentAlgorithm, projectlist:List[ProjectRecipe],
-                runconfigs:List[RunConfig], exp_folder:Path=None) -> None:
+                runconfigs:List[RunConfig], exp_containing_folder:Path=None) -> None:
         '''
         name:       A name to identify this experiment
         algorithm:  The algorithm that defines the experiment
         projectlist: The list of projects included in the experiment
         runconfigs: The set of run configs in the experiment
-        exp_folder: The experiment root folder
+        exp_containing_folder: The folder in which to create the experiment root folder
         '''
         self.name = name
         self.algorithm = algorithm
         self.projectlist = projectlist
         self.runconfigs = runconfigs
-        self.exp_folder = exp_folder if exp_folder else Path().home()/".wildebeest"/"experiments"/f'{name}.exp'
+        parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/".wildebeest"/"experiments"
+        self.exp_folder = parent_folder/f'{name}.exp'
+
+    @property
+    def source_folder(self):
+        '''The folder containing source code for each project'''
+        return self.exp_folder/"source"
+
+    @property
+    def build_folder(self):
+        '''The folder containing builds for each run in the experiment'''
+        return self.exp_folder/"build"
+
+    @property
+    def data_folder(self):
+        '''The folder containing output data for each run in the experiment'''
+        return self.exp_folder/"data"
+
+    def get_project_source_folder(self, project_name:str):
+        return self.source_folder/project_name
+
+    def get_build_folder_for_run(self, project_name:str, run_name:str):
+        return self.build_folder/project_name/run_name
+
+    def _generate_runs(self) -> List[Run]:
+        '''
+        Generates the experiment runs from the projectlist and runconfigs
+        '''
+        run_list = []
+        run_number = 1
+        for recipe in self.projectlist:
+            for rc in self.runconfigs:
+                project_name = recipe.project_name
+                run_name = f'run{run_number}.{rc.name}' if rc.name else f'run{run_number}'
+                build_folder = self.get_build_folder_for_run(project_name, run_name)
+                source_folder = self.get_project_source_folder(project_name)
+                proj_build = ProjectBuild(source_folder, build_folder, recipe)
+                run_list.append(Run(run_name, proj_build, rc))
+                run_number += 1
+        return run_list
 
     def run(self):
         # maybe this should defer to the runner so that the runner can encapsulate
         # properly executing the algorithm serially, and eventually properly
         # managing parallel execution of jobs
 
-        run_list = []
-        for proj in self.projectlist:
-            for rc in self.runconfigs:
-                # TODO: determine experiment folder layout here, instantiate project
-                # build for a runconfig in an experiment
-                # run_list.append(Run(ProjectBuild(), rc))
-                pass
+        run_list = self._generate_runs()
 
         # TODO: ...I never IMPLEMENTED the default build algorithm :P go back and
         # fill that in quickly! (look up proper build driver from 'registry' using
         # name in project recipe, etc...)
 
-        # TODO: make sure the algorithm works properly for a run where the project
-        # repository folder has already been cloned from github (i.e. don't re-clone)
-        # --- check this by running something with 2 run configs, make sure the second
-        # build doesn't recreate the project folder!
-
         # TODO: once the experiment is running end-to-end for N > 1 run configs
-        # SERIALLY, then instantiate a job manager here to kick off each task in
+        # SERIALLY, then instantiate a job manager here to kick off each Run in
         # parallel
 
         for r in run_list:
             self.algorithm.execute(r)
-
-        # For now, a job pretty much maps to a RunConfig (single build of a project)
-        #
-        # The experiment runner will manage (or initiate if this is broken into more classes):
-        #
-        #   - splitting an experiment up into Jobs (each run config is a job)
-        #   - parallel job runner manages the kicking off/running of these in parallel processes (later)
-        #       - define how many we want running in parallel at any one time (e.g. 8 parallel jobs),
-        #         split the pile up into 8 runners, and go
-        #   - something knows how to (serially) run a single Job/RunConfig (NEED THIS NOW)
-        #   - A Job will hold content (RunConfig) and manages metadata about job state

@@ -36,7 +36,7 @@ def main():
     runconfig.c_options.compiler_flags = flags
     runconfig.cpp_options.compiler_flags = flags
 
-    driver = CmakeDriver()
+    # driver = CmakeDriver()
 
     # build.init()
     # driver.configure(runconfig, build)
@@ -47,9 +47,11 @@ def main():
     # TODO: re-create an experiment instance here once I've finished implementing
     # experiment.run()
     # ----------------
-    # exp = Experiment('funcprotos', DefaultBuildAlgorithm(), runs=[])
-    # exp.algorithm.insert_after('build', ProcessingStep('postprocess'))
-    # exp.run()
+    exp = Experiment('funcprotos', DefaultBuildAlgorithm(),
+        projectlist=[recipe],
+        runconfigs=[runconfig],
+        exp_containing_folder=Path().home()/'test_builds')
+    exp.run()
 
     # dd = {
     #     'abc': 123,

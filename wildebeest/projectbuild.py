@@ -31,18 +31,19 @@ class ProjectBuild:
         self.recipe = recipe
         '''The ProjectRecipe for this project'''
 
+        self.gitrepo = GitRepository(self.recipe.git_remote,
+                                self.project_root,
+                                head=self.recipe.git_head)
+        '''The git repository for this project'''
+
     def init(self):
         '''
         Ensures the project build is initialized by cloning the project if needed
         and creating the build folder if needed. This may be called on an existing
         project build without harm.
         '''
-        # clone the project from github if this is the first time
         if not self.project_root.exists():
-            repo = GitRepository(self.recipe.git_remote,
-                                self.project_root,
-                                head=self.recipe.git_head)
-            repo.init()
+            self.gitrepo.init()     # clone the project from github if it dne
 
         # make sure build folder exists
         self.build_folder.mkdir(parents=True, exist_ok=True)

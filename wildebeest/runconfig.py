@@ -64,8 +64,13 @@ class RunConfig:
     Settings that describe the configuration for a single run of an experiment
     '''
     compile_options: Dict[str, CompilationSettings]
+    num_build_jobs: int
 
-    def __init__(self) -> None:
+    def __init__(self, name:str='') -> None:
+        '''
+        name: An optional human-readable name for the run
+        '''
+        self.name = name
         self.compile_options = {}
         '''
         Dictionary mapping language name to its compilation options. The C and C++
@@ -74,6 +79,9 @@ class RunConfig:
         '''
         self.compile_options[LANG_C] = CompilationSettings()
         self.compile_options[LANG_CPP] = CompilationSettings()
+
+        self.num_build_jobs = 1
+        '''Default number of build jobs to use per build (e.g. make -j N)'''
 
     @property
     def c_options(self) -> CompilationSettings:

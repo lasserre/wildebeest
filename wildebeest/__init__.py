@@ -1,4 +1,4 @@
-from .buildsystemdriver import BuildSystemDriver
+from .buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
 from .defaultbuildalgorithm import DefaultBuildAlgorithm
 from .experiment import *
 from .gitrepository import GitRepository
