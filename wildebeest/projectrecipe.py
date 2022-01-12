@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 from .runconfig import RunConfig
 
-class ProjectBuildStepOptions:
+class BuildStepOptions:
     def __init__(self,
             cmdline_options:List[str]=[],
             override_step:Callable[[RunConfig, 'ProjectBuild'], Any]=None,
@@ -49,9 +49,9 @@ class ProjectRecipe:
             source_languages:List[str],
             out_of_tree:bool=True,
             git_head:str='',
-            configure_options:ProjectBuildStepOptions=ProjectBuildStepOptions(),
-            build_options:ProjectBuildStepOptions=ProjectBuildStepOptions(),
-            clean_options:ProjectBuildStepOptions=ProjectBuildStepOptions()) -> None:
+            configure_options:BuildStepOptions=BuildStepOptions(),
+            build_options:BuildStepOptions=BuildStepOptions(),
+            clean_options:BuildStepOptions=BuildStepOptions()) -> None:
         '''
         build_system: The name of the build system (driver) that this project uses
         git_remote:  A path or URL for the project's git repository from which it

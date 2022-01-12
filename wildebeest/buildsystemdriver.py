@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict
 from wildebeest.sourcelanguages import LANG_C
 from .runconfig import RunConfig
 from .projectbuild import ProjectBuild
-from .projectrecipe import ProjectBuildStepOptions
+from .projectrecipe import BuildStepOptions
 from .utils import *
 
 class BuildSystemDriver:
@@ -38,7 +38,7 @@ class BuildSystemDriver:
         self.name = name
 
     def _do_build_step(self, runconfig:RunConfig, build:ProjectBuild,
-            opts:ProjectBuildStepOptions,
+            opts:BuildStepOptions,
             do_step:Callable[[RunConfig, ProjectBuild], Any]):
         '''
         This algorithm was identical for all 3 steps, so I didn't want to
