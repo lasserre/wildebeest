@@ -27,10 +27,6 @@ def main():
         'git@github.com:lasserre/test-programs.git',
         [LANG_CPP, LANG_C])
 
-    test_folder = Path('/home/cls0027/test_builds')
-    proj_root = test_folder/"test-programs"
-    build = ProjectBuild(proj_root, proj_root/"build", recipe)
-
     runconfig = RunConfig()
     clangdir = Path.home()/'software'/'llvm-features-12.0.1'
     runconfig.c_options.compiler_path = clangdir/'bin'/'clang'
