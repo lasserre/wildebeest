@@ -47,6 +47,12 @@ def main():
     #     > are defined at each address at which we know a function to exist
     # 6. We should now have a full dataset: (address, true prototype, ghidra prototype)
     # 7. Analyze results (compute similarity metric, further analysis)
+    # TODO: if we want to generate a summary report across all binaries (btw we do...haha)
+        # For example, use pandas to collect all the proto similarity metric data
+        # and analyze stuff
+    # ...then we need to:
+    # TODO define a way of running experiment-wide post-processing, not just on a per-run basis
+        # TODO: START HERE -> simple callbacks like process(exp:Experiment, outputs:Dict)
 
     def generate_labels(run:Run, outputs:Dict[str,Any]):
         # 2. Extract function addresses from "debug-enabled" target binaries
