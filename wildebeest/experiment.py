@@ -198,8 +198,7 @@ class ExperimentAlgorithm:
                 step_output = step.process(run, run.outputs)
             except Exception as e:
                 traceback.print_exc()
-                print(f"Run '{run.name}' failed during the '{step.name}' step")
-                print(e)
+                print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
                 run.status = RunStatus.FAILED
                 run.failed_step = step.name
                 run.save_to_runstate_file(rsfolder)

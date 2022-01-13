@@ -16,8 +16,13 @@ class ClangFlags:
         # FORMAT: -Xclang -load -Xclang <my_plugin.so> -Xclang -add-plugin -Xclang <my_plugin>
         return ' -Xclang '.join(['', '-load', str(plugin_path), '-add-plugin', plugin_name]).split()
 
-class DebugFlags:
-    WITH_DEBUG = ['-g']
+class LinuxCompilerFlags:
+    '''
+    These should apply to gcc/clang at least
+    '''
+    # FYI: https://stackoverflow.com/questions/48754619/what-are-cmake-build-type-debug-release-relwithdebinfo-and-minsizerel
+
+    ENABLE_DEBUG = ['-g']
     '''Flags to compile with debug information'''
 
 class CompilationSettings:
@@ -41,9 +46,31 @@ class CompilationSettings:
         self.linker_flags = []
         '''List of additional linker arguments'''
 
-    def add_c_cpp_vars(self, env_dict:dict, lang:str):
+    def enable_debug_info(self):
         '''
-        Adds CC/CFLAGS or CXX/CXXFLAGS variables to the environment dictionary from the
+        Ensures the flags defined for compiling with debug info are included
+        (LinuxCompilerFlags.ENABLE_DEBUG)
+
+        Not all gcc/clang flags work this way, but for the debug info flags I'm
+        using now, we can add/remove them freely by inspecting the whole list.
+        Other flags don't work that way (e.g. -Xclang), so this approach doesn't work in general
+        '''
+        for f in LinuxCompilerFlags.ENABLE_DEBUG:
+            if f not in self.compiler_flags:
+                self.compiler_flags.append(f)
+
+    def disable_debug_info(self):
+        '''
+        Ensures the flags defined for compiling with debug info are not included
+        '''
+        for f in LinuxCompilerFlags.ENABLE_DEBUG:
+            if f in self.compiler_flags:
+                self.compiler_flags.remove(f)
+
+    def add_c_cpp_vars_to_env(self, env_dict:dict, lang:str):
+        '''
+        Adds CC/CFLAGS or CXX/CXXFLAGS variables to the environment dictionary from
+        this instance's relevant settings
 
         env_dict: The dictionary to add the environment variables to
         lang: Either LANG_C or LANG_CPP to specify desired language
@@ -97,6 +124,6 @@ class RunConfig:
         representing the RunConfig
         '''
         env_dict = {}
-        self.c_options.add_c_cpp_vars(env_dict, LANG_C)
-        self.cpp_options.add_c_cpp_vars(env_dict, LANG_CPP)
+        self.c_options.add_c_cpp_vars_to_env(env_dict, LANG_C)
+        self.cpp_options.add_c_cpp_vars_to_env(env_dict, LANG_CPP)
         return env_dict
