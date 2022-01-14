@@ -65,12 +65,13 @@ def main():
             if 'funcprotos' in extdict:
                 fp_files = extdict['funcprotos']
                 print(fp_files)
+
                 # ------------------
                 # TODO: pick up here
                 # ------------------
-                # TODO need to define the data/ output folder for this run
                 # TODO
                 # 1. run python script to pull addresses from debug binaries
+                    # python extract_func_addrs.py <EXE> | llvm-cxxfilt-11
                 # 2. combine with fp_files here -> dump result in data folder
 
         import IPython; IPython.embed()

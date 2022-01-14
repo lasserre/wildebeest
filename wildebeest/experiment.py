@@ -23,7 +23,15 @@ class Run:
     This really encapsulates the state of the run and NOT the algorithm - the
     ExperimentAlgorithm does that and is able to execute a Run.
     '''
-    def __init__(self, name:str, build:ProjectBuild, config:RunConfig) -> None:
+    def __init__(self, name:str, build:ProjectBuild, config:RunConfig,
+        runstates_folder:Path, rundata_folder:Path) -> None:
+        '''
+        name: The name for this run
+        build: Project build for this run
+        config: Run configuration
+        runstates_folder: The experiment runstates folder
+        rundata_folder: The experiment rundata folder
+        '''
         self.name = name
         '''The name for this run'''
 
@@ -32,6 +40,12 @@ class Run:
 
         self.config = config
         '''The run configuration'''
+
+        self.exp_runstates_folder = runstates_folder
+        '''The experiment runstates folder'''
+
+        self.exp_rundata_folder = rundata_folder
+        '''The experiment rundata folder'''
 
         self.outputs = {}
         '''The run outputs, where the name of each algorithm step is mapped to
@@ -46,18 +60,28 @@ class Run:
         self.failed_step = ''
         '''If a failure occurs, this holds the name of the failed step'''
 
-    def runstate_file(self, runstates_folder:Path) -> Path:
+    @property
+    def runstate_file(self) -> Path:
         '''Returns the path to this run's runstate file'''
-        return runstates_folder/f'{self.name}.run.yaml'
+        return self.exp_runstates_folder/f'{self.name}.run.yaml'
+
+    @property
+    def data_folder(self) -> Path:
+        '''
+        Returns the path to this run's data foler
+
+        rundata_folder: The experiment's rundata folder
+        '''
+        return self.exp_rundata_folder/f'{self.name}'
 
     @staticmethod
     def load_from_runstate_file(yamlfile:str) -> 'Run':
         with open(yamlfile, 'r') as f:
             return load(f.read(), Loader)
 
-    def save_to_runstate_file(self, rsfolder:Path):
+    def save_to_runstate_file(self):
         '''Saves this Run to its runstate file'''
-        rsfile = self.runstate_file(rsfolder)
+        rsfile = self.runstate_file
         rsfile.parent.mkdir(parents=True, exist_ok=True)
         with open(rsfile, 'w') as f:
             f.write(dump(self))
@@ -168,7 +192,7 @@ class ExperimentAlgorithm:
 
         return True
 
-    def execute_from(self, step:str, rsfolder:Path, run:Run):
+    def execute_from(self, step:str, run:Run):
         '''
         [Re-]Executes the algorithm beginning at the specified step. Note that the
         preceding steps in the algorithm must have already been completed for this
@@ -191,7 +215,7 @@ class ExperimentAlgorithm:
         # mid-way through
         run.failed_step = ''
         run.status = RunStatus.RUNNING
-        run.save_to_runstate_file(rsfolder)
+        run.save_to_runstate_file()
 
         for step in steps_to_exec:
             try:
@@ -201,7 +225,7 @@ class ExperimentAlgorithm:
                 print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
                 run.status = RunStatus.FAILED
                 run.failed_step = step.name
-                run.save_to_runstate_file(rsfolder)
+                run.save_to_runstate_file()
                 return  # bail here
             # if isinstance(step_output, list) and not step.do_not_parallelize:
                 # TODO: we have the opportunity to partition these outputs into parallel
@@ -214,21 +238,21 @@ class ExperimentAlgorithm:
 
             run.outputs[step.name] = step_output
             run.last_completed_step = step.name
-            run.save_to_runstate_file(rsfolder)
+            run.save_to_runstate_file()
 
         run.status = RunStatus.FINISHED
-        run.save_to_runstate_file(rsfolder)
+        run.save_to_runstate_file()
 
     def has_unique_stepnames(self) -> bool:
         '''Verifies that the steps have unique names and returns True if so'''
         names = [x.name for x in self.steps]
         return len(set(names)) == len(names)
 
-    def execute(self, rsfolder:Path, run:Run):
+    def execute(self, run:Run):
         '''Executes the algorithm using the given RunConfig'''
         run.init_running_state()
-        run.save_to_runstate_file(rsfolder)
-        self.execute_from(self.steps[0].name, rsfolder, run)
+        run.save_to_runstate_file()
+        self.execute_from(self.steps[0].name, run)
 
 class Experiment:
     def __init__(self, name:str, algorithm:ExperimentAlgorithm, projectlist:List[ProjectRecipe],
@@ -244,23 +268,28 @@ class Experiment:
         self.algorithm = algorithm
         self.projectlist = projectlist
         self.runconfigs = runconfigs
-        parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/".wildebeest"/"experiments"
+        parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/'.wildebeest'/'experiments'
         self.exp_folder = parent_folder/f'{name}.exp'
 
     @property
     def source_folder(self):
         '''The folder containing source code for each project'''
-        return self.exp_folder/"source"
+        return self.exp_folder/'source'
 
     @property
     def build_folder(self):
         '''The folder containing builds for each run in the experiment'''
-        return self.exp_folder/"build"
+        return self.exp_folder/'build'
 
     @property
-    def data_folder(self):
-        '''The folder containing output data for each run in the experiment'''
-        return self.exp_folder/"data"
+    def rundata_folder(self):
+        '''The folder containing output data for individual runs in the experiment'''
+        return self.exp_folder/'rundata'
+
+    @property
+    def expdata_folder(self):
+        '''The folder containing experiment-level (combined) output data'''
+        return self.exp_folder/'expdata'
 
     @property
     def runstates_folder(self):
@@ -286,7 +315,7 @@ class Experiment:
                 build_folder = self.get_build_folder_for_run(project_name, run_name)
                 source_folder = self.get_project_source_folder(project_name)
                 proj_build = ProjectBuild(source_folder, build_folder, recipe)
-                run_list.append(Run(run_name, proj_build, rc))
+                run_list.append(Run(run_name, proj_build, rc, self.runstates_folder, self.rundata_folder))
                 run_number += 1
         return run_list
 
@@ -322,14 +351,14 @@ class Experiment:
 
         # initialize the runstate files for the entire experiment
         for r in run_list:
-            r.save_to_runstate_file(self.runstates_folder)
+            r.save_to_runstate_file()
 
         # TODO: once the experiment is running end-to-end for N > 1 run configs
         # SERIALLY, then instantiate a job manager here to kick off each Run in
         # parallel
 
         for r in run_list:
-            self.algorithm.execute(self.runstates_folder, r)
+            self.algorithm.execute(r)
 
     # TODO do we need this?
     def resume(self):
@@ -341,7 +370,7 @@ class Experiment:
             idx = self.algorithm.get_index_of_step(r.last_completed_step)
             if (idx+1) < len(self.algorithm.steps):
                 next_step = self.algorithm.steps[idx+1].name
-                self.algorithm.execute_from(next_step, self.runstates_folder, r)
+                self.algorithm.execute_from(next_step, r)
 
     def rerun(self, step:str):
         '''
@@ -352,5 +381,9 @@ class Experiment:
         already existing saved runstates.
         '''
         run_list = self._load_runs()
+        if not run_list:
+            print(f'No existing runs to rerun in experiment {self.exp_folder}')
+            return
+
         for r in run_list:
-            self.algorithm.execute_from(step, self.runstates_folder, r)
+            self.algorithm.execute_from(step, r)
