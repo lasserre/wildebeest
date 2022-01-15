@@ -1,12 +1,12 @@
 from pathlib import Path
 import traceback
 from typing import Any, Callable, List, Dict
-from yaml import load, dump, Loader
 
 from wildebeest.projectbuild import ProjectBuild
 
 from .runconfig import RunConfig
 from .projectrecipe import ProjectRecipe
+from .utils import *
 
 class RunStatus:
     READY = 'Ready'
@@ -75,16 +75,12 @@ class Run:
         return self.exp_rundata_folder/f'{self.name}'
 
     @staticmethod
-    def load_from_runstate_file(yamlfile:str) -> 'Run':
-        with open(yamlfile, 'r') as f:
-            return load(f.read(), Loader)
+    def load_from_runstate_file(yamlfile:Path) -> 'Run':
+        return load_from_yaml(yamlfile)
 
     def save_to_runstate_file(self):
         '''Saves this Run to its runstate file'''
-        rsfile = self.runstate_file
-        rsfile.parent.mkdir(parents=True, exist_ok=True)
-        with open(rsfile, 'w') as f:
-            f.write(dump(self))
+        save_to_yaml(self, self.runstate_file)
 
     def init_running_state(self):
         self.outputs = {}
@@ -141,6 +137,35 @@ class ProcessingStep:
 
         self.process = process
         '''Executes the core processing step of the algorithm'''
+
+        # TODO add step-specific param dict (not input from other stages,
+        # just config for this instatiation of the step...)
+        # TODO go ahead and define entry points for registering an experiment
+
+        # TODO Ok, I think actually it makes sense to create a local (in research/function-prototypes)
+        # python package:
+        #   funcprotos/
+        #       setup.cfg   # registers the experiment, scripts, etc
+        #       funcprotos/
+        #           __init__.py
+        #           ...
+        # - we should be able to `pip install -e funcprotos` FROM THIS FOLDER to
+        #   set up the experiment
+        #       > there's probably also a way to pip install a subfolder from the phd repo?
+        #       YES: https://stackoverflow.com/a/19516714/1944614
+        #            add &subdirectory=rel_from_root_dir, e.g:
+        #            pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir
+        # **********************
+        # - This allows me to register the whole experiment and serialize/deserialize
+        #   all its algorithmic parts as needed without issues
+        # - This make the part of the experiment that calls python scripts
+        #   REALLY NICE - I don't need to find relative paths to files based on the file
+        #   I'm in or nonsense like that...I just INSTALL THE EXP SCRIPTS via
+        #   entry points!!
+        # - If I wanted to unify all of the experiments into one package I could, but
+        #   based on current folder layout I can keep each separate...also could make
+        #   package deps lighter if I'm not running everything (optionally)
+        # **********************
 
         self.do_not_parallelize = do_not_parallelize
         '''Indicates that the outputs of this processing step should not be split
@@ -255,13 +280,15 @@ class ExperimentAlgorithm:
         self.execute_from(self.steps[0].name, run)
 
 class Experiment:
-    def __init__(self, name:str, algorithm:ExperimentAlgorithm, projectlist:List[ProjectRecipe],
-                runconfigs:List[RunConfig], exp_containing_folder:Path=None) -> None:
+    def __init__(self, name:str, algorithm:ExperimentAlgorithm,
+                runconfigs:List[RunConfig],
+                projectlist:List[ProjectRecipe]=[],
+                exp_containing_folder:Path=None) -> None:
         '''
         name:       A name to identify this experiment
         algorithm:  The algorithm that defines the experiment
-        projectlist: The list of projects included in the experiment
         runconfigs: The set of run configs in the experiment
+        projectlist: The list of projects included in the experiment
         exp_containing_folder: The folder in which to create the experiment root folder
         '''
         self.name = name
@@ -270,6 +297,13 @@ class Experiment:
         self.runconfigs = runconfigs
         parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/'.wildebeest'/'experiments'
         self.exp_folder = parent_folder/f'{name}.exp'
+
+    @staticmethod
+    def load_from_yaml(yamlfile:Path) -> 'Experiment':
+        return load_from_yaml(yamlfile)
+
+    def save_to_yaml(self, yamlfile:Path):
+        save_to_yaml(self, yamlfile)
 
     @property
     def source_folder(self):

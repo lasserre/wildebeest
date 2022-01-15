@@ -50,6 +50,16 @@ def find_instrumentation_files(extensions:List[str], step_name:str='find_instrum
 
     return ProcessingStep(step_name, do_find_instr_files)
 
+def _do_find_binaries(run:Run, outputs:Dict[str,Any]):
+    lobjs = list(run.build.build_folder.rglob('*.linker-objects'))
+    # remove .linker-objects to get binary name
+    binaries = [x.with_suffix('') for x in lobjs]
+
+    result = {}
+    result['linker-objects'] = lobjs
+    result['binaries'] = binaries
+    return result
+
 def find_binaries() -> ProcessingStep:
     '''
     Creates a ProcessingStep that will find binaries linked with our modified
@@ -64,13 +74,4 @@ def find_binaries() -> ProcessingStep:
         'binaries': [ list of corresponding binary paths ],
     }
     '''
-    def do_find_binaries(run:Run, outputs:Dict[str,Any]):
-        lobjs = list(run.build.build_folder.rglob('*.linker-objects'))
-        # remove .linker-objects to get binary name
-        binaries = [x.with_suffix('') for x in lobjs]
-
-        result = {}
-        result['linker-objects'] = lobjs
-        result['binaries'] = binaries
-        return result
-    return ProcessingStep('find_binaries', do_find_binaries)
+    return ProcessingStep('find_binaries', _do_find_binaries)
