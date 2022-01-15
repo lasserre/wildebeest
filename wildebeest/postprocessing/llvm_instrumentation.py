@@ -11,6 +11,26 @@ from typing import Any, Dict, List
 
 from ..experiment import ProcessingStep, Run
 
+def do_find_instr_files(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    if 'find_binaries' not in outputs:
+        raise Exception('Need the find_binaries step to be run first')
+
+    if 'extensions' not in params:
+        raise Exception('No instrumentation file extensions specified')
+
+    result = {}
+    lobjs = outputs['find_binaries']['linker-objects']
+
+    for lo in lobjs:
+        binary = lo.with_suffix('')
+        result[binary] = {}
+        df = pd.read_csv(lo, names=['Object','Status'])
+        objs = [Path(x) for x in df[df['Status']=='OK'].Object]
+        for ext in params['extensions']:
+            instr_files = [obj.with_suffix(f'.{ext}') for obj in objs]
+            result[binary][ext] = [x for x in instr_files if x.exists()]
+    return result
+
 def find_instrumentation_files(extensions:List[str], step_name:str='find_instrumentation') -> ProcessingStep:
     '''
     Returns a ProcessingStep that will find instrumentation files with the
@@ -31,26 +51,11 @@ def find_instrumentation_files(extensions:List[str], step_name:str='find_instrum
     }
     where there may be multiple binary paths, each with multiple extensions
     '''
-    def do_find_instr_files(run:Run, outputs:Dict[str,Any]):
-        if 'find_binaries' not in outputs:
-            raise Exception('Need the find_binaries step to be run first')
+    return ProcessingStep(step_name, do_find_instr_files, params={
+        'extensions': list(extensions)
+    })
 
-        result = {}
-        lobjs = outputs['find_binaries']['linker-objects']
-
-        for lo in lobjs:
-            binary = lo.with_suffix('')
-            result[binary] = {}
-            df = pd.read_csv(lo, names=['Object','Status'])
-            objs = [Path(x) for x in df[df['Status']=='OK'].Object]
-            for ext in extensions:
-                instr_files = [obj.with_suffix(f'.{ext}') for obj in objs]
-                result[binary][ext] = [x for x in instr_files if x.exists()]
-        return result
-
-    return ProcessingStep(step_name, do_find_instr_files)
-
-def _do_find_binaries(run:Run, outputs:Dict[str,Any]):
+def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     lobjs = list(run.build.build_folder.rglob('*.linker-objects'))
     # remove .linker-objects to get binary name
     binaries = [x.with_suffix('') for x in lobjs]

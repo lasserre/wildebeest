@@ -2,104 +2,33 @@ from pathlib import Path
 import traceback
 from typing import Any, Callable, List, Dict
 
-from wildebeest.projectbuild import ProjectBuild
-
+from .experimentpaths import ExpRelPaths
+from .projectbuild import ProjectBuild
 from .runconfig import RunConfig
+from .run import Run, RunStatus
 from .projectrecipe import ProjectRecipe
 from .utils import *
-
-class RunStatus:
-    READY = 'Ready'
-    RUNNING = 'Running'
-    FAILED = 'Failed'
-    FINISHED = 'Finished'
-
-class Run:
-    outputs: Dict[str, Any]
-
-    '''
-    An execution of a particular configuration in the experiment design, an experiment run
-
-    This really encapsulates the state of the run and NOT the algorithm - the
-    ExperimentAlgorithm does that and is able to execute a Run.
-    '''
-    def __init__(self, name:str, build:ProjectBuild, config:RunConfig,
-        runstates_folder:Path, rundata_folder:Path) -> None:
-        '''
-        name: The name for this run
-        build: Project build for this run
-        config: Run configuration
-        runstates_folder: The experiment runstates folder
-        rundata_folder: The experiment rundata folder
-        '''
-        self.name = name
-        '''The name for this run'''
-
-        self.build = build
-        '''The project build for this run'''
-
-        self.config = config
-        '''The run configuration'''
-
-        self.exp_runstates_folder = runstates_folder
-        '''The experiment runstates folder'''
-
-        self.exp_rundata_folder = rundata_folder
-        '''The experiment rundata folder'''
-
-        self.outputs = {}
-        '''The run outputs, where the name of each algorithm step is mapped to
-        the output it returned'''
-
-        self.status = RunStatus.READY
-        '''Execution status of this run'''
-
-        self.last_completed_step = ''
-        '''The name of the last algorithm step that was completed successfully'''
-
-        self.failed_step = ''
-        '''If a failure occurs, this holds the name of the failed step'''
-
-    @property
-    def runstate_file(self) -> Path:
-        '''Returns the path to this run's runstate file'''
-        return self.exp_runstates_folder/f'{self.name}.run.yaml'
-
-    @property
-    def data_folder(self) -> Path:
-        '''
-        Returns the path to this run's data foler
-
-        rundata_folder: The experiment's rundata folder
-        '''
-        return self.exp_rundata_folder/f'{self.name}'
-
-    @staticmethod
-    def load_from_runstate_file(yamlfile:Path) -> 'Run':
-        return load_from_yaml(yamlfile)
-
-    def save_to_runstate_file(self):
-        '''Saves this Run to its runstate file'''
-        save_to_yaml(self, self.runstate_file)
-
-    def init_running_state(self):
-        self.outputs = {}
-        self.last_completed_step = ''
-        self.failed_step = ''
-        self.status = RunStatus.RUNNING
 
 class ProcessingStep:
     '''
     Represents a single processing step in an algorithm
 
-    Each step's process function accepts the current Run as a parameter, as well as a
-    dictionary containing all currently available outputs. The dictionary maps the names of
-    each ProcessingStep to the return value of that stage, and is constructed as the
-    algorithm executes (the first step will get an empty dictionary).
+    Each step's process function accepts as arguments the current Run, the processing
+    step's parameter dictinoary, and a dictionary containing all currently available
+    outputs. The output dictionary maps the names of each ProcessingStep to the return
+    value of that stage, and is constructed as the algorithm executes
+    (the first step will get an empty dictionary).
 
-    If any steps require particular outputs to function properly, it is the responsibility
-    of the algorithm creator to ensure the steps chain together properly. Likewise,
-    each ProcessingStep should document its expected input and output parameter types.
+    The processing step's parameter dictionary is a local collection of configuration
+    parameters that can be customized per instance. This is for parameters that
+    should be configurable for a single processing step implementation, but is not
+    variable for that step in an algorithm (e.g. the find_instrumentation_files
+    processing step indicates what file extension should be located via its
+    parameter dict).
+
+    If any steps require particular outputs of previous stages to function properly,
+    it is the responsibility of the algorithm creator to ensure the steps chain together
+    properly. Likewise, each ProcessingStep should document its expected input and output parameter types.
 
     Failure cases
     -------------
@@ -125,10 +54,12 @@ class ProcessingStep:
     is not acceptable, it can be prevented on an individual processing step's outputs
     by setting do_not_parallelize.
     '''
-    def __init__(self, name:str, process:Callable[[Run, Dict[str, Any]], Any],
+    def __init__(self, name:str, process:Callable[[Run, Dict[str,Any], Dict[str, Any]], Any],
+            params:Dict[str,Any]={},
             do_not_parallelize:bool=False) -> None:
         '''
         name: The unique name of this ProcessingStep
+        parameters: A dictionary of parameters for this step
         process: The Callable that executes this step in the algorithm
         '''
         # https://stackoverflow.com/questions/37835179/how-can-i-specify-the-function-type-in-my-type-hints
@@ -138,34 +69,10 @@ class ProcessingStep:
         self.process = process
         '''Executes the core processing step of the algorithm'''
 
-        # TODO add step-specific param dict (not input from other stages,
-        # just config for this instatiation of the step...)
-        # TODO go ahead and define entry points for registering an experiment
-
-        # TODO Ok, I think actually it makes sense to create a local (in research/function-prototypes)
-        # python package:
-        #   funcprotos/
-        #       setup.cfg   # registers the experiment, scripts, etc
-        #       funcprotos/
-        #           __init__.py
-        #           ...
-        # - we should be able to `pip install -e funcprotos` FROM THIS FOLDER to
-        #   set up the experiment
-        #       > there's probably also a way to pip install a subfolder from the phd repo?
-        #       YES: https://stackoverflow.com/a/19516714/1944614
-        #            add &subdirectory=rel_from_root_dir, e.g:
-        #            pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir
-        # **********************
-        # - This allows me to register the whole experiment and serialize/deserialize
-        #   all its algorithmic parts as needed without issues
-        # - This make the part of the experiment that calls python scripts
-        #   REALLY NICE - I don't need to find relative paths to files based on the file
-        #   I'm in or nonsense like that...I just INSTALL THE EXP SCRIPTS via
-        #   entry points!!
-        # - If I wanted to unify all of the experiments into one package I could, but
-        #   based on current folder layout I can keep each separate...also could make
-        #   package deps lighter if I'm not running everything (optionally)
-        # **********************
+        self.params = params
+        '''A dictionary of parameters for this step. This allows each instance of
+        a processing step to be customized, but these params are constant for a
+        particular algorithm step'''
 
         self.do_not_parallelize = do_not_parallelize
         '''Indicates that the outputs of this processing step should not be split
@@ -217,7 +124,7 @@ class ExperimentAlgorithm:
 
         return True
 
-    def execute_from(self, step:str, run:Run):
+    def execute_from(self, step_name:str, run:Run):
         '''
         [Re-]Executes the algorithm beginning at the specified step. Note that the
         preceding steps in the algorithm must have already been completed for this
@@ -230,10 +137,10 @@ class ExperimentAlgorithm:
             print(f'Please ensure all step names are unique and try again :)')
             return
 
-        if not self.validate_execute_from(run, step):
+        if not self.validate_execute_from(run, step_name):
             return
 
-        step_idx = self.get_index_of_step(step)
+        step_idx = self.get_index_of_step(step_name)
         steps_to_exec = self.steps[step_idx:]
 
         # reset status, but don't overwrite outputs in case we're starting
@@ -244,7 +151,7 @@ class ExperimentAlgorithm:
 
         for step in steps_to_exec:
             try:
-                step_output = step.process(run, run.outputs)
+                step_output = step.process(run, step.params, run.outputs)
             except Exception as e:
                 traceback.print_exc()
                 print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
@@ -299,36 +206,44 @@ class Experiment:
         self.exp_folder = parent_folder/f'{name}.exp'
 
     @staticmethod
-    def load_from_yaml(yamlfile:Path) -> 'Experiment':
-        return load_from_yaml(yamlfile)
+    def load_from_yaml(exp_folder:Path) -> 'Experiment':
+        yamlfile = exp_folder/ExpRelPaths.ExpYaml
+        exp = load_from_yaml(yamlfile)
+        # this is all we need to do to rebase right now, if it expands then I
+        # can break out into a function
+        exp.exp_folder = exp_folder
+        return exp
 
-    def save_to_yaml(self, yamlfile:Path):
+    def save_to_yaml(self):
+        # to keep our assumptions sensible, we don't allow saving the experiment
+        # .yaml file away from its experiment folder
+        yamlfile = self.exp_folder/ExpRelPaths.ExpYaml
         save_to_yaml(self, yamlfile)
 
     @property
     def source_folder(self):
         '''The folder containing source code for each project'''
-        return self.exp_folder/'source'
+        return self.exp_folder/ExpRelPaths.Source
 
     @property
     def build_folder(self):
         '''The folder containing builds for each run in the experiment'''
-        return self.exp_folder/'build'
+        return self.exp_folder/ExpRelPaths.Build
 
     @property
     def rundata_folder(self):
         '''The folder containing output data for individual runs in the experiment'''
-        return self.exp_folder/'rundata'
+        return self.exp_folder/ExpRelPaths.Rundata
 
     @property
     def expdata_folder(self):
         '''The folder containing experiment-level (combined) output data'''
-        return self.exp_folder/'expdata'
+        return self.exp_folder/ExpRelPaths.Expdata
 
     @property
     def runstates_folder(self):
         '''The folder containing the serialized runstates for this experiment'''
-        return self.exp_folder/'.wildebeest'/'runstates'
+        return self.exp_folder/ExpRelPaths.Runstates
 
     def get_project_source_folder(self, project_name:str):
         return self.source_folder/project_name
@@ -340,6 +255,11 @@ class Experiment:
         '''
         Generates the experiment runs from the projectlist and runconfigs
         '''
+        if not self.projectlist:
+            raise Exception("Can't generate runs with an empty project list")
+        if not self.runconfigs:
+            raise Exception("Can't generate runs with no run configs")
+
         run_list = []
         run_number = 1
         for recipe in self.projectlist:
@@ -348,8 +268,8 @@ class Experiment:
                 run_name = f'run{run_number}.{rc.name}' if rc.name else f'run{run_number}'
                 build_folder = self.get_build_folder_for_run(project_name, run_name)
                 source_folder = self.get_project_source_folder(project_name)
-                proj_build = ProjectBuild(source_folder, build_folder, recipe)
-                run_list.append(Run(run_name, proj_build, rc, self.runstates_folder, self.rundata_folder))
+                proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
+                run_list.append(Run(run_name, self.exp_folder, proj_build, rc))
                 run_number += 1
         return run_list
 
@@ -358,7 +278,7 @@ class Experiment:
         Loads the serialized experiment runs from the runstate folder
         '''
         yaml_files = list(self.runstates_folder.glob('*.run.yaml'))
-        return [Run.load_from_runstate_file(f) for f in yaml_files]
+        return [Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files]
 
     def run(self, force:bool=False):
         '''
@@ -376,6 +296,7 @@ class Experiment:
         # maybe this should defer to the runner so that the runner can encapsulate
         # properly executing the algorithm serially, and eventually properly
         # managing parallel execution of jobs
+        self.save_to_yaml()
 
         if self.runstates_folder.exists() and not force:
             print(f'Runstates folder already exists. Either supply force=True or use rerun()')
@@ -399,7 +320,13 @@ class Experiment:
         '''
         Resumes each run in the experiment from its last completed state
         '''
+        self.save_to_yaml()
+
         run_list = self._load_runs()
+        if not run_list:
+            print(f'No existing runs to resume in experiment {self.exp_folder}')
+            return
+
         for r in run_list:
             idx = self.algorithm.get_index_of_step(r.last_completed_step)
             if (idx+1) < len(self.algorithm.steps):
@@ -414,6 +341,8 @@ class Experiment:
         a step other than the first one, this function assumes that there are
         already existing saved runstates.
         '''
+        self.save_to_yaml()
+
         run_list = self._load_runs()
         if not run_list:
             print(f'No existing runs to rerun in experiment {self.exp_folder}')

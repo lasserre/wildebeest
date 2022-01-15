@@ -8,8 +8,9 @@ class ProjectBuild:
     '''
     Represents a single build of a software project
     '''
-    def __init__(self, project_root:Path, build_folder:Path, recipe:ProjectRecipe) -> None:
+    def __init__(self, exp_root:Path, project_root:Path, build_folder:Path, recipe:ProjectRecipe) -> None:
         '''
+        exp_root: The root experiment folder
         project_root: The root directory for the project's code. This is typically
                       the folder cloned from github.
         build_folder: The target build folder. This does not need already exist.
@@ -22,6 +23,9 @@ class ProjectBuild:
         # this would assist in a separate tool we could run to check health/status
         # which makes sense especially if I come back later and check on something
         # running on a server somewhere: wildebeest status [exp_name]
+        self.exp_root = exp_root
+        '''The experiment root folder. We store this to allow rebasing'''
+
         self.project_root = project_root
         '''The root source code directory for the project (typically as cloned from github)'''
 
@@ -31,10 +35,20 @@ class ProjectBuild:
         self.recipe = recipe
         '''The ProjectRecipe for this project'''
 
-        self.gitrepo = GitRepository(self.recipe.git_remote,
+    @property
+    def gitrepo(self):
+        '''The git repository for this project'''
+        return GitRepository(self.recipe.git_remote,
                                 self.project_root,
                                 head=self.recipe.git_head)
-        '''The git repository for this project'''
+
+    def rebase(self, exp_root:Path):
+        '''Rebase this ProjectBuild onto the given experiment root path by
+        fixing any absolute paths'''
+        old_exp = self.exp_root
+        self.exp_root = exp_root
+        self.project_root = exp_root/self.project_root.relative_to(old_exp)
+        self.build_folder = exp_root/self.build_folder.relative_to(old_exp)
 
     def init(self):
         '''

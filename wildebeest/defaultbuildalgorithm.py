@@ -5,7 +5,7 @@ from wildebeest.buildsystemdriver import BuildSystemDriver, get_buildsystem_driv
 from .projectrecipe import ProjectRecipe
 from .experiment import *
 
-def init(run:Run, outputs:Dict[str,Any]):
+def init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     run.build.init()
     drivername = run.build.recipe.build_system
     driver = get_buildsystem_driver(drivername)
@@ -22,19 +22,21 @@ def get_driver(outputs:Dict[str,Any]) -> BuildSystemDriver:
     '''
     return outputs['init']['driver']
 
-def configure(run:Run, outputs:Dict[str,Any]):
+def configure(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     get_driver(outputs).configure(run.config, run.build)
 
-def build(run:Run, outputs:Dict[str,Any]):
+def build(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     get_driver(outputs).build(run.config, run.build, numjobs=run.config.num_build_jobs)
 
-def DefaultBuildAlgorithm():
+def DefaultBuildAlgorithm(post_build_steps:List[ProcessingStep]=[]):
     '''
     Creates a new instance of the default build algorithm
+
+    post_build_steps: Additional steps to append after the build step
     '''
     return ExperimentAlgorithm([
         ProcessingStep('init', init),
         ProcessingStep('configure', configure),
         ProcessingStep('build', build),
-        # custom postprocessing steps will be added here
+        *post_build_steps
     ])
