@@ -46,13 +46,15 @@ class ProjectRecipe:
     successfully.
     '''
     def __init__(self, build_system:str, git_remote:str,
-            source_languages:List[str],
+            name:str='',
+            source_languages:List[str]=[],
             out_of_tree:bool=True,
             git_head:str='',
             configure_options:BuildStepOptions=BuildStepOptions(),
             build_options:BuildStepOptions=BuildStepOptions(),
             clean_options:BuildStepOptions=BuildStepOptions()) -> None:
         '''
+        name: A unique name for this recipe that can be used to identify it later
         build_system: The name of the build system (driver) that this project uses
         git_remote:  A path or URL for the project's git repository from which it
                      may be cloned
@@ -70,6 +72,8 @@ class ProjectRecipe:
         build_options:  Custom build options specific to this project
         clean_options:  Custom clean options specific to this project
         '''
+        self.name = name if name else Path(git_remote.split('/')[-1]).stem
+        '''The unique name for this recipe'''
         self.build_system = build_system
         '''The name of the build system driver that this project uses'''
         self.git_remote = git_remote
@@ -89,8 +93,3 @@ class ProjectRecipe:
         '''Custom build options specific to this project'''
         self.clean_options = clean_options
         '''Custom clean options specific to this project'''
-
-    @property
-    def project_name(self):
-        '''Extracts the project name from the git_remote URL'''
-        return Path(self.git_remote.split('/')[-1]).stem

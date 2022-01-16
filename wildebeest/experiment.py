@@ -2,6 +2,7 @@ from pathlib import Path
 from telnetlib import IP
 from typing import List
 
+from .defaultbuildalgorithm import clean
 from .postprocessing.llvm_instrumentation import _rebase_linker_objects
 from. experimentalgorithm import ExperimentAlgorithm
 from .experimentpaths import ExpRelPaths
@@ -108,7 +109,7 @@ class Experiment:
         run_number = 1
         for recipe in self.projectlist:
             for rc in self.runconfigs:
-                project_name = recipe.project_name
+                project_name = recipe.name
                 run_name = f'run{run_number}.{rc.name}' if rc.name else f'run{run_number}'
                 build_folder = self.get_build_folder_for_run(project_name, run_name)
                 source_folder = self.get_project_source_folder(project_name)
@@ -194,3 +195,10 @@ class Experiment:
 
         for r in run_list:
             self.algorithm.execute_from(step, r)
+
+    def clean(self):
+        '''
+        Performs a build-system clean on all the builds in this experiment
+        '''
+        for run in self._load_runs():
+            clean(run, run.outputs)
