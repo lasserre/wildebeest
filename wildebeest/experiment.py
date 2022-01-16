@@ -1,196 +1,22 @@
 from pathlib import Path
-import traceback
-from typing import Any, Callable, List, Dict
+from telnetlib import IP
+from typing import List
 
+from .postprocessing.llvm_instrumentation import _rebase_linker_objects
+from. experimentalgorithm import ExperimentAlgorithm
 from .experimentpaths import ExpRelPaths
 from .projectbuild import ProjectBuild
 from .runconfig import RunConfig
-from .run import Run, RunStatus
+from .run import Run
 from .projectrecipe import ProjectRecipe
 from .utils import *
-
-class ProcessingStep:
-    '''
-    Represents a single processing step in an algorithm
-
-    Each step's process function accepts as arguments the current Run, the processing
-    step's parameter dictinoary, and a dictionary containing all currently available
-    outputs. The output dictionary maps the names of each ProcessingStep to the return
-    value of that stage, and is constructed as the algorithm executes
-    (the first step will get an empty dictionary).
-
-    The processing step's parameter dictionary is a local collection of configuration
-    parameters that can be customized per instance. This is for parameters that
-    should be configurable for a single processing step implementation, but is not
-    variable for that step in an algorithm (e.g. the find_instrumentation_files
-    processing step indicates what file extension should be located via its
-    parameter dict).
-
-    If any steps require particular outputs of previous stages to function properly,
-    it is the responsibility of the algorithm creator to ensure the steps chain together
-    properly. Likewise, each ProcessingStep should document its expected input and output parameter types.
-
-    Failure cases
-    -------------
-    If a processing step fails in some way, it should raise an exception with a meaningful
-    message. The algorithm runner will catch any exceptions in processing steps, log the
-    offending step, update the run status as failed and bail on the run at that point.
-
-    Parallelism
-    -----------
-    IF A PROCESSING STEP RETURNS A LIST, IT WILL BE INTERPRETED AS AN OPPORTUNITY
-    FOR PARALLEL PROCESSING AT THE DISCRETION OF THE EXPERIMENT RUNNER.
-
-    In other words, if a processing step returns a list of things then the list
-    may be partitioned into separate jobs and run in parallel.
-
-    Note that even for a list that gets partitioned into a sub-list per job, the
-    entry for that list in each job's output dictionary will always be a list, even
-    if there is only one element. It will just have fewer elements instead of all the
-    original elements.
-
-    Thus, any code that consumes these outputs can be written to expect a list,
-    BUT MUST FUNCTION PROPERLY IF THE LIST IS NOT THE COMPLETE LIST. If this behavior
-    is not acceptable, it can be prevented on an individual processing step's outputs
-    by setting do_not_parallelize.
-    '''
-    def __init__(self, name:str, process:Callable[[Run, Dict[str,Any], Dict[str, Any]], Any],
-            params:Dict[str,Any]={},
-            do_not_parallelize:bool=False) -> None:
-        '''
-        name: The unique name of this ProcessingStep
-        parameters: A dictionary of parameters for this step
-        process: The Callable that executes this step in the algorithm
-        '''
-        # https://stackoverflow.com/questions/37835179/how-can-i-specify-the-function-type-in-my-type-hints
-        self.name = name
-        '''The unique name of this step'''
-
-        self.process = process
-        '''Executes the core processing step of the algorithm'''
-
-        self.params = params
-        '''A dictionary of parameters for this step. This allows each instance of
-        a processing step to be customized, but these params are constant for a
-        particular algorithm step'''
-
-        self.do_not_parallelize = do_not_parallelize
-        '''Indicates that the outputs of this processing step should not be split
-        into multiple parallel jobs, even if a list is returned'''
-
-class ExperimentAlgorithm:
-    def __init__(self, steps:List[ProcessingStep]) -> None:
-        self.steps = steps
-        '''A list of processing steps that define the algorithm'''
-
-    def has_step(self, step_name:str) -> bool:
-        '''True if this algorithm contains a step with the given name'''
-        names = [x.name for x in self.steps]
-        return step_name in names
-
-    def get_index_of_step(self, step_name:str):
-        '''Returns the index of the step with the given name'''
-        return next((i for i, step in enumerate(self.steps) if step.name == step_name), len(self.steps))
-
-    def insert_before(self, step_name:str, step:ProcessingStep):
-        '''Inserts the step before the step with the given name'''
-        self.steps.insert(self.get_index_of_step(step_name), step)
-
-    def insert_after(self, step_name:str, step:ProcessingStep):
-        '''Inserts the step after the step with the given name'''
-        self.steps.insert(self.get_index_of_step(step_name) + 1, step)
-
-    def validate_execute_from(self, run:Run, step:str) -> bool:
-        '''
-        Validates that we can execute the algorithm from the specified step
-        for this run. Returns true if this is valid, false otherwise.
-        '''
-        if not self.has_step(step):
-            print(f'No step named {step}')
-            return False
-
-        step_idx = self.get_index_of_step(step)
-
-        if step_idx > 0:
-            last_completed_idx = self.get_index_of_step(run.last_completed_step)
-            no_runs_completed = run.last_completed_step == ''
-            if no_runs_completed and step_idx > 0:
-                print(f"Error: can't execute from step {step_idx} '{step}' when step 0 '{self.steps[0].name}' hasn't been completed")
-                return False
-            elif last_completed_idx < (step_idx-1):
-                lcs_name = self.steps[last_completed_idx].name
-                print(f"Error: can't execute from step {step_idx} '{step}' when last completed step is step {last_completed_idx} '{lcs_name}'")
-                return False
-
-        return True
-
-    def execute_from(self, step_name:str, run:Run):
-        '''
-        [Re-]Executes the algorithm beginning at the specified step. Note that the
-        preceding steps in the algorithm must have already been completed for this
-        Run.
-
-        rsfolder: The path to the experiment runstates folder
-        '''
-        if not self.has_unique_stepnames():
-            print(f'The processing steps of this algorithm do not have unique names!')
-            print(f'Please ensure all step names are unique and try again :)')
-            return
-
-        if not self.validate_execute_from(run, step_name):
-            return
-
-        step_idx = self.get_index_of_step(step_name)
-        steps_to_exec = self.steps[step_idx:]
-
-        # reset status, but don't overwrite outputs in case we're starting
-        # mid-way through
-        run.failed_step = ''
-        run.status = RunStatus.RUNNING
-        run.save_to_runstate_file()
-
-        for step in steps_to_exec:
-            try:
-                step_output = step.process(run, step.params, run.outputs)
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
-                run.status = RunStatus.FAILED
-                run.failed_step = step.name
-                run.save_to_runstate_file()
-                return  # bail here
-            # if isinstance(step_output, list) and not step.do_not_parallelize:
-                # TODO: we have the opportunity to partition these outputs into parallel
-                # jobs according to the job manager's configuration (add them to the job pool?)
-                # ---------
-                # for output in step_output:
-                #   job_dict = dict(outputs)
-                #   job_dict[step.name] = [output]  # only pass a subset of outputs (e.g. 1) to each job
-                #   Job('meaningful-job-name', lambda: self.runfrom(next_step.name), job_dict)
-
-            run.outputs[step.name] = step_output
-            run.last_completed_step = step.name
-            run.save_to_runstate_file()
-
-        run.status = RunStatus.FINISHED
-        run.save_to_runstate_file()
-
-    def has_unique_stepnames(self) -> bool:
-        '''Verifies that the steps have unique names and returns True if so'''
-        names = [x.name for x in self.steps]
-        return len(set(names)) == len(names)
-
-    def execute(self, run:Run):
-        '''Executes the algorithm using the given RunConfig'''
-        run.init_running_state()
-        run.save_to_runstate_file()
-        self.execute_from(self.steps[0].name, run)
 
 class Experiment:
     def __init__(self, name:str, algorithm:ExperimentAlgorithm,
                 runconfigs:List[RunConfig],
                 projectlist:List[ProjectRecipe]=[],
-                exp_containing_folder:Path=None) -> None:
+                exp_containing_folder:Path=None,
+                foldername:str=None) -> None:
         '''
         name:       A name to identify this experiment
         algorithm:  The algorithm that defines the experiment
@@ -203,15 +29,33 @@ class Experiment:
         self.projectlist = projectlist
         self.runconfigs = runconfigs
         parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/'.wildebeest'/'experiments'
-        self.exp_folder = parent_folder/f'{name}.exp'
+        if not foldername:
+            foldername = f'{name}.exp'
+        self.exp_folder = parent_folder/foldername
+
+    def _rebase(self, orig_folder:Path, new_folder:Path):
+        # this is all we need to do to rebase right now, if it expands then I
+        # can break out into a function
+        self.exp_folder = new_folder
+        runlist = self._load_runs()     # loading runs rebases them
+
+        # if we run find_binaries, we have .linker-objects
+        if 'find_binaries' in [x.name for x in self.algorithm.steps]:
+            for run in runlist:
+                _rebase_linker_objects(orig_folder, new_folder, run.build.build_folder)
+
+        self.save_to_yaml()
+        print(f'Rebased {self.name} experiment {self.exp_folder}. Any post-processing should probably be re-run')
 
     @staticmethod
     def load_from_yaml(exp_folder:Path) -> 'Experiment':
         yamlfile = exp_folder/ExpRelPaths.ExpYaml
         exp = load_from_yaml(yamlfile)
-        # this is all we need to do to rebase right now, if it expands then I
-        # can break out into a function
-        exp.exp_folder = exp_folder
+        orig_folder = exp.exp_folder
+
+        if exp_folder != orig_folder:
+            exp._rebase(orig_folder, exp_folder)
+
         return exp
 
     def save_to_yaml(self):

@@ -1,9 +1,10 @@
-from typing import List
+from typing import Any, List
 
 from wildebeest.buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
 
 from .projectrecipe import ProjectRecipe
 from .experiment import *
+from .processingstep import ProcessingStep
 
 def init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     run.build.init()

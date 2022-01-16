@@ -72,8 +72,10 @@ class Run:
     def rebase(self, exp_root:Path):
         '''Rebase this Run onto the given experiment root path by
         fixing any absolute paths'''
-        self.exp_root = exp_root
-        self.build.rebase(exp_root)
+        if self.exp_root != exp_root:
+            self.exp_root = exp_root
+            self.build.rebase(exp_root)
+            self.save_to_runstate_file()
 
     @staticmethod
     def load_from_runstate_file(yamlfile:Path, exp_root:Path) -> 'Run':
