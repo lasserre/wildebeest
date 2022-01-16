@@ -1,4 +1,5 @@
 from importlib import metadata
+from pathlib import Path
 from typing import Dict
 
 from .experiment import Experiment
@@ -21,14 +22,10 @@ class ExperimentRepository:
 
 _experiment_repo = None
 
-def get_experiment(name:str, **kwargs) -> Experiment:
+def create_experiment(name:str, **kwargs) -> Experiment:
     '''
-    Creates (or loads) an instance of the Experiment with the indicated name, or
+    Creates an instance of the Experiment with the indicated name, or
     None if it is not a registered experiment.
-
-    If the experiment folder is given (via parent_folder in kwargs) and the experiment
-    folder already exists, it will be loaded and returned instead of a fresh experiment
-    instance.
     '''
     global _experiment_repo
     if not _experiment_repo:
@@ -37,9 +34,14 @@ def get_experiment(name:str, **kwargs) -> Experiment:
     if name in _experiment_repo.experiments:
         exp:Experiment = _experiment_repo.experiments[name](**kwargs)  # construct a new instance
         if exp.exp_folder.exists():
-            exp = Experiment.load_from_yaml(exp.exp_folder)
-            if exp.name != name:
-                print(f'Warning: experiment folder {exp.exp_folder} already exists, but name is different')
-                print(f'Existing name = {exp.name}, requested name = {name}')
+            raise Exception(f'Experiment folder {exp.exp_folder} already exists')
         return exp
     return None
+
+def load_experiment(exp_folder:Path) -> Experiment:
+    '''
+    Loads the given experiment from it's experiment yaml file
+
+    Helper function for API parity with create_experiment :)
+    '''
+    return Experiment.load_from_yaml(exp_folder)

@@ -16,23 +16,21 @@ class Experiment:
     def __init__(self, name:str, algorithm:ExperimentAlgorithm,
                 runconfigs:List[RunConfig],
                 projectlist:List[ProjectRecipe]=[],
-                exp_containing_folder:Path=None,
-                foldername:str=None) -> None:
+                exp_folder:Path=None) -> None:
         '''
         name:       A name to identify this experiment
         algorithm:  The algorithm that defines the experiment
         runconfigs: The set of run configs in the experiment
         projectlist: The list of projects included in the experiment
-        exp_containing_folder: The folder in which to create the experiment root folder
+        exp_folder: The experiment folder
         '''
         self.name = name
         self.algorithm = algorithm
         self.projectlist = projectlist
         self.runconfigs = runconfigs
-        parent_folder = exp_containing_folder if exp_containing_folder else Path().home()/'.wildebeest'/'experiments'
-        if not foldername:
-            foldername = f'{name}.exp'
-        self.exp_folder = parent_folder/foldername
+        if not exp_folder:
+            exp_folder = Path().home()/'.wildebeest'/'experiments'/f'{name}.exp'
+        self.exp_folder = exp_folder
 
     def _rebase(self, orig_folder:Path, new_folder:Path):
         # this is all we need to do to rebase right now, if it expands then I
@@ -125,7 +123,7 @@ class Experiment:
         yaml_files = list(self.runstates_folder.glob('*.run.yaml'))
         return [Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files]
 
-    def run(self, force:bool=False):
+    def run(self, force:bool=False, numjobs=1):
         '''
         Run the entire experiment from the beginning.
 
@@ -137,6 +135,8 @@ class Experiment:
 
         force: If true, will force regenerating runs from run configs, deleting existing
                runstates, and restarting this experiment.
+        numjobs: The max number of parallel jobs that should be used when running this
+                 experiment
         '''
         # maybe this should defer to the runner so that the runner can encapsulate
         # properly executing the algorithm serially, and eventually properly
@@ -153,9 +153,10 @@ class Experiment:
         for r in run_list:
             r.save_to_runstate_file()
 
-        # TODO: once the experiment is running end-to-end for N > 1 run configs
-        # SERIALLY, then instantiate a job manager here to kick off each Run in
-        # parallel
+        # TODO kick off jobs here!
+        # ------------------------
+        # subprocess.run()...
+        # - redirect output to job.log
 
         for r in run_list:
             self.algorithm.execute(r)
