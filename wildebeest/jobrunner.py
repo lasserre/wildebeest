@@ -4,6 +4,7 @@ from datetime import datetime
 import multiprocessing as mp
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import time
 import traceback
@@ -63,12 +64,13 @@ class Job:
                 run1.job1.log
                 ...
     '''
-    def __init__(self, task:Task, workload_folder:Path, jobname:str) -> None:
+    def __init__(self, task:Task, workload_folder:Path, jobid:int) -> None:
         self._status = JobStatus.READY
         self.task = task
+        self.jobid = jobid
 
-        self.yamlfile = workload_folder/JobRelPaths.Jobs/f'{jobname}.yaml'
-        self.logfile = workload_folder/JobRelPaths.Logs/f'{jobname}.log'
+        self.yamlfile = workload_folder/JobRelPaths.Jobs/f'{self.jobname}.yaml'
+        self.logfile = workload_folder/JobRelPaths.Logs/f'{self.jobname}.log'
 
         self._pid = None
         self._starttime = None
@@ -86,6 +88,10 @@ class Job:
         # AuthenticationString
         del state['_process']
         return state
+
+    @property
+    def jobname(self) -> str:
+        return f'{self.task.name}.job{self.jobid}'
 
     @property
     def status(self):
@@ -153,11 +159,29 @@ class Job:
 
     def _run_job(self):
         with open(self.logfile, 'w') as log:
-            with redirect_stdout(sys.stderr), redirect_stderr(log):
-                # NOTE I think the fd's are unchanged at OS level, so if we kick off
-                # processes FROM within a task, we should manually redirect its
-                # stdout=sys.stdout, stderr=sys.stderr for that output to be redirected
-                return self._run_job_with_logging()
+            # -------------------
+            # TODO: pick up here
+            # -------------------
+            # FIX stdout/stderr issues by just launching a subprocess.run() here:
+                # wdb job run <job.yaml>
+            # - create wdb cmdline script to parse args, call:
+                # - job.start() calls this (RENAME to job._call_wdb_run or _kick_off_subprocess)
+                # - wdb job run does this:
+                #     job = job.load_from_yaml(file)
+                #     job._run_job_with_logging()  (RENAME to job.run())
+            # - remove redirect_stdXX calls below
+            # NEXT:
+            # - add 'sleep' param back in to task, see if I can kill all child processes...
+                # >> RUN 1 TASK FOR SANITY HERE
+            # - add "wdb status" commands to check exp/job status
+
+            # subprocess.run()
+            with redirect_stderr(log):
+                with redirect_stdout(sys.stderr):
+                    # NOTE I think the fd's are unchanged at OS level, so if we kick off
+                    # processes FROM within a task, we should manually redirect its
+                    # stdout=sys.stdout, stderr=sys.stderr for that output to be redirected
+                    return self._run_job_with_logging()
 
     def start(self) -> int:
         '''Starts the job, returning its PID'''
@@ -166,6 +190,7 @@ class Job:
         self.process.start()
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
+        print(f'PID = {self.pid}')
         return self.pid
 
     def kill(self):
@@ -273,7 +298,7 @@ class JobRunner:
         self.mark_job_running(next_job)
         next_job.start()    # do I need pid return value here?
         self.running_jobs.append(next_job)
-        print(f'Started task {next_job.task.name}')
+        print(f'[Started {next_job.task.name} (job {next_job.jobid})]')
 
     def wait_for_finished_job(self):
         '''
@@ -286,6 +311,7 @@ class JobRunner:
                 if j.check_finished():
                     self.running_jobs.remove(j)
                     self.mark_job_finished(j, failed=j.failed())
+                    print(f'[{j.task.name} finished]')
                     return
             time.sleep(0.25)    # 250ms?
 
@@ -295,13 +321,15 @@ class JobRunner:
             self.start_next_job()
 
     def run(self):
-        self.ready_jobs = [Job(task, self.workload_folder, f'{task.name}.job{i}') for i, task in enumerate(self.workload)]
+        self.ready_jobs = [Job(task, self.workload_folder, i) for i, task in enumerate(self.workload)]
 
         MAX_JOBS = self.numjobs
         if len(self.ready_jobs) < self.numjobs:
             # we have less work than the max # jobs, so limit it
             # to the work we have (algorithm waits until pipe is full )
             MAX_JOBS = len(self.ready_jobs)
+
+        print(f'Running {len(self.ready_jobs)} tasks using {self.numjobs} ({MAX_JOBS}) parallel jobs')
 
         while self.ready_jobs:
             self.start_parallel_jobs(MAX_JOBS)
@@ -310,3 +338,5 @@ class JobRunner:
         # wait for final jobs to finish
         while self.running_jobs:
             self.wait_for_finished_job()
+
+        print(f'Finished running {self.name}')

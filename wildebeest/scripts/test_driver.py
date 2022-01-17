@@ -7,6 +7,7 @@ from wildebeest.postprocessing import *
 
 from wildebeest.jobrunner import *
 import time
+from sys import stderr
 
 def main():
     def do_task(x:Dict[str,Any]):
@@ -16,6 +17,11 @@ def main():
         for i in range(count):
             print(taskname)
             time.sleep(0.5)
+
+        print('STD ERROR PRINT', file=stderr)
+
+        if 'sleep' in x:
+            time.sleep(5*60)    # 5 min
 
         if throw_exc:
             raise Exception(f'There was a problem in {taskname}!')
@@ -29,8 +35,14 @@ def main():
         Task('task2', do_task, {
             'count': 15,
             'name': 'Task 2 (15x)',
-            'throw': False
-        })
+            'throw': False,
+            # 'sleep': True
+        }),
+        Task('task3', do_task, {
+            'count': 3,
+            'name': 'Task 2 (15x)',
+            'throw': True
+        }),
     ]
 
     with JobRunner('test', workload, 10) as runner:
