@@ -1,6 +1,12 @@
+from contextlib import redirect_stderr, redirect_stdout
 from curses import savetty
+from datetime import datetime
+import multiprocessing as mp
 from pathlib import Path
 import shutil
+import sys
+import time
+import traceback
 from typing import Any, Callable, List
 
 from .utils import *
@@ -25,10 +31,8 @@ class JobPaths:
 
 class JobRelPaths:
     '''Relative to workload folder'''
-    ReadyJobs = Path('ready')
-    RunningJobs = Path('running')
-    FailedJobs = Path('failed')
-    FinishedJobs = Path('done')
+    Jobs = Path('jobs')
+    Logs = Path('logs')
 
 class JobStatus:
     READY = 'Ready'
@@ -42,13 +46,6 @@ class Job:
     '''
     Job Storage
     -----------
-    - want to be able to check exp/job status from wherever, so that implies
-    possibly in ~/.wildebeest/jobs??
-    - kind of like it better in <EXP>/.wildebeest/jobs/run1.job.yaml
-    >> when we start an experiment, we can mark it as running globally
-        ~/.wildebeest/running/exp_name.<ID>.yaml
-            - which has the path to that experiment (and we can grab all jobs from there)
-
     >> Experiment will save/serialize the path to its workload folder
     so status tools can find it
 
@@ -57,24 +54,81 @@ class Job:
             workload_status.yaml    # WorkloadStatus object managed by JobRunner
                 - holds things like # running, # done, # todo
                 - names of failed runs [later]
-            ready/
+            jobstatus/
+                run1.job1.yaml
+                run2.job2.yaml  // run2 died, so it got stuck here
                 run3.job3.yaml
                 run4.job4.yaml
-                run1.job1.yaml
-            running/
-                run2.job2.yaml  // run2 died, so it got stuck here
-            failed/
-            done/
+            logs/
+                run1.job1.log
+                ...
     '''
-    def __init__(self, task:Task, logfile:Path) -> None:
-        self.status = JobStatus.READY
+    def __init__(self, task:Task, workload_folder:Path, jobname:str) -> None:
+        self._status = JobStatus.READY
         self.task = task
-        self.pid = None
-        self.logfile = logfile
+
+        self.yamlfile = workload_folder/JobRelPaths.Jobs/f'{jobname}.yaml'
+        self.logfile = workload_folder/JobRelPaths.Logs/f'{jobname}.log'
+
+        self._pid = None
+        self._starttime = None
+        self._process = None
+        self._error_msg = ''
 
         # NOTE this is the 1 and only time we save ourselves from within a Job!
         # (and here just for convenience since we don't create ourselves from
         # within a process)
+        self.save_to_yaml()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # we have to prevent Process from being serialized bc it has an
+        # AuthenticationString
+        del state['_process']
+        return state
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        self._status = value
+        self.save_to_yaml()
+
+    @property
+    def pid(self) -> int:
+        return self._pid
+
+    def pid(self, value:int):
+        self._pid = value
+        self.save_to_yaml()
+
+    @property
+    def starttime(self) -> datetime:
+        return self._starttime
+
+    @starttime.setter
+    def starttime(self, value:datetime):
+        self._starttime = value
+        self.save_to_yaml()
+
+    @property
+    def process(self) -> mp.Process:
+        return self._process
+
+    @process.setter
+    def process(self, value:mp.Process):
+        self._process = value
+        self.save_to_yaml()
+
+    @property
+    def error_msg(self) -> str:
+        return self._error_msg
+
+    @error_msg.setter
+    def error_msg(self, value:str):
+        self._error_msg = value
         self.save_to_yaml()
 
     @staticmethod
@@ -82,40 +136,56 @@ class Job:
         return load_from_yaml(yaml)
 
     def save_to_yaml(self):
-        save_to_yaml(self, self.logfile)
+        save_to_yaml(self, self.yamlfile)
 
-    def move_logfile(self, newfile:Path):
-        '''Should be called only by Job manager'''
-        self.logfile = self.logfile.rename(newfile)
+    def _run_job_with_logging(self):
+        '''
+        Nesting levels were getting deep, so for readability, this is the _run_job()
+        function after logging has been redirected to job logfile
+        '''
+        try:
+            self.task.do_task(self.task.state)
+            return 0
+        except Exception as e:
+            traceback.print_exc()
+            self.error_msg = f'Task raised exception: "{e}"'
+            return 1
+
+    def _run_job(self):
+        with open(self.logfile, 'w') as log:
+            with redirect_stdout(sys.stderr), redirect_stderr(log):
+                # NOTE I think the fd's are unchanged at OS level, so if we kick off
+                # processes FROM within a task, we should manually redirect its
+                # stdout=sys.stdout, stderr=sys.stderr for that output to be redirected
+                return self._run_job_with_logging()
 
     def start(self) -> int:
         '''Starts the job, returning its PID'''
-        # self.status = Running
-        # self.starttime = now()
-        # SERIALIZE NOW to avoid races..?
-        #
-        # subprocess.run(do_job, ... redirect output, don't wait)
-        #
-        # self.pid = pid
-        # return pid
-        pass
+        self.starttime = datetime.now()
+        self.process = mp.Process(target=self._run_job)
+        self.process.start()
+        # process doesn't get serialized, so we save pid separately
+        self.pid = self.process.pid
+        return self.pid
 
     def kill(self):
         '''Kill this job'''
-        # we have the pid saved here, so just kill it
-        pass
+        self.process.kill()
 
-# could manually do it:
-# create N Processes() # jobs
-# for p in processes:
-#   p.start()
-# ..
-# while not finished:
-#   p.join(200ms)
-#   if really joined:
-#       start next job using p's slot (remove p, insert new Process)
-# while some_running:
-#   p.join()
+    def check_finished(self) -> bool:
+        '''
+        Returns true if this Job has finished running (successfully or not)
+
+        >>> MUST BE CALLED ONLY FROM JOB MANAGER/SPAWNING PROCESS <<<
+        (not within the Job process!)
+        '''
+        return not self.process.is_alive()
+
+    def failed(self) -> bool:
+        '''Returns true if this Job failed to complete properly'''
+        if not self.process.is_alive():
+            return self.process.exitcode != 0
+        return False    # still running...
 
 class WorkloadStatus:
     pass
@@ -130,6 +200,15 @@ ONLY THE JOB RUNNER MODIFIES JOB STATE - job processes do not do this!!
 --------------------------------------
 """
 
+def reset_folder(folder:Path):
+    '''
+    Creates the folder if it does not exist. If it does exist, all contents
+    are deleted
+    '''
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+
 class JobRunner:
     ready_jobs:List[Job]
     running_jobs:List[Job]
@@ -141,10 +220,15 @@ class JobRunner:
     jobs.
     '''
     def __init__(self, name:str, workload:List[Task], numjobs:int) -> None:
+        '''
+        name: Descriptive name for the workload
+        workload: The tasks to be executed
+        numjobs: Number of jobs to run in parallel
+        '''
         self.name = name
         self.workload = workload
         self.numjobs = numjobs
-        self.workload_folder = JobPaths.Workloads/f'name.workload'
+        self.workload_folder = JobPaths.Workloads/f'{name}.workload'
 
         self.ready_jobs = []
         self.running_jobs = []
@@ -153,46 +237,76 @@ class JobRunner:
 
     def __enter__(self):
         # clear out any existing executions of this workload
-        if self.workload_folder.exists():
-            shutil.rmtree(self.workload_folder)
-        self.workload_folder.mkdir(parents=True, exist_ok=True)
+        reset_folder(self.workload_folder)
+        reset_folder(self.workload_folder/JobRelPaths.Logs)
         return self
 
     # save_to_yaml(self, PATH)
 
     def __exit__(self, type, value, traceback):
         # try to kill any outstanding jobs
-        pass
+        for j in self.running_jobs:
+            j.kill()
+
+    def mark_job_running(self, job:Job):
+        '''
+        Marks a ready job as running
+        '''
+        if job.status != JobStatus.READY:
+            print(f'Warning: trying to move a {job.status} job ({job.task.name}) to {JobStatus.RUNNING}!')
+            return
+        job.status = JobStatus.RUNNING
+
+    def mark_job_finished(self, job:Job, failed:bool=False):
+        '''
+        Marks a running job as finished or failed, depending on the failed flag
+        '''
+        if job.status != JobStatus.RUNNING:
+            target = JobStatus.FAILED if failed else JobStatus.FINISHED
+            print(f'Warning: trying to move a {job.status} job ({job.task.name}) to {target}!')
+            return
+        job.status = JobStatus.FAILED if failed else JobStatus.FINISHED
+
+    def start_next_job(self):
+        '''Starts the next job from the ready queue'''
+        next_job = self.ready_jobs.pop(0)
+        self.mark_job_running(next_job)
+        next_job.start()    # do I need pid return value here?
+        self.running_jobs.append(next_job)
+        print(f'Started task {next_job.task.name}')
+
+    def wait_for_finished_job(self):
+        '''
+        Blocks until at least one job finishes running. When a job does finish,
+        it is removed from the running queue and marked as finished before
+        returning.
+        '''
+        while True:
+            for j in self.running_jobs:
+                if j.check_finished():
+                    self.running_jobs.remove(j)
+                    self.mark_job_finished(j, failed=j.failed())
+                    return
+            time.sleep(0.25)    # 250ms?
+
+    def start_parallel_jobs(self, max_jobs:int):
+        '''Starts as many jobs as possible in parallel, up to max_jobs'''
+        while self.ready_jobs and len(self.running_jobs) < max_jobs:
+            self.start_next_job()
 
     def run(self):
-        ready_folder = self.workload_folder/JobRelPaths.ReadyJobs
-        self.ready_jobs = [Job(task, ready_folder/f'{task.name}.job{i}.yaml') for i, task in enumerate(self.workload)]
+        self.ready_jobs = [Job(task, self.workload_folder, f'{task.name}.job{i}') for i, task in enumerate(self.workload)]
+
+        MAX_JOBS = self.numjobs
+        if len(self.ready_jobs) < self.numjobs:
+            # we have less work than the max # jobs, so limit it
+            # to the work we have (algorithm waits until pipe is full )
+            MAX_JOBS = len(self.ready_jobs)
 
         while self.ready_jobs:
-            # -----------------
-            # TODO pick up here, use multiprocessing.Process (within the Job class??)
-            # -----------------
-            next_job = self.ready_jobs.pop(0)
-            # TODO MOVE logfile first...
-            # next_job.move_logfile( next_job.logfile.parts)
-            next_job.start()    # do I need pid return value here?
-            self.running_jobs.append(next_job)
+            self.start_parallel_jobs(MAX_JOBS)
+            self.wait_for_finished_job()    # running jobs are full, wait for one to finish
 
-            # TODO wait for any running job to finish
-            job_finished = False
-            while not job_finished:
-                for j in self.running_jobs:
-                    if j.finished():
-                        # TODO this does something like j.join(timeout_ms=100)
-                        # and checks if we timed out or the job is done
-                        job_finished = True
-                        self.running_jobs.remove(j)
-                        # TODO update state, SERIALIZE
-                        # TODO MOVE to finished folder
-                        break
-
-        # - run jobs, up to N at a time
-            # - loop through waiting on jobs to join...when they do, start next
-            # UPDATE JOB STATE AT EACH TRANSITION, SERIALIZE
-
-        # TODO wait for remaining jobs to finish
+        # wait for final jobs to finish
+        while self.running_jobs:
+            self.wait_for_finished_job()
