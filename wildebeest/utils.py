@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import psutil
 from typing import Dict
 from yaml import load, dump, Loader
 
@@ -55,3 +56,26 @@ def save_to_yaml(obj, yamlfile:Path):
     yamlfile.parent.mkdir(parents=True, exist_ok=True)
     with open(yamlfile, 'w') as f:
         f.write(dump(obj))
+
+def kill_process(p:psutil.Process):
+    parent = p.parent()
+    p.kill()
+    if p in parent.children():
+        # handle zombie process
+        p.wait(timeout=1)
+
+def kill_descendent_processes(parent:psutil.Process):
+    '''
+    Kills the children of parent recursively
+    '''
+    for ch in parent.children():
+        if ch.children():
+            kill_descendent_processes(ch)
+        kill_process(ch)
+
+def kill_process_and_descendents(p:psutil.Process):
+    '''
+    Kills this process and all its descendents
+    '''
+    kill_descendent_processes(p)
+    kill_process(p)

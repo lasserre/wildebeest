@@ -1,5 +1,4 @@
 from pathlib import Path
-from subprocess import run
 from wildebeest.buildsystemdrivers import CmakeDriver
 from wildebeest import *
 from wildebeest.runconfig import RunConfig
@@ -50,3 +49,34 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    # # test killing processes
+    # import psutil
+    # from psutil import TimeoutExpired
+    # import subprocess
+
+    # import os
+
+    # def kill_descendent_processes(parent:psutil.Process):
+    #     """Kills the children of parent recursively"""
+    #     for ch in parent.children():
+    #         if ch.children():
+    #             kill_descendent_processes(ch)
+    #         ch.kill()
+    #         if ch in parent.children():
+    #             # handle zombie process
+    #             ch.wait(timeout=1)
+
+    # pid = os.getpid()
+
+    # p = subprocess.Popen(['sleep 30'], shell=True)
+    # p2 = subprocess.Popen(['sleep 3'], shell=True)
+    # # p2.returncode
+    # # p2.pid
+
+    # parent = psutil.Process(pid)
+    # for c in parent.children(recursive=True):
+    #     print(c)
+
+    # # kill_descendent_processes(parent)
+    # import IPython; IPython.embed()

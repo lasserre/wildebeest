@@ -1,8 +1,6 @@
-from contextlib import redirect_stderr, redirect_stdout
-from curses import savetty
 from datetime import datetime
-import multiprocessing as mp
 from pathlib import Path
+import psutil
 import shutil
 import subprocess
 import sys
@@ -44,6 +42,8 @@ class JobStatus:
 # remembering I want this to be QUICK/LIGHT job manager...
 # are jobs tied to runs? or more generic?
 class Job:
+    process:subprocess.Popen
+
     '''
     Job Storage
     -----------
@@ -74,7 +74,7 @@ class Job:
 
         self._pid = None
         self._starttime = None
-        self._process = None
+        self.process = None
         self._error_msg = ''
 
         # NOTE this is the 1 and only time we save ourselves from within a Job!
@@ -86,7 +86,7 @@ class Job:
         state = self.__dict__.copy()
         # we have to prevent Process from being serialized bc it has an
         # AuthenticationString
-        del state['_process']
+        del state['process']
         return state
 
     @property
@@ -120,15 +120,6 @@ class Job:
         self.save_to_yaml()
 
     @property
-    def process(self) -> mp.Process:
-        return self._process
-
-    @process.setter
-    def process(self, value:mp.Process):
-        self._process = value
-        self.save_to_yaml()
-
-    @property
     def error_msg(self) -> str:
         return self._error_msg
 
@@ -144,11 +135,7 @@ class Job:
     def save_to_yaml(self):
         save_to_yaml(self, self.yamlfile)
 
-    def _run_job_with_logging(self):
-        '''
-        Nesting levels were getting deep, so for readability, this is the _run_job()
-        function after logging has been redirected to job logfile
-        '''
+    def _run_job(self):
         try:
             self.task.do_task(self.task.state)
             return 0
@@ -157,37 +144,28 @@ class Job:
             self.error_msg = f'Task raised exception: "{e}"'
             return 1
 
-    def _run_job(self):
-        with open(self.logfile, 'w') as log:
-            # -------------------
-            # TODO: pick up here
-            # -------------------
-            # FIX stdout/stderr issues by just launching a subprocess.run() here:
-                # wdb job run <job.yaml>
-            # - create wdb cmdline script to parse args, call:
-                # - job.start() calls this (RENAME to job._call_wdb_run or _kick_off_subprocess)
-                # - wdb job run does this:
-                #     job = job.load_from_yaml(file)
-                #     job._run_job_with_logging()  (RENAME to job.run())
-            # - remove redirect_stdXX calls below
-            # NEXT:
-            # - add 'sleep' param back in to task, see if I can kill all child processes...
-                # >> RUN 1 TASK FOR SANITY HERE
-            # - add "wdb status" commands to check exp/job status
-
-            # subprocess.run()
-            with redirect_stderr(log):
-                with redirect_stdout(sys.stderr):
-                    # NOTE I think the fd's are unchanged at OS level, so if we kick off
-                    # processes FROM within a task, we should manually redirect its
-                    # stdout=sys.stdout, stderr=sys.stderr for that output to be redirected
-                    return self._run_job_with_logging()
+        # -------------------
+        # TODO: pick up here
+        # -------------------
+        # FIX stdout/stderr issues by just launching a subprocess.run() here:
+            # wdb job run <job.yaml>
+        # - create wdb cmdline script to parse args, call:
+            # - job.start() calls this (RENAME to job._call_wdb_run or _kick_off_subprocess)
+            # - wdb job run does this:
+            #     job = job.load_from_yaml(file)
+            #     job._run_job_with_logging()  (RENAME to job.run())
+        # - remove redirect_stdXX calls below
+        # NEXT:
+        # - add 'sleep' param back in to task, see if I can kill all child processes...
+            # >> RUN 1 TASK FOR SANITY HERE
+        # - add "wdb status" commands to check exp/job status
 
     def start(self) -> int:
         '''Starts the job, returning its PID'''
         self.starttime = datetime.now()
-        self.process = mp.Process(target=self._run_job)
-        self.process.start()
+        with open(self.logfile, 'w') as log:
+            self.process = subprocess.Popen([f'echo "{self.jobid}: {self.jobname}"'],
+                shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
         print(f'PID = {self.pid}')
@@ -195,22 +173,21 @@ class Job:
 
     def kill(self):
         '''Kill this job'''
-        self.process.kill()
+        kill_process_and_descendents(psutil.Process(self.process.pid))
 
-    def check_finished(self) -> bool:
+    def finished(self) -> bool:
         '''
         Returns true if this Job has finished running (successfully or not)
 
         >>> MUST BE CALLED ONLY FROM JOB MANAGER/SPAWNING PROCESS <<<
         (not within the Job process!)
         '''
-        return not self.process.is_alive()
+        # if returncode is None it's still running
+        return self.process.returncode is not None
 
     def failed(self) -> bool:
         '''Returns true if this Job failed to complete properly'''
-        if not self.process.is_alive():
-            return self.process.exitcode != 0
-        return False    # still running...
+        return self.process.returncode != 0 if self.finished() else False
 
 class WorkloadStatus:
     pass
@@ -308,7 +285,7 @@ class JobRunner:
         '''
         while True:
             for j in self.running_jobs:
-                if j.check_finished():
+                if j.finished():
                     self.running_jobs.remove(j)
                     self.mark_job_finished(j, failed=j.failed())
                     print(f'[{j.task.name} finished]')
@@ -340,3 +317,6 @@ class JobRunner:
             self.wait_for_finished_job()
 
         print(f'Finished running {self.name}')
+
+def run_job():
+    print('Hello from run job!')
