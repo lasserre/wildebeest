@@ -86,7 +86,8 @@ class Job:
         state = self.__dict__.copy()
         # we have to prevent Process from being serialized bc it has an
         # AuthenticationString
-        del state['process']
+        if 'process' in state:
+            del state['process']
         return state
 
     @property
@@ -129,13 +130,16 @@ class Job:
         self.save_to_yaml()
 
     @staticmethod
-    def load_from_yaml(self, yaml:Path) -> 'Job':
+    def load_from_yaml(yaml:Path) -> 'Job':
         return load_from_yaml(yaml)
 
     def save_to_yaml(self):
         save_to_yaml(self, self.yamlfile)
 
-    def _run_job(self):
+    def run(self) -> int:
+        '''
+        Runs this job in the current process
+        '''
         try:
             self.task.do_task(self.task.state)
             return 0
@@ -144,31 +148,16 @@ class Job:
             self.error_msg = f'Task raised exception: "{e}"'
             return 1
 
-        # -------------------
-        # TODO: pick up here
-        # -------------------
-        # FIX stdout/stderr issues by just launching a subprocess.run() here:
-            # wdb job run <job.yaml>
-        # - create wdb cmdline script to parse args, call:
-            # - job.start() calls this (RENAME to job._call_wdb_run or _kick_off_subprocess)
-            # - wdb job run does this:
-            #     job = job.load_from_yaml(file)
-            #     job._run_job_with_logging()  (RENAME to job.run())
-        # - remove redirect_stdXX calls below
-        # NEXT:
-        # - add 'sleep' param back in to task, see if I can kill all child processes...
-            # >> RUN 1 TASK FOR SANITY HERE
-        # - add "wdb status" commands to check exp/job status
-
-    def start(self) -> int:
-        '''Starts the job, returning its PID'''
+    def start_in_subprocess(self) -> int:
+        '''
+        Starts the job in a subprocess, returning its PID
+        '''
         self.starttime = datetime.now()
         with open(self.logfile, 'w') as log:
-            self.process = subprocess.Popen([f'echo "{self.jobid}: {self.jobname}"'],
+            self.process = subprocess.Popen([f'wdb job run {self.yamlfile}'],
                 shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
-        print(f'PID = {self.pid}')
         return self.pid
 
     def kill(self):
@@ -183,7 +172,7 @@ class Job:
         (not within the Job process!)
         '''
         # if returncode is None it's still running
-        return self.process.returncode is not None
+        return self.process.poll() is not None
 
     def failed(self) -> bool:
         '''Returns true if this Job failed to complete properly'''
@@ -273,9 +262,9 @@ class JobRunner:
         '''Starts the next job from the ready queue'''
         next_job = self.ready_jobs.pop(0)
         self.mark_job_running(next_job)
-        next_job.start()    # do I need pid return value here?
+        pid = next_job.start_in_subprocess()
         self.running_jobs.append(next_job)
-        print(f'[Started {next_job.task.name} (job {next_job.jobid})]')
+        print(f'[Started {next_job.task.name} (job {next_job.jobid}, pid = {pid})]')
 
     def wait_for_finished_job(self):
         '''
@@ -288,7 +277,10 @@ class JobRunner:
                 if j.finished():
                     self.running_jobs.remove(j)
                     self.mark_job_finished(j, failed=j.failed())
-                    print(f'[{j.task.name} finished]')
+                    if j.failed():
+                        print(f'[{j.task.name} FAILED]')
+                    else:
+                        print(f'[{j.task.name} finished]')
                     return
             time.sleep(0.25)    # 250ms?
 
@@ -318,5 +310,6 @@ class JobRunner:
 
         print(f'Finished running {self.name}')
 
-def run_job():
-    print('Hello from run job!')
+def run_job(yaml:Path) -> int:
+    job = Job.load_from_yaml(yaml)
+    return job.run()
