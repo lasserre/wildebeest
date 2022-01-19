@@ -16,7 +16,7 @@ class ExpStep:
     steps at the beginning and end of the experiment - before any runs have started
     and after all runs have completed
     '''
-    def __init__(self, name:str, process:Callable[[Experiment, Dict[str,Any], Dict[str, Any]], Any],
+    def __init__(self, name:str, process:Callable[['Experiment', Dict[str,Any], Dict[str, Any]], Any],
                 params:Dict[str,Any]={}) -> None:
         self.name = name
         self.process = process

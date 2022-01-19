@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import psutil
+import socket
 from typing import Dict
 from yaml import load, dump, Loader
 
@@ -79,3 +80,13 @@ def kill_process_and_descendents(p:psutil.Process):
     '''
     kill_descendent_processes(p)
     kill_process(p)
+
+def is_port_open(port:int, host:str='localhost') -> bool:
+    '''
+    Returns true if the specified port is open on localhost
+    (or the given host)
+    '''
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex((host, port))
+    sock.close()
+    return result == 0

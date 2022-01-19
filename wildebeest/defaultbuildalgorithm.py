@@ -49,9 +49,13 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
 
     post_build_steps: Additional steps to append after the build step
     '''
-    return ExperimentAlgorithm([
-        RunStep('init', init),
-        RunStep('configure', configure),
-        RunStep('build', build),
-        *post_build_steps
-    ])
+    return ExperimentAlgorithm(
+            preprocess_steps=preprocess_steps,
+            steps=[
+                RunStep('init', init),
+                RunStep('configure', configure),
+                RunStep('build', build),
+                *post_build_steps
+            ],
+            postprocess_steps=postprocess_steps
+        )

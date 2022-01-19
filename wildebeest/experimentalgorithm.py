@@ -145,7 +145,7 @@ class ExperimentAlgorithm:
 
         return True
 
-    def _do_pre_post_process(self, exp:Experiment, steps:List[ExpStep],
+    def _do_pre_post_process(self, exp:'Experiment', steps:List[ExpStep],
             process_type:str='Pre') -> Tuple[bool, Dict[str,Any]]:
         '''
         Generic pre/post-process algorithm. I factored this out since it was identical other
@@ -174,7 +174,7 @@ class ExperimentAlgorithm:
 
         return (True, outputs)
 
-    def preprocess(self, exp:Experiment) -> bool:
+    def preprocess(self, exp:'Experiment') -> bool:
         '''
         Execute preprocessing steps on the experiment. Return True if successful
         '''
@@ -182,7 +182,7 @@ class ExperimentAlgorithm:
         exp.preprocess_outputs = outputs
         return success
 
-    def postprocess(self, exp:Experiment) -> bool:
+    def postprocess(self, exp:'Experiment') -> bool:
         '''
         Execute postprocessing steps on the experiment. Return True if successful
         '''
