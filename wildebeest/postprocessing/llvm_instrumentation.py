@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 from typing import Any, Dict, List
 
-from ..processingstep import ProcessingStep
+from ..algorithmstep import RunStep
 from ..run import Run
 
 def do_find_instr_files(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
@@ -32,9 +32,9 @@ def do_find_instr_files(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
             result[binary][ext] = [x for x in instr_files if x.exists()]
     return result
 
-def find_instrumentation_files(extensions:List[str], step_name:str='find_instrumentation') -> ProcessingStep:
+def find_instrumentation_files(extensions:List[str], step_name:str='find_instrumentation') -> RunStep:
     '''
-    Returns a ProcessingStep that will find instrumentation files with the
+    Returns a RunStep that will find instrumentation files with the
     given extensions
 
     Requirements
@@ -52,7 +52,7 @@ def find_instrumentation_files(extensions:List[str], step_name:str='find_instrum
     }
     where there may be multiple binary paths, each with multiple extensions
     '''
-    return ProcessingStep(step_name, do_find_instr_files, params={
+    return RunStep(step_name, do_find_instr_files, params={
         'extensions': list(extensions)
     })
 
@@ -114,9 +114,9 @@ def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     result['binaries'] = binaries
     return result
 
-def find_binaries() -> ProcessingStep:
+def find_binaries() -> RunStep:
     '''
-    Creates a ProcessingStep that will find binaries linked with our modified
+    Creates a RunStep that will find binaries linked with our modified
     LLVM linker. Each such binary will have a .linker-objects file output next
     to it, which is how we can locate them.
 
@@ -128,4 +128,4 @@ def find_binaries() -> ProcessingStep:
         'binaries': [ list of corresponding binary paths ],
     }
     '''
-    return ProcessingStep('find_binaries', _do_find_binaries)
+    return RunStep('find_binaries', _do_find_binaries)

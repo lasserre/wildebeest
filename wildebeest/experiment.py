@@ -1,6 +1,6 @@
 from pathlib import Path
 from telnetlib import IP
-from typing import List
+from typing import Any, Dict, List
 
 from .defaultbuildalgorithm import clean
 from .postprocessing.llvm_instrumentation import _rebase_linker_objects
@@ -12,7 +12,17 @@ from .run import Run
 from .projectrecipe import ProjectRecipe
 from .utils import *
 
+class ExpState:
+    Ready = 'READY'
+    Preprocess = 'PREPROCESSING'
+    Running = 'RUNNING'
+    PostProcess = 'POSTPROCESSING'
+    Finished = 'FINISHED'
+    Failed = 'FAILED'
+
 class Experiment:
+    postprocess_outputs:Dict[str,Any]
+
     def __init__(self, name:str, algorithm:ExperimentAlgorithm,
                 runconfigs:List[RunConfig],
                 projectlist:List[ProjectRecipe]=[],
@@ -32,11 +42,16 @@ class Experiment:
             exp_folder = Path().home()/'.wildebeest'/'experiments'/f'{name}.exp'
         self.exp_folder = exp_folder
 
+        self._preprocess_outputs = {}
+        self._postprocess_outputs = {}
+        self._state = ExpState.Ready
+        self._failed_step = ''
+
     def _rebase(self, orig_folder:Path, new_folder:Path):
         # this is all we need to do to rebase right now, if it expands then I
         # can break out into a function
         self.exp_folder = new_folder
-        runlist = self._load_runs()     # loading runs rebases them
+        runlist = self.load_runs()     # loading runs rebases them
 
         # if we run find_binaries, we have .linker-objects
         if 'find_binaries' in [x.name for x in self.algorithm.steps]:
@@ -88,6 +103,44 @@ class Experiment:
         '''The folder containing the serialized runstates for this experiment'''
         return self.exp_folder/ExpRelPaths.Runstates
 
+    @property
+    def state(self) -> str:
+        return self._state
+
+    @state.setter
+    def state(self, value:str):
+        self._state = value
+        self.save_to_yaml()
+
+    @property
+    def failed_step(self) -> str:
+        return self._failed_step
+
+    @failed_step.setter
+    def failed_step(self, value:str):
+        self._failed_step = value
+        self.save_to_yaml()
+
+    @property
+    def postprocess_outputs(self) -> Dict[str,Any]:
+        '''Any postprocessing results get saved here'''
+        return self._postprocess_outputs
+
+    @postprocess_outputs.setter
+    def postprocess_outputs(self, value:Dict[str,Any]):
+        self._postprocess_outputs = value
+        self.save_to_yaml()
+
+    @property
+    def preprocess_outputs(self) -> Dict[str,Any]:
+        '''Any preprocessing results get saved here'''
+        return self._preprocess_outputs
+
+    @preprocess_outputs.setter
+    def preprocess_outputs(self, value:Dict[str,Any]):
+        self._preprocess_outputs = value
+        self.save_to_yaml()
+
     def get_project_source_folder(self, project_name:str):
         return self.source_folder/project_name
 
@@ -116,7 +169,7 @@ class Experiment:
                 run_number += 1
         return run_list
 
-    def _load_runs(self) -> List[Run]:
+    def load_runs(self) -> List[Run]:
         '''
         Loads the serialized experiment runs from the runstate folder
         '''
@@ -138,14 +191,14 @@ class Experiment:
         numjobs: The max number of parallel jobs that should be used when running this
                  experiment
         '''
-        # maybe this should defer to the runner so that the runner can encapsulate
-        # properly executing the algorithm serially, and eventually properly
-        # managing parallel execution of jobs
-        self.save_to_yaml()
-
         if self.runstates_folder.exists() and not force:
             print(f'Runstates folder already exists. Either supply force=True or use rerun()')
             return
+
+        # reset state
+        self.failed_step = ''
+        self.preprocess_outputs = {}
+        self.postprocess_outputs = {}
 
         run_list = self._generate_runs()
 
@@ -153,32 +206,63 @@ class Experiment:
         for r in run_list:
             r.save_to_runstate_file()
 
+        # My thought right now is if pre/post processing needs to
+        # look at runs, they can call exp.load_runs() (I guess we could
+        # make that a .runs property :P)
+        # self.load_runs()
+        self.state = ExpState.Preprocess
+        if not self.algorithm.preprocess(self):
+            self.state = ExpState.Failed
+            self.failed_step = 'preprocessing'
+            return
+
         # TODO kick off jobs here!
         # ------------------------
         # subprocess.run()...
         # - redirect output to job.log
 
+        self.state = ExpState.Running
+
+        # NOTE try to run ALL runs, even if some fail...
+        # by default, we probably want to run what we can even if something failed
+        # - we can add a param to change this behavior if we want to
+        #   die immediately on a failure
         for r in run_list:
+            # TODO collect run pass/fail from return value
             self.algorithm.execute(r)
 
-    # TODO do we need this?
-    def resume(self):
-        '''
-        Resumes each run in the experiment from its last completed state
-        '''
-        self.save_to_yaml()
+        # TODO check for failure from runs here
 
-        run_list = self._load_runs()
-        if not run_list:
-            print(f'No existing runs to resume in experiment {self.exp_folder}')
+        self.state = ExpState.PostProcess
+        if not self.algorithm.postprocess(self):
+            self.state = ExpState.Failed
+            self.failed_step = 'postprocess'
             return
 
-        for r in run_list:
-            idx = self.algorithm.get_index_of_step(r.last_completed_step)
-            if (idx+1) < len(self.algorithm.steps):
-                next_step = self.algorithm.steps[idx+1].name
-                self.algorithm.execute_from(next_step, r)
+        self.state = ExpState.Finished
 
+    # TODO do we need this?
+    # def resume(self):
+    #     '''
+    #     Resumes each run in the experiment from its last completed state
+    #     '''
+    #     self.save_to_yaml()
+
+    #     run_list = self.load_runs()
+    #     if not run_list:
+    #         print(f'No existing runs to resume in experiment {self.exp_folder}')
+    #         return
+
+    #     for r in run_list:
+    #         idx = self.algorithm.get_index_of_step(r.last_completed_step)
+    #         if (idx+1) < len(self.algorithm.steps):
+    #             next_step = self.algorithm.steps[idx+1].name
+    #             self.algorithm.execute_from(next_step, r)
+
+    # TODO: get rid of this, put it in run()
+    # run(rerun_from:str='')  --> if not rerun_from: # verify no existing runstate folders, etc
+    # and this: run(rerun_from:str='', skip_exp_pre=False) to allow skipping the pre-experiment
+    # step if desired...
     def rerun(self, step:str):
         '''
         Rerun the experiment starting from the step with the specified name.
@@ -189,7 +273,7 @@ class Experiment:
         '''
         self.save_to_yaml()
 
-        run_list = self._load_runs()
+        run_list = self.load_runs()
         if not run_list:
             print(f'No existing runs to rerun in experiment {self.exp_folder}')
             return
@@ -201,5 +285,5 @@ class Experiment:
         '''
         Performs a build-system clean on all the builds in this experiment
         '''
-        for run in self._load_runs():
+        for run in self.load_runs():
             clean(run, run.outputs)

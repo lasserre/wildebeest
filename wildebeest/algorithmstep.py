@@ -1,14 +1,39 @@
 from typing import Any, Callable, Dict
+from typing import TYPE_CHECKING
 
 from .run import Run
 
-class ProcessingStep:
+if TYPE_CHECKING:
+    # avoid cyclic dependencies this way
+    from .experiment import Experiment
+
+class ExpStep:
     '''
-    Represents a single processing step in an algorithm
+    Represents a single Experiment processing step in an algorithm.
+
+    Since the runs are executed in parallel as the main body of the experiment
+    algorithm, (as of right now) it really only makes sense to run Experiment
+    steps at the beginning and end of the experiment - before any runs have started
+    and after all runs have completed
+    '''
+    def __init__(self, name:str, process:Callable[[Experiment, Dict[str,Any], Dict[str, Any]], Any],
+                params:Dict[str,Any]={}) -> None:
+        self.name = name
+        self.process = process
+        '''
+        Executes this step of the algorithm. The parameters are:
+
+        process(exp, params, outputs) -> outputs
+        '''
+        self.params = params
+
+class RunStep:
+    '''
+    Represents a single Run processing step in an algorithm
 
     Each step's process function accepts as arguments the current Run, the processing
     step's parameter dictinoary, and a dictionary containing all currently available
-    outputs. The output dictionary maps the names of each ProcessingStep to the return
+    outputs. The output dictionary maps the names of each RunStep to the return
     value of that stage, and is constructed as the algorithm executes
     (the first step will get an empty dictionary).
 
@@ -21,7 +46,7 @@ class ProcessingStep:
 
     If any steps require particular outputs of previous stages to function properly,
     it is the responsibility of the algorithm creator to ensure the steps chain together
-    properly. Likewise, each ProcessingStep should document its expected input and output parameter types.
+    properly. Likewise, each RunStep should document its expected input and output parameter types.
 
     Failure cases
     -------------
@@ -51,7 +76,7 @@ class ProcessingStep:
             params:Dict[str,Any]={},
             do_not_parallelize:bool=False) -> None:
         '''
-        name: The unique name of this ProcessingStep
+        name: The unique name of this RunStep
         parameters: A dictionary of parameters for this step
         process: The Callable that executes this step in the algorithm
         '''
@@ -60,7 +85,11 @@ class ProcessingStep:
         '''The unique name of this step'''
 
         self.process = process
-        '''Executes the core processing step of the algorithm'''
+        '''
+        Executes this step of the algorithm. The parameters are:
+
+        process(run, params, outputs) -> outputs
+        '''
 
         self.params = params
         '''A dictionary of parameters for this step. This allows each instance of
