@@ -216,7 +216,7 @@ class Experiment:
             self.failed_step = 'preprocessing'
             return
 
-        # TODO kick off jobs here!
+        # TODO: kick off jobs here!
         # ------------------------
         # subprocess.run()...
         # - redirect output to job.log
@@ -228,10 +228,10 @@ class Experiment:
         # - we can add a param to change this behavior if we want to
         #   die immediately on a failure
         for r in run_list:
-            # TODO collect run pass/fail from return value
+            # TODO: collect run pass/fail from return value
             self.algorithm.execute(r)
 
-        # TODO check for failure from runs here
+        # TODO: check for failure from runs here
 
         self.state = ExpState.PostProcess
         if not self.algorithm.postprocess(self):

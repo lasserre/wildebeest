@@ -7,7 +7,6 @@ from ..experimentalgorithm import ExpStep
 from ..utils import *
 
 class GhidraKeys:
-    # TODO: should this value be in a runconfig?
     GHIDRA_INSTALL = 'GHIDRA_INSTALL'
     GHIDRA_USER = 'GHIDRA_USER'
     GHIDRA_PWD = 'GHIDRA_PWD'
@@ -54,9 +53,6 @@ def start_ghidra_server(ghidra_path:str) -> ExpStep:
     })
 
 def _create_shared_project(exp:Experiment, params:Dict[str,Any], outputs:Dict[str,Any]):
-    #  <GHDIRA>\support\analyzeHeadless.bat . empty -scriptPath <PATH>
-    # -postScript create_repo.py <USERNAME> <PWD> <REPONAME>
-    # -deleteProject -noanalysis
     req_keys = [GhidraKeys.GHIDRA_INSTALL]
 
     missing_keys = set(req_keys) - params.keys()
