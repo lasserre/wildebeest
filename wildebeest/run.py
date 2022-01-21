@@ -55,6 +55,9 @@ class Run:
         self.failed_step = ''
         '''If a failure occurs, this holds the name of the failed step'''
 
+        self.error_msg = ''
+        '''If a failure occurs, this holds an error message'''
+
     @property
     def runstate_file(self) -> Path:
         '''Returns the path to this run's runstate file'''
@@ -94,4 +97,5 @@ class Run:
         self.outputs = {}
         self.last_completed_step = ''
         self.failed_step = ''
+        self.error_msg = ''
         self.status = RunStatus.RUNNING

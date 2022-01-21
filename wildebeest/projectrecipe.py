@@ -50,9 +50,9 @@ class ProjectRecipe:
             source_languages:List[str]=[],
             out_of_tree:bool=True,
             git_head:str='',
-            configure_options:BuildStepOptions=BuildStepOptions(),
-            build_options:BuildStepOptions=BuildStepOptions(),
-            clean_options:BuildStepOptions=BuildStepOptions()) -> None:
+            configure_options:BuildStepOptions=None,
+            build_options:BuildStepOptions=None,
+            clean_options:BuildStepOptions=None) -> None:
         '''
         name: A unique name for this recipe that can be used to identify it later
         build_system: The name of the build system (driver) that this project uses
@@ -87,9 +87,9 @@ class ProjectRecipe:
         '''
         self.git_head = git_head
         '''If specified, check out this revision of the project instead of the default'''
-        self.configure_options = configure_options
+        self.configure_options = configure_options if configure_options else BuildStepOptions()
         '''Custom configure options specific to this project'''
-        self.build_options = build_options
+        self.build_options = build_options if build_options else BuildStepOptions()
         '''Custom build options specific to this project'''
-        self.clean_options = clean_options
+        self.clean_options = clean_options if clean_options else BuildStepOptions()
         '''Custom clean options specific to this project'''

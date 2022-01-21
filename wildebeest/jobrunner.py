@@ -4,6 +4,7 @@ import psutil
 import shutil
 import subprocess
 import sys
+from termcolor import colored
 import time
 import traceback
 from typing import Any, Callable, List
@@ -145,7 +146,8 @@ class Job:
             return 0
         except Exception as e:
             traceback.print_exc()
-            self.error_msg = f'Task raised exception: "{e}"'
+            # self.error_msg = f'Task raised exception: "{e}"'
+            self.error_msg = str(e)
             return 1
 
     def start_in_subprocess(self) -> int:
@@ -219,6 +221,7 @@ class JobRunner:
         self.name = name
         self.workload = workload
         self.numjobs = numjobs
+        # TODO: random id
         self.workload_folder = JobPaths.Workloads/f'{name}.workload'
 
         self.ready_jobs = []
@@ -236,8 +239,11 @@ class JobRunner:
 
     def __exit__(self, type, value, traceback):
         # try to kill any outstanding jobs
-        for j in self.running_jobs:
-            j.kill()
+        try:
+            for j in self.running_jobs:
+                j.kill()
+        except:
+            pass    # oh well, we tried... :P
 
     def mark_job_running(self, job:Job):
         '''
@@ -276,11 +282,15 @@ class JobRunner:
             for j in self.running_jobs:
                 if j.finished():
                     self.running_jobs.remove(j)
-                    self.mark_job_finished(j, failed=j.failed())
-                    if j.failed():
-                        print(f'[{j.task.name} FAILED]')
+                    failed = j.failed()     # have to read this NOW before we lose handle to process via yaml reload
+                    j = Job.load_from_yaml(j.yamlfile)  # load any updated state from job process
+                    self.mark_job_finished(j, failed=failed)
+                    if failed:
+                        self.failed_jobs.append(j)
+                        print(colored(f'[{j.task.name} FAILED]: {j.error_msg}', 'red', attrs=['bold']))
                     else:
-                        print(f'[{j.task.name} finished]')
+                        self.finished_jobs.append(j)
+                        print(colored(f'[{j.task.name} finished]', 'green'))
                     return
             time.sleep(0.25)    # 250ms?
 
@@ -289,8 +299,14 @@ class JobRunner:
         while self.ready_jobs and len(self.running_jobs) < max_jobs:
             self.start_next_job()
 
-    def run(self):
+    def run(self) -> List[Task]:
+        '''
+        Runs the workload, and returns a list of failed Tasks (if none failed the list
+        will be empty)
+        '''
         self.ready_jobs = [Job(task, self.workload_folder, i) for i, task in enumerate(self.workload)]
+        self.failed_jobs = []
+        self.finished_jobs = []
 
         MAX_JOBS = self.numjobs
         if len(self.ready_jobs) < self.numjobs:
@@ -298,7 +314,9 @@ class JobRunner:
             # to the work we have (algorithm waits until pipe is full )
             MAX_JOBS = len(self.ready_jobs)
 
-        print(f'Running {len(self.ready_jobs)} tasks using {self.numjobs} ({MAX_JOBS}) parallel jobs')
+        print(f'Running {len(self.ready_jobs)} tasks using up to {MAX_JOBS} parallel jobs')
+        if MAX_JOBS < self.numjobs:
+            print(f'({self.numjobs} specified, but only {len(self.ready_jobs)} jobs to run)')
 
         while self.ready_jobs:
             self.start_parallel_jobs(MAX_JOBS)
@@ -309,6 +327,7 @@ class JobRunner:
             self.wait_for_finished_job()
 
         print(f'Finished running {self.name}')
+        return [j.task for j in self.failed_jobs]
 
 def run_job(yaml:Path) -> int:
     job = Job.load_from_yaml(yaml)

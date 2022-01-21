@@ -1,15 +1,17 @@
+import hashlib
 from pathlib import Path
 from telnetlib import IP
 from typing import Any, Dict, List
 
 from .defaultbuildalgorithm import clean
-from .postprocessing.llvm_instrumentation import _rebase_linker_objects
 from. experimentalgorithm import ExperimentAlgorithm
 from .experimentpaths import ExpRelPaths
+from .jobrunner import Job, JobRunner, Task
+from .postprocessing.llvm_instrumentation import _rebase_linker_objects
 from .projectbuild import ProjectBuild
-from .runconfig import RunConfig
-from .run import Run
 from .projectrecipe import ProjectRecipe
+from .run import Run
+from .runconfig import RunConfig
 from .utils import *
 
 class ExpState:
@@ -20,15 +22,30 @@ class ExpState:
     Finished = 'FINISHED'
     Failed = 'FAILED'
 
+class RunTask(Task):
+    def __init__(self, run:Run, algorithm:ExperimentAlgorithm) -> None:
+        self.run = run
+        self.algorithm = algorithm
+        # state dict is for when you don't override the Task class to allow
+        # you to just instantiate what you need on the fly
+
+        # TODO: add param to allow run_from(stepname) instead of just execute_run
+        super().__init__(run.name, self.execute_run, {})
+
+    def execute_run(self, state):
+        if not self.algorithm.execute(self.run):
+            raise Exception(self.run.error_msg)
+
 class Experiment:
     postprocess_outputs:Dict[str,Any]
+    workload_folder:Path
 
     def __init__(self, name:str, algorithm:ExperimentAlgorithm,
                 runconfigs:List[RunConfig],
                 projectlist:List[ProjectRecipe]=[],
                 exp_folder:Path=None) -> None:
         '''
-        name:       A name to identify this experiment
+        name:       A name to identify this (type of) experiment
         algorithm:  The algorithm that defines the experiment
         runconfigs: The set of run configs in the experiment
         projectlist: The list of projects included in the experiment
@@ -42,6 +59,7 @@ class Experiment:
             exp_folder = Path().home()/'.wildebeest'/'experiments'/f'{name}.exp'
         self.exp_folder = exp_folder
 
+        self._workload_folder = None
         self._preprocess_outputs = {}
         self._postprocess_outputs = {}
         self._state = ExpState.Ready
@@ -104,6 +122,16 @@ class Experiment:
         return self.exp_folder/ExpRelPaths.Runstates
 
     @property
+    def workload_folder(self) -> Path:
+        '''Path to JobRunner's workload folder when experiment is started'''
+        return self._workload_folder
+
+    @workload_folder.setter
+    def workload_folder(self, value:Path):
+        self._workload_folder = value
+        self.save_to_yaml()
+
+    @property
     def state(self) -> str:
         return self._state
 
@@ -141,8 +169,10 @@ class Experiment:
         self._preprocess_outputs = value
         self.save_to_yaml()
 
-    def get_project_source_folder(self, project_name:str):
-        return self.source_folder/project_name
+    def get_project_source_folder(self, recipe:ProjectRecipe):
+        if recipe.git_head:
+            return self.source_folder/f'{recipe.name}@{recipe.git_head}'
+        return self.source_folder/recipe.name
 
     def get_build_folder_for_run(self, project_name:str, run_name:str):
         return self.build_folder/project_name/run_name
@@ -163,7 +193,7 @@ class Experiment:
                 project_name = recipe.name
                 run_name = f'run{run_number}.{rc.name}' if rc.name else f'run{run_number}'
                 build_folder = self.get_build_folder_for_run(project_name, run_name)
-                source_folder = self.get_project_source_folder(project_name)
+                source_folder = self.get_project_source_folder(recipe)
                 proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
                 run_list.append(Run(run_name, self.exp_folder, proj_build, rc))
                 run_number += 1
@@ -175,6 +205,18 @@ class Experiment:
         '''
         yaml_files = list(self.runstates_folder.glob('*.run.yaml'))
         return [Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files]
+
+    def generate_workload_id(self) -> str:
+        '''
+        Generate a unique workload id that is deterministic for a given
+        experiment folder. The idea is to reuse a given experiment's workload folder
+        if we simply rerun it, but if we copy it somewhere we should have a separate
+        workload folder even if they are named the same thing.
+        '''
+        workload_input = str(self.exp_folder)
+        sha1_digest = hashlib.sha1(workload_input.encode('utf-8')).digest()
+        id_string = ''.join([f'{b:02x}' for b in sha1_digest])[:8]
+        return id_string
 
     def run(self, force:bool=False, numjobs=1):
         '''
@@ -195,10 +237,12 @@ class Experiment:
             print(f'Runstates folder already exists. Either supply force=True or use rerun()')
             return
 
-        # reset state
+        # -----------------
+        # init/reset state
         self.failed_step = ''
         self.preprocess_outputs = {}
         self.postprocess_outputs = {}
+        self.workload_folder = None
 
         run_list = self._generate_runs()
 
@@ -206,6 +250,8 @@ class Experiment:
         for r in run_list:
             r.save_to_runstate_file()
 
+        # -----------------
+        # preprocess
         # My thought right now is if pre/post processing needs to
         # look at runs, they can call exp.load_runs() (I guess we could
         # make that a .runs property :P)
@@ -216,23 +262,27 @@ class Experiment:
             self.failed_step = 'preprocessing'
             return
 
-        # TODO: kick off jobs here!
-        # ------------------------
-        # subprocess.run()...
-        # - redirect output to job.log
-
+        # -----------------
+        # run jobs
         self.state = ExpState.Running
+        workload = [RunTask(r, self.algorithm) for r in run_list]
+        workload_name = f"{self.name}-{self.generate_workload_id()}"
+        print(f'Experiment workload name: {workload_name}')
+        failed_tasks = []
+        with JobRunner(workload_name, workload, numjobs) as runner:
+            self.workload_folder = runner.workload_folder
+            failed_tasks = runner.run()
 
-        # NOTE try to run ALL runs, even if some fail...
-        # by default, we probably want to run what we can even if something failed
-        # - we can add a param to change this behavior if we want to
-        #   die immediately on a failure
-        for r in run_list:
-            # TODO: collect run pass/fail from return value
-            self.algorithm.execute(r)
+        if failed_tasks:
+            print('The following runs failed:')
+            print('\n'.join([t.name for t in failed_tasks]))
+            print(f'{len(failed_tasks)} failed runs in total')
+            self.state = ExpState.Failed
+            self.failed_step = 'run'
+            return
 
-        # TODO: check for failure from runs here
-
+        # -----------------
+        # postprocess
         self.state = ExpState.PostProcess
         if not self.algorithm.postprocess(self):
             self.state = ExpState.Failed
@@ -240,24 +290,6 @@ class Experiment:
             return
 
         self.state = ExpState.Finished
-
-    # TODO do we need this?
-    # def resume(self):
-    #     '''
-    #     Resumes each run in the experiment from its last completed state
-    #     '''
-    #     self.save_to_yaml()
-
-    #     run_list = self.load_runs()
-    #     if not run_list:
-    #         print(f'No existing runs to resume in experiment {self.exp_folder}')
-    #         return
-
-    #     for r in run_list:
-    #         idx = self.algorithm.get_index_of_step(r.last_completed_step)
-    #         if (idx+1) < len(self.algorithm.steps):
-    #             next_step = self.algorithm.steps[idx+1].name
-    #             self.algorithm.execute_from(next_step, r)
 
     # TODO: get rid of this, put it in run()
     # run(rerun_from:str='')  --> if not rerun_from: # verify no existing runstate folders, etc

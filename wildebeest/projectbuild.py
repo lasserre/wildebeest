@@ -50,16 +50,20 @@ class ProjectBuild:
         self.project_root = exp_root/self.project_root.relative_to(old_exp)
         self.build_folder = exp_root/self.build_folder.relative_to(old_exp)
 
+    def init_project_root(self):
+        '''
+        Creates the project source code folder, cloning it from the git repo
+        '''
+        if not self.project_root.exists():
+            self.gitrepo.init()     # clone the project from github if it dne
+
     def init(self):
         '''
         Ensures the project build is initialized by cloning the project if needed
         and creating the build folder if needed. This may be called on an existing
         project build without harm.
         '''
-        if not self.project_root.exists():
-            self.gitrepo.init()     # clone the project from github if it dne
-
-        # make sure build folder exists
+        self.init_project_root()
         self.build_folder.mkdir(parents=True, exist_ok=True)
 
     def destroy(self, destroy_repo:bool=False):

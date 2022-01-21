@@ -9,19 +9,6 @@ from wildebeest.tasks.testing import do_test_task
 
 def main():
 
-    # -----------------
-    # pick up here
-    # -----------------
-    # TODO: use JobRunner and Run tasks (RunTask class?) from Experiment.run()
-
-    # TODO add exp-level pre-processing (algorithm? just a callback? list of callbacks?)
-        # - in general, this is where I can add SANITY CHECKS before starting long runs
-        #
-        # >>> this will ensure the ghidra server is running <<<
-        #
-    # TODO add exp-level post-processing (algorithm???)
-        # - collecting results, running exp-wide analysis
-
     workload = [
         Task('task1', do_test_task, {
             'count': 10,

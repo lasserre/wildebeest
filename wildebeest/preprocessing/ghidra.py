@@ -1,8 +1,12 @@
 from pathlib import Path
 import subprocess
 from typing import Any, Dict
+from typing import TYPE_CHECKING
 
-from ..experiment import Experiment
+if TYPE_CHECKING:
+    # avoid cyclic dependencies this way
+    from ..experiment import Experiment
+
 from ..experimentalgorithm import ExpStep
 from ..utils import *
 
@@ -12,7 +16,7 @@ class GhidraKeys:
     GHIDRA_PWD = 'GHIDRA_PWD'
     GHIDRA_REPO = 'GHIDRA_REPO'
 
-def _start_ghidra_server(exp:Experiment, params:Dict[str,Any], outputs:Dict[str,Any]):
+def _start_ghidra_server(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     '''
     Checks to make sure ghidra server is running on the default port. If not, the
     ghidra server is started (as current user) in a new tmux window
@@ -52,7 +56,7 @@ def start_ghidra_server(ghidra_path:str) -> ExpStep:
         GhidraKeys.GHIDRA_INSTALL: ghidra_path
     })
 
-def _create_shared_project(exp:Experiment, params:Dict[str,Any], outputs:Dict[str,Any]):
+def _create_shared_project(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     req_keys = [GhidraKeys.GHIDRA_INSTALL]
 
     missing_keys = set(req_keys) - params.keys()

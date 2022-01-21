@@ -6,6 +6,7 @@ from .projectrecipe import ProjectRecipe
 from .experimentalgorithm import ExperimentAlgorithm
 from .run import Run
 from .algorithmstep import ExpStep, RunStep
+from .preprocessing.repos import *
 
 def init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     run.build.init()
@@ -50,7 +51,10 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
     post_build_steps: Additional steps to append after the build step
     '''
     return ExperimentAlgorithm(
-            preprocess_steps=preprocess_steps,
+            preprocess_steps=[
+                clone_repos(),
+                *preprocess_steps
+            ],
             steps=[
                 RunStep('init', init),
                 RunStep('configure', configure),

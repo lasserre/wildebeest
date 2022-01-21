@@ -93,6 +93,7 @@ class ExperimentAlgorithm:
         # reset status, but don't overwrite outputs in case we're starting
         # mid-way through
         run.failed_step = ''
+        run.error_msg = ''
         run.status = RunStatus.RUNNING
         run.save_to_runstate_file()
 
@@ -104,6 +105,7 @@ class ExperimentAlgorithm:
                 print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
                 run.status = RunStatus.FAILED
                 run.failed_step = step.name
+                run.error_msg = str(e)
                 run.save_to_runstate_file()
                 return False  # bail here
             # if isinstance(step_output, list) and not step.do_not_parallelize:
