@@ -1,6 +1,6 @@
 from importlib import metadata
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from .experiment import Experiment
 
@@ -20,7 +20,9 @@ class ExperimentRepository:
             exp_dict[exp_class().name] = exp_class
         return exp_dict
 
-_experiment_repo = None
+_experiment_repo:ExperimentRepository = None
+if _experiment_repo is None:
+    _experiment_repo = ExperimentRepository()
 
 def create_experiment(name:str, **kwargs) -> Experiment:
     '''
@@ -28,8 +30,6 @@ def create_experiment(name:str, **kwargs) -> Experiment:
     raises an exeption if it is not a registered experiment.
     '''
     global _experiment_repo
-    if not _experiment_repo:
-        _experiment_repo = ExperimentRepository()
 
     if name in _experiment_repo.experiments:
         exp:Experiment = _experiment_repo.experiments[name](**kwargs)  # construct a new instance
@@ -45,3 +45,7 @@ def load_experiment(exp_folder:Path) -> Experiment:
     Helper function for API parity with create_experiment :)
     '''
     return Experiment.load_from_yaml(exp_folder)
+
+def get_experiment_names() -> List[str]:
+    global _experiment_repo
+    return list(_experiment_repo.experiments.keys())

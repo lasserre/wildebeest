@@ -3,7 +3,7 @@ import argcomplete
 from pathlib import Path
 
 from wildebeest import Experiment, Job
-from wildebeest import create_experiment, load_experiment
+from wildebeest import *
 from wildebeest.jobrunner import run_job
 
 # Other wdb command line examples/ideas:
@@ -44,6 +44,10 @@ from wildebeest.jobrunner import run_job
 # wdb status -j 3   # status for job 3
 # wdb set <key> <value>
     # wdb set projectlist NAME
+# // listing/showing registered things
+# wdb show lists
+# wdb show recipes
+# wdb show experiments
 
 def get_experiment(args) -> Experiment:
     '''
@@ -78,6 +82,22 @@ def cmd_run_job(args):
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
     return run_job(job_yaml)
 
+def cmd_show_lists():
+    for pl in get_project_list_names():
+        print(pl)
+    return 0
+
+def cmd_show_recipes(project_list=''):
+    names = get_recipe_names() if not project_list else [r.name for r in get_project_list(project_list)]
+    for name in names:
+        print(name)
+    return 0
+
+def cmd_show_exps():
+    for name in get_experiment_names():
+        print(name)
+    return 0
+
 def main():
     p = argparse.ArgumentParser(description='Runs wildebeest commands')
     p.add_argument('--exp', type=Path, default=Path().cwd(), help='The experiment folder')
@@ -87,9 +107,15 @@ def main():
     create_p = subparsers.add_parser('create', help='Create instances of registered wildebeest experiments')
     create_p.add_argument('name', type=str, help='The registered name of the experiment to be created')
     create_p.add_argument('exp_folder', type=Path, default=None, help='The experiment folder', nargs='?')
+    create_p.add_argument('-l', '--project-list', type=str, help='The name of the project list to use for this experiment')
 
     run_p = subparsers.add_parser('run', help='Run commands on wildebeest jobs')
     run_p.add_argument('-j', '--job', help='Job number to run', type=int)
+
+    show_p = subparsers.add_parser('show', help='List information about requested content')
+    show_p.add_argument('object', help='The object to show',
+                        choices=['lists', 'recipes', 'exps', 'experiments'])
+    show_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
 
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
@@ -106,8 +132,10 @@ def main():
     if args.subcmd == 'create':
         name = args.name
         exp_folder = args.exp_folder if args.exp_folder else Path().cwd()/f'{name}.exp'
-        # TODO: add --project-list arg
-        return cmd_create_exp(exp_folder, name)
+        proj_list = []
+        if args.project_list:
+            proj_list = get_project_list(args.project_list)
+        return cmd_create_exp(exp_folder, name, proj_list)
     elif args.subcmd == 'run':
         # if args.runcmd == 'run':
 
@@ -117,6 +145,17 @@ def main():
 
         # import IPython; IPython.embed()
         # return
+    elif args.subcmd == 'show':
+        if args.object == 'lists':
+            return cmd_show_lists()
+        elif args.object == 'recipes':
+            pl = args.project_list if args.project_list else ''
+            return cmd_show_recipes(pl)
+        elif args.object == 'exp' or args.object == 'experiments':
+            return cmd_show_exps()
     import sys
     print(f'Unhandled cmd-line: {sys.argv}')
     return 1
+
+if __name__ == '__main__':
+    main()

@@ -11,5 +11,13 @@
             "program": "${workspaceRoot}/wildebeest/scripts/test_driver.py",
             "console": "integratedTerminal"
         },
+        {
+            "name": "Cmdline",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": ["show", "lists"],
+            "console": "integratedTerminal"
+        },
     ]
 }

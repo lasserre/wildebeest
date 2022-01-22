@@ -1,0 +1,13 @@
+from typing import List
+
+from .. import ProjectList
+
+# small project list for testing
+
+def create_test_list() -> List[str]:
+    return [
+        'test-programs',
+        'test-programs (cbasic only)'
+    ]
+
+test_list = ProjectList('test', create_test_list)
