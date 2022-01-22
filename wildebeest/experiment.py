@@ -30,7 +30,7 @@ class RunTask(Task):
         # you to just instantiate what you need on the fly
 
         # TODO: add param to allow run_from(stepname) instead of just execute_run
-        super().__init__(run.name, self.execute_run, {})
+        super().__init__(f'Run {run.number} ({run.name})', self.execute_run, {})
 
     def execute_run(self, state):
         if not self.algorithm.execute(self.run):
@@ -78,6 +78,11 @@ class Experiment:
 
         self.save_to_yaml()
         print(f'Rebased {self.name} experiment {self.exp_folder}. Any post-processing should probably be re-run')
+
+    @staticmethod
+    def is_exp_folder(exp_folder:Path) -> bool:
+        '''Returns True if exp_folder is a valid experiment folder'''
+        return (exp_folder/ExpRelPaths.ExpYaml).exists()
 
     @staticmethod
     def load_from_yaml(exp_folder:Path) -> 'Experiment':
@@ -174,8 +179,8 @@ class Experiment:
             return self.source_folder/f'{recipe.name}@{recipe.git_head}'
         return self.source_folder/recipe.name
 
-    def get_build_folder_for_run(self, project_name:str, run_name:str):
-        return self.build_folder/project_name/run_name
+    def get_build_folder_for_run(self, project_name:str, run_number:int):
+        return self.build_folder/project_name/f'run{run_number}'
 
     def _generate_runs(self) -> List[Run]:
         '''
@@ -189,13 +194,16 @@ class Experiment:
         run_list = []
         run_number = 1
         for recipe in self.projectlist:
-            for rc in self.runconfigs:
+            for i, rc in enumerate(self.runconfigs):
                 project_name = recipe.name
-                run_name = f'run{run_number}.{rc.name}' if rc.name else f'run{run_number}'
-                build_folder = self.get_build_folder_for_run(project_name, run_name)
+                run_name = f'{recipe.name} - {rc.name}' if len(self.runconfigs) > 1 else f'{recipe.name}'
+                # NOTE: has to use run number to guarantee separate folders...sometimes we will have
+                # 2 instances of the same recipe with different config tweaks. In case we forget to rename
+                # one config, this is safer!
+                build_folder = self.get_build_folder_for_run(project_name, run_number)
                 source_folder = self.get_project_source_folder(recipe)
                 proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
-                run_list.append(Run(run_name, self.exp_folder, proj_build, rc))
+                run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc))
                 run_number += 1
         return run_list
 
@@ -218,7 +226,7 @@ class Experiment:
         id_string = ''.join([f'{b:02x}' for b in sha1_digest])[:8]
         return id_string
 
-    def run(self, force:bool=False, numjobs=1):
+    def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None):
         '''
         Run the entire experiment from the beginning.
 
@@ -237,6 +245,11 @@ class Experiment:
             print(f'Runstates folder already exists. Either supply force=True or use rerun()')
             return
 
+        # validate runconfigs are uniquely named
+        if len(set([x.name for x in self.runconfigs])) < len(self.runconfigs):
+            print(f'Experiment run configs are not uniquely named! Please address this and restart')
+            return
+
         # -----------------
         # init/reset state
         self.failed_step = ''
@@ -244,11 +257,11 @@ class Experiment:
         self.postprocess_outputs = {}
         self.workload_folder = None
 
-        run_list = self._generate_runs()
-
-        # initialize the runstate files for the entire experiment
-        for r in run_list:
-            r.save_to_runstate_file()
+        if not run_list:
+            run_list = self._generate_runs()
+            # initialize the runstate files for the entire experiment
+            for r in run_list:
+                r.save_to_runstate_file()
 
         # -----------------
         # preprocess
@@ -269,7 +282,7 @@ class Experiment:
         workload_name = f"{self.name}-{self.generate_workload_id()}"
         print(f'Experiment workload name: {workload_name}')
         failed_tasks = []
-        with JobRunner(workload_name, workload, numjobs) as runner:
+        with JobRunner(workload_name, workload, numjobs, self.exp_folder) as runner:
             self.workload_folder = runner.workload_folder
             failed_tasks = runner.run()
 

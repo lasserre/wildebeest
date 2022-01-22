@@ -65,12 +65,13 @@ class Job:
                 run1.job1.log
                 ...
     '''
-    def __init__(self, task:Task, workload_folder:Path, jobid:int) -> None:
+    def __init__(self, task:Task, workload_folder:Path, exp_folder:Path, jobid:int) -> None:
         self._status = JobStatus.READY
         self.task = task
+        self.exp_folder = exp_folder    # this is so we can call wdb run -j from the proper cwd
         self.jobid = jobid
 
-        self.yamlfile = workload_folder/JobRelPaths.Jobs/f'{self.jobname}.yaml'
+        self.yamlfile = Job.yamlfile_from_id(workload_folder, jobid)
         self.logfile = workload_folder/JobRelPaths.Logs/f'{self.jobname}.log'
 
         self._pid = None
@@ -91,9 +92,17 @@ class Job:
             del state['process']
         return state
 
+    @staticmethod
+    def jobname_from_id(jobid:int) -> str:
+        return f'job{jobid}'
+
+    @staticmethod
+    def yamlfile_from_id(workload_folder:Path, jobid:int) -> Path:
+        return workload_folder/JobRelPaths.Jobs/f'{Job.jobname_from_id(jobid)}.yaml'
+
     @property
     def jobname(self) -> str:
-        return f'{self.task.name}.job{self.jobid}'
+        return Job.jobname_from_id(self.jobid)
 
     @property
     def status(self):
@@ -155,9 +164,11 @@ class Job:
         Starts the job in a subprocess, returning its PID
         '''
         self.starttime = datetime.now()
-        with open(self.logfile, 'w') as log:
-            self.process = subprocess.Popen([f'wdb job run {self.yamlfile}'],
-                shell=True, stdout=log, stderr=log)
+        cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
+        with cd(cwd):
+            with open(self.logfile, 'w') as log:
+                self.process = subprocess.Popen([f'wdb run -j {self.jobid}'],
+                    shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
         return self.pid
@@ -212,17 +223,18 @@ class JobRunner:
     Runs a set of Tasks (work units) using a specified max number of parallel
     jobs.
     '''
-    def __init__(self, name:str, workload:List[Task], numjobs:int) -> None:
+    def __init__(self, name:str, workload:List[Task], numjobs:int, exp_folder:Path=None) -> None:
         '''
         name: Descriptive name for the workload
         workload: The tasks to be executed
         numjobs: Number of jobs to run in parallel
+        exp_folder: The experiment folder (this facilitates running wdb commands in new processes)
         '''
         self.name = name
         self.workload = workload
         self.numjobs = numjobs
-        # TODO: random id
         self.workload_folder = JobPaths.Workloads/f'{name}.workload'
+        self.exp_folder = exp_folder
 
         self.ready_jobs = []
         self.running_jobs = []
@@ -304,7 +316,7 @@ class JobRunner:
         Runs the workload, and returns a list of failed Tasks (if none failed the list
         will be empty)
         '''
-        self.ready_jobs = [Job(task, self.workload_folder, i) for i, task in enumerate(self.workload)]
+        self.ready_jobs = [Job(task, self.workload_folder, self.exp_folder, i) for i, task in enumerate(self.workload)]
         self.failed_jobs = []
         self.finished_jobs = []
 

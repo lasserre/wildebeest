@@ -2,6 +2,8 @@ import argparse
 import argcomplete
 from pathlib import Path
 
+from wildebeest import Experiment, Job
+from wildebeest import create_experiment, load_experiment
 from wildebeest.jobrunner import run_job
 
 # Other wdb command line examples/ideas:
@@ -22,29 +24,99 @@ from wildebeest.jobrunner import run_job
 # wdb status fp.exp     # more detailed status for this exp?
 # wdb status fp.exp --run run1      # run status
 # wdb log fp.exp run1               # dump the log from this run, we can combine with watch/tail to make this nice
+# --------------------
+# TODO let's design this like git - you run the commands FROM WITHIN EXP FOLDER
+# to make the cmdline simpler...don't have to specify the experiment folder explicitly
+# each time!
+# ---------
+# NOTE: create is the 1 command that is run from outside (like git clone)
+# wdb create funcprotos [EXP_FOLDER}   # create funcprotos experiment, defaults to funcprotos.exp in cwd
+# wdb create funcprotos -l|--project-list LIST  # create with specified list
+# wdb log       # dump log for experiment (TODO: redirect this into a file as well...)
+# wdb log run2  # dumps job log for run 2, assume we are IN .exp folder (like git repo) - check for .wildebeest/exp.yaml
+# wdb log -j 4  # dump job log for job 4 (whichever run that is)
+# // running
+# wdb run       # runs the experiment
+# wdb run -j 3  # runs job 3
+# wdb run -r 1  # runs run 1??
+# wdb status    # status table for this experiment
+# wdb status run1   # status for a specific run
+# wdb status -j 3   # status for job 3
+# wdb set <key> <value>
+    # wdb set projectlist NAME
+
+def get_experiment(args) -> Experiment:
+    '''
+    Determines the appropriate experiment folder for the command-line options and
+    returns an Experiment instance (loaded from yaml) if possible. If not a valid
+    experiment, returns None.
+    '''
+    exp_folder = args.exp
+    if not Experiment.is_exp_folder(exp_folder):
+        print(f'{exp_folder} is not an experiment folder')
+        return None
+    return Experiment.load_from_yaml(exp_folder)
+
+def cmd_create_exp(exp_folder:Path, name:str, projectlist=[]):
+    try:
+        exp = create_experiment(name, exp_folder=exp_folder, projectlist=projectlist)
+        exp.save_to_yaml()
+    except Exception as e:
+        print(e)
+        return 1
+    return exp is not None
+
+def cmd_run_job(args):
+    exp = get_experiment(args)
+    if not exp:
+        return 1
+
+    if args.job is None:
+        print('No job id specified')
+        return 1
+
+    job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
+    return run_job(job_yaml)
 
 def main():
     p = argparse.ArgumentParser(description='Runs wildebeest commands')
+    p.add_argument('--exp', type=Path, default=Path().cwd(), help='The experiment folder')
 
     subparsers = p.add_subparsers(dest='subcmd')
-    job_p = subparsers.add_parser('job', help='Run commands on wildebeest jobs')
 
-    job_cmds = job_p.add_subparsers(help='Job commands', dest='jobcmd')
-    job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
-    job_run.add_argument('job_yaml',
-        help='Yaml file for the job to run',
-        type=Path)
+    create_p = subparsers.add_parser('create', help='Create instances of registered wildebeest experiments')
+    create_p.add_argument('name', type=str, help='The registered name of the experiment to be created')
+    create_p.add_argument('exp_folder', type=Path, default=None, help='The experiment folder', nargs='?')
+
+    run_p = subparsers.add_parser('run', help='Run commands on wildebeest jobs')
+    run_p.add_argument('-j', '--job', help='Job number to run', type=int)
+
+    status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
+    # status_p.add_argument
+
+    # job_cmds = run_p.add_subparsers(help='Run commands', dest='runcmd')
+    # job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
+    # job_run.add_argument('job_yaml',
+    #     help='Yaml file for the job to run',
+    #     type=Path)
 
     argcomplete.autocomplete(p)
     args = p.parse_args()
 
-    if args.subcmd == 'job':
-        if args.jobcmd == 'run':
-            # wdb job run
-            import sys
-            print(sys.argv)
-            print(args.job_yaml)
-            return run_job(args.job_yaml)
-    else:
-        print(f'Unhandled subcommand {args.subcmd}')
-        return 1
+    if args.subcmd == 'create':
+        name = args.name
+        exp_folder = args.exp_folder if args.exp_folder else Path().cwd()/f'{name}.exp'
+        # TODO: add --project-list arg
+        return cmd_create_exp(exp_folder, name)
+    elif args.subcmd == 'run':
+        # if args.runcmd == 'run':
+
+        # wdb run -j N
+        if 'job' in args:
+            return cmd_run_job(args)
+
+        # import IPython; IPython.embed()
+        # return
+    import sys
+    print(f'Unhandled cmd-line: {sys.argv}')
+    return 1

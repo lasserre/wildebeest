@@ -21,9 +21,10 @@ class Run:
     This really encapsulates the state of the run and NOT the algorithm - the
     ExperimentAlgorithm does that and is able to execute a Run.
     '''
-    def __init__(self, name:str, exp_root:Path, build:ProjectBuild, config:RunConfig) -> None:
+    def __init__(self, name:str, number:int, exp_root:Path, build:ProjectBuild, config:RunConfig) -> None:
         '''
         name: The name for this run
+        number: The run number within the experiment
         exp_root: The root experiment folder
         build: Project build for this run
         config: Run configuration
@@ -35,6 +36,9 @@ class Run:
 
         self.name = name
         '''The name for this run'''
+
+        self.number = number
+        '''The run number for this run (within the context of its experiment)'''
 
         self.build = build
         '''The project build for this run'''
@@ -61,7 +65,7 @@ class Run:
     @property
     def runstate_file(self) -> Path:
         '''Returns the path to this run's runstate file'''
-        return self.exp_root/ExpRelPaths.Runstates/f'{self.name}.run.yaml'
+        return self.exp_root/ExpRelPaths.Runstates/f'run{self.number}.run.yaml'
 
     @property
     def data_folder(self) -> Path:
@@ -70,7 +74,7 @@ class Run:
 
         rundata_folder: The experiment's rundata folder
         '''
-        return self.exp_root/ExpRelPaths.Rundata/f'{self.name}'
+        return self.exp_root/ExpRelPaths.Rundata/f'run{self.number}'
 
     def rebase(self, exp_root:Path):
         '''Rebase this Run onto the given experiment root path by

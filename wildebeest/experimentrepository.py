@@ -25,7 +25,7 @@ _experiment_repo = None
 def create_experiment(name:str, **kwargs) -> Experiment:
     '''
     Creates an instance of the Experiment with the indicated name, or
-    None if it is not a registered experiment.
+    raises an exeption if it is not a registered experiment.
     '''
     global _experiment_repo
     if not _experiment_repo:
@@ -36,7 +36,7 @@ def create_experiment(name:str, **kwargs) -> Experiment:
         if exp.exp_folder.exists():
             raise Exception(f'Experiment folder {exp.exp_folder} already exists')
         return exp
-    return None
+    raise Exception(f'Experiment {name} not a registered experiment')
 
 def load_experiment(exp_folder:Path) -> Experiment:
     '''

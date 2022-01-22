@@ -93,7 +93,7 @@ class RunConfig:
     compile_options: Dict[str, CompilationSettings]
     num_build_jobs: int
 
-    def __init__(self, name:str='') -> None:
+    def __init__(self, name:str='default') -> None:
         '''
         name: An optional human-readable name for the run
         '''
