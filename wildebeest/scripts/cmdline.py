@@ -138,7 +138,14 @@ def cmd_kill_exp(exp:Experiment):
     return 0
 
 def cmd_job_log(exp:Experiment, jobid:int):
-    job = load_job_from_id(exp, jobid)
+    job = None
+
+    try:
+        job = load_job_from_id(exp, jobid)
+    except FileNotFoundError:
+        print(f'Run {jobid} does not have a log')
+        return 1
+
     with open(job.logfile, 'r') as f:
         for line in f.readlines():
             lower = line.lower()
@@ -171,9 +178,8 @@ def main():
                         choices=['lists', 'recipes', 'exps', 'experiments'])
     ls_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
 
-    log_p = subparsers.add_parser('log', help='Show logs from experiment, runs, or jobs')
+    log_p = subparsers.add_parser('log', help='Show logs from experiment or runs/jobs')
     log_p.add_argument('run_number', help='The run number whose log should be shown', type=int, nargs='?')
-    log_p.add_argument('--job', help='The job number whose log should be shown', type=int)
 
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
@@ -231,8 +237,8 @@ def main():
     # --- wdb log
     elif args.subcmd == 'log':
         exp = get_experiment(args)
-        if args.job is not None:
-            cmd_job_log(exp, args.job)
+        if args.run_number is not None:
+            return cmd_job_log(exp, args.run_number)
     import sys
     print(f'Unhandled cmd-line: {sys.argv}')
     return 1

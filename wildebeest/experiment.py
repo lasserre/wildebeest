@@ -30,7 +30,7 @@ class RunTask(Task):
         # you to just instantiate what you need on the fly
 
         # TODO: add param to allow run_from(stepname) instead of just execute_run
-        super().__init__(f'Run {run.number} ({run.name})', self.execute_run, {})
+        super().__init__(f'Run {run.number} ({run.name})', self.execute_run, {}, jobid=run.number)
 
     def execute_run(self, state):
         if not self.algorithm.execute(self.run):

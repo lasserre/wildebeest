@@ -12,7 +12,7 @@ from typing import Any, Callable, List
 from .utils import *
 
 class Task:
-    def __init__(self, name:str, do_task:Callable[[Any], None], state:Any) -> None:
+    def __init__(self, name:str, do_task:Callable[[Any], None], state:Any, jobid:int) -> None:
         '''
         Creates a new Task that may be run by the JobManager
 
@@ -21,10 +21,13 @@ class Task:
                 is passed as a parameter. To indicate that this task has failed, simply
                 throw any exception.
         state: A state object that will be supplied to the task at execution time
+        jobid: This allows the task creator to specify job ids and tie a job to the
+               appropriate unit of work (e.g. Runs)
         '''
         self.name = name
         self.do_task = do_task
         self.state = state
+        self.jobid = jobid
 
 class JobPaths:
     Workloads = Path().home()/'.wildebeest'/'workloads'
@@ -317,7 +320,7 @@ class JobRunner:
         Runs the workload, and returns a list of failed Tasks (if none failed the list
         will be empty)
         '''
-        self.ready_jobs = [Job(task, self.workload_folder, self.exp_folder, i) for i, task in enumerate(self.workload)]
+        self.ready_jobs = [Job(task, self.workload_folder, self.exp_folder, task.jobid) for task in self.workload]
         self.failed_jobs = []
         self.finished_jobs = []
 
