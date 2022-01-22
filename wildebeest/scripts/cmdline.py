@@ -151,7 +151,7 @@ def main():
         elif args.object == 'recipes':
             pl = args.project_list if args.project_list else ''
             return cmd_show_recipes(pl)
-        elif args.object == 'exp' or args.object == 'experiments':
+        elif args.object == 'exps' or args.object == 'experiments':
             return cmd_show_exps()
     import sys
     print(f'Unhandled cmd-line: {sys.argv}')

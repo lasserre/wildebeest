@@ -16,7 +16,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["show", "lists"],
+            "args": ["show", "recipes", "-lc_projects"],
             "console": "integratedTerminal"
         },
     ]

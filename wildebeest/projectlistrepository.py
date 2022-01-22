@@ -37,7 +37,7 @@ def get_project_list(name:str) -> List[ProjectRecipe]:
     global _pl_repo
     if name in _pl_repo.project_lists:
         recipe_names = _pl_repo.project_lists[name]()   # call the ProjectList instance
-        return [get_recipe(name) for name in recipe_names]
+        return [get_recipe(r) for r in recipe_names]
     raise Exception(f'Experiment {name} not a registered project list')
 
 def get_project_list_names() -> List[str]:
