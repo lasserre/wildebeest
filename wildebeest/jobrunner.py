@@ -117,6 +117,7 @@ class Job:
     def pid(self) -> int:
         return self._pid
 
+    @pid.setter
     def pid(self, value:int):
         self._pid = value
         self.save_to_yaml()
@@ -167,7 +168,7 @@ class Job:
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
             with open(self.logfile, 'w') as log:
-                self.process = subprocess.Popen([f'wdb run -j {self.jobid}'],
+                self.process = subprocess.Popen([f'wdb run --job {self.jobid}'],
                     shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
@@ -175,7 +176,7 @@ class Job:
 
     def kill(self):
         '''Kill this job'''
-        kill_process_and_descendents(psutil.Process(self.process.pid))
+        kill_process_and_descendents(psutil.Process(self.pid))
 
     def finished(self) -> bool:
         '''

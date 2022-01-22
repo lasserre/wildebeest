@@ -1,10 +1,15 @@
 import argparse
+from asyncio import subprocess
+from os import killpg
+import runpy
 import argcomplete
 from pathlib import Path
+from termcolor import colored
 
 from wildebeest import Experiment, Job
 from wildebeest import *
 from wildebeest.jobrunner import run_job
+from wildebeest.run import RunStatus
 
 # Other wdb command line examples/ideas:
 # --------------------------------------
@@ -33,7 +38,7 @@ from wildebeest.jobrunner import run_job
 # wdb create funcprotos [EXP_FOLDER}   # create funcprotos experiment, defaults to funcprotos.exp in cwd
 # wdb create funcprotos -l|--project-list LIST  # create with specified list
 # wdb log       # dump log for experiment (TODO: redirect this into a file as well...)
-# wdb log run2  # dumps job log for run 2, assume we are IN .exp folder (like git repo) - check for .wildebeest/exp.yaml
+# wdb log 2     # dumps job log for run 2, assume we are IN .exp folder (like git repo) - check for .wildebeest/exp.yaml
 # wdb log -j 4  # dump job log for job 4 (whichever run that is)
 # // running
 # wdb run       # runs the experiment
@@ -82,20 +87,67 @@ def cmd_run_job(args):
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
     return run_job(job_yaml)
 
-def cmd_show_lists():
+def cmd_run_exp(exp:Experiment, numjobs=1, force=False):
+    return exp.run(force=force, numjobs=numjobs)
+
+def cmd_ls_lists():
     for pl in get_project_list_names():
         print(pl)
     return 0
 
-def cmd_show_recipes(project_list=''):
+def cmd_ls_recipes(project_list=''):
     names = get_recipe_names() if not project_list else [r.name for r in get_project_list(project_list)]
     for name in names:
         print(name)
     return 0
 
-def cmd_show_exps():
+def cmd_ls_exps():
     for name in get_experiment_names():
         print(name)
+    return 0
+
+def cmd_status_exp(exp:Experiment):
+    runs = exp.load_runs()
+    for r in runs:
+        if r.status == RunStatus.FINISHED:
+            print(colored(f'Run {r.number} ({r.name}) - finished', 'green'))
+        elif r.status == RunStatus.FAILED:
+            print(colored(f'Run {r.number} ({r.name}) - FAILED: "{r.error_msg}"', 'red', attrs=['bold']))
+        else:
+            print(f'Run {r.number} ({r.name}) - {r.status}')
+
+    # TODO: print summary numbers at bottom (Finished running 4 runs: 3/4 succeeded, 1/4 FAILED)
+    # TODO add a -g option to group the output by category: (all running, all failed, all finished, all ready)
+    # TODO add options to filter on subcategories: --failed, --done, --running, --ready
+    # print(colored(f'[{j.task.name} FAILED]: {j.error_msg}', 'red', attrs=['bold']))
+    return 0
+
+def load_job_from_id(exp:Experiment, jobid:int) -> Job:
+    yamlfile = Job.yamlfile_from_id(exp.workload_folder, jobid)
+    return Job.load_from_yaml(yamlfile)
+
+def cmd_kill_job(exp:Experiment, jobid:int):
+    job = load_job_from_id(exp, jobid)
+    job.kill()
+    return 0
+
+def cmd_kill_exp(exp:Experiment):
+    runs = exp.load_runs()
+    for jobid in range(len(runs)):
+        cmd_kill_job(exp, jobid)
+    return 0
+
+def cmd_job_log(exp:Experiment, jobid:int):
+    job = load_job_from_id(exp, jobid)
+    with open(job.logfile, 'r') as f:
+        for line in f.readlines():
+            lower = line.lower()
+            if 'failed during the' in lower:
+                print(colored(line, 'red', attrs=['bold']), end='')
+            # elif 'error' in line.lower():
+            #     print(colored(line, 'red'), end='')
+            else:
+                print(line, end='')
     return 0
 
 def main():
@@ -110,15 +162,25 @@ def main():
     create_p.add_argument('-l', '--project-list', type=str, help='The name of the project list to use for this experiment')
 
     run_p = subparsers.add_parser('run', help='Run commands on wildebeest jobs')
-    run_p.add_argument('-j', '--job', help='Job number to run', type=int)
+    run_p.add_argument('--job', help='Job number to run', type=int)
+    run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
+    run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
 
-    show_p = subparsers.add_parser('show', help='List information about requested content')
-    show_p.add_argument('object', help='The object to show',
+    ls_p = subparsers.add_parser('ls', help='List information about requested content')
+    ls_p.add_argument('object', help='The object to list',
                         choices=['lists', 'recipes', 'exps', 'experiments'])
-    show_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
+    ls_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
+
+    log_p = subparsers.add_parser('log', help='Show logs from experiment, runs, or jobs')
+    log_p.add_argument('run_number', help='The run number whose log should be shown', type=int, nargs='?')
+    log_p.add_argument('--job', help='The job number whose log should be shown', type=int)
 
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
+
+    kill_p = subparsers.add_parser('kill', help='Kill experiments or jobs')
+    kill_p.add_argument('--job', help='Job number to kill', type=int)
+    kill_p.add_argument('-f', '--force', help='Force option required to kill entire experiment', action='store_true')
 
     # job_cmds = run_p.add_subparsers(help='Run commands', dest='runcmd')
     # job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
@@ -129,6 +191,7 @@ def main():
     argcomplete.autocomplete(p)
     args = p.parse_args()
 
+    # --- wdb create
     if args.subcmd == 'create':
         name = args.name
         exp_folder = args.exp_folder if args.exp_folder else Path().cwd()/f'{name}.exp'
@@ -136,23 +199,40 @@ def main():
         if args.project_list:
             proj_list = get_project_list(args.project_list)
         return cmd_create_exp(exp_folder, name, proj_list)
+    # --- wdb run
     elif args.subcmd == 'run':
-        # if args.runcmd == 'run':
-
-        # wdb run -j N
-        if 'job' in args:
+        if args.job is not None:
             return cmd_run_job(args)
-
-        # import IPython; IPython.embed()
-        # return
-    elif args.subcmd == 'show':
+        return cmd_run_exp(get_experiment(args), args.numjobs, args.force)
+    # --- wdb ls
+    elif args.subcmd == 'ls':
         if args.object == 'lists':
-            return cmd_show_lists()
+            return cmd_ls_lists()
         elif args.object == 'recipes':
             pl = args.project_list if args.project_list else ''
-            return cmd_show_recipes(pl)
+            return cmd_ls_recipes(pl)
         elif args.object == 'exps' or args.object == 'experiments':
-            return cmd_show_exps()
+            return cmd_ls_exps()
+    # --- wdb status
+    elif args.subcmd == 'status':
+        exp = get_experiment(args)
+        return cmd_status_exp(exp)
+    # --- wdb kill
+    elif args.subcmd == 'kill':
+        exp = get_experiment(args)
+        if args.job is not None:
+            return cmd_kill_job(exp, args.job)
+        if args.force:
+            return cmd_kill_exp(exp)
+        else:
+            print(f'Are you sure you want to kill the experiment {exp.exp_folder}?')
+            print(f'If so, rerun the command with the -f option')
+            return 1
+    # --- wdb log
+    elif args.subcmd == 'log':
+        exp = get_experiment(args)
+        if args.job is not None:
+            cmd_job_log(exp, args.job)
     import sys
     print(f'Unhandled cmd-line: {sys.argv}')
     return 1
