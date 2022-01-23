@@ -23,18 +23,22 @@ class ExpState:
     Failed = 'FAILED'
 
 class RunTask(Task):
-    def __init__(self, run:Run, algorithm:ExperimentAlgorithm) -> None:
+    def __init__(self, run:Run, algorithm:ExperimentAlgorithm, run_from_step:str='') -> None:
         self.run = run
         self.algorithm = algorithm
+        self.run_from_step = run_from_step
+
         # state dict is for when you don't override the Task class to allow
         # you to just instantiate what you need on the fly
 
-        # TODO: add param to allow run_from(stepname) instead of just execute_run
         super().__init__(f'Run {run.number} ({run.name})', self.execute_run, {}, jobid=run.number)
 
     def execute_run(self, state):
-        if not self.algorithm.execute(self.run):
-            raise Exception(self.run.error_msg)
+        if self.run_from_step:
+            if not self.algorithm.execute_from(self.run_from_step, self.run):
+                raise Exception(f'Error during run: {self.run.error_msg}')
+        elif not self.algorithm.execute(self.run):
+            raise Exception(f'Error during run: {self.run.error_msg}')
 
 class Experiment:
     postprocess_outputs:Dict[str,Any]
@@ -226,7 +230,26 @@ class Experiment:
         id_string = ''.join([f'{b:02x}' for b in sha1_digest])[:8]
         return id_string
 
-    def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None):
+    def validate_exp_before_run(self, run_from_step:str, force:bool) -> bool:
+        '''Returns true if experiment is valid and we can run it'''
+        if run_from_step and not self.algorithm.has_step(run_from_step):
+            print(f'No step named {run_from_step}')
+            return False
+
+        if not run_from_step:
+            # we don't run from beginning if it's already been run (without -f)
+            if self.runstates_folder.exists() and not force:
+                print(f'Runstates folder already exists. Either supply force=True or use rerun()')
+                return False
+
+        # validate runconfigs are uniquely named
+        if len(set([x.name for x in self.runconfigs])) < len(self.runconfigs):
+            print(f'Experiment run configs are not uniquely named! Please address this and restart')
+            return False
+
+        return True
+
+    def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str=''):
         '''
         Run the entire experiment from the beginning.
 
@@ -240,28 +263,35 @@ class Experiment:
                runstates, and restarting this experiment.
         numjobs: The max number of parallel jobs that should be used when running this
                  experiment
+        run_list: If specified, run this set of runs
+        run_from_step: If specified, run beginning at this step, not from the beginning
         '''
-        if self.runstates_folder.exists() and not force:
-            print(f'Runstates folder already exists. Either supply force=True or use rerun()')
-            return
-
-        # validate runconfigs are uniquely named
-        if len(set([x.name for x in self.runconfigs])) < len(self.runconfigs):
-            print(f'Experiment run configs are not uniquely named! Please address this and restart')
+        if not self.validate_exp_before_run(run_from_step, force):
             return
 
         # -----------------
         # init/reset state
+        # only do these for first-time/fresh runs:
+        if not run_from_step:
+            self.preprocess_outputs = {}
+            self.postprocess_outputs = {}
+            self.workload_folder = None
+        # do these regardless:
         self.failed_step = ''
-        self.preprocess_outputs = {}
-        self.postprocess_outputs = {}
-        self.workload_folder = None
 
         if not run_list:
-            run_list = self._generate_runs()
-            # initialize the runstate files for the entire experiment
-            for r in run_list:
-                r.save_to_runstate_file()
+            if run_from_step:
+                # no run_list given - we expect to rerun all runs from this step
+                run_list = self.load_runs()
+                if not run_list:
+                    print(f'No existing runs to rerun in experiment {self.exp_folder}')
+                    return
+            else:
+                # --- first-time run
+                run_list = self._generate_runs()
+                # initialize the runstate files for the entire experiment
+                for r in run_list:
+                    r.save_to_runstate_file()
 
         # -----------------
         # preprocess
@@ -278,9 +308,11 @@ class Experiment:
         # -----------------
         # run jobs
         self.state = ExpState.Running
-        workload = [RunTask(r, self.algorithm) for r in run_list]
+        workload = [RunTask(r, self.algorithm, run_from_step) for r in run_list]
         workload_name = f"{self.name}-{self.generate_workload_id()}"
         print(f'Experiment workload name: {workload_name}')
+        if run_from_step:
+            print(f"Running experiment from step '{run_from_step}'")
         failed_tasks = []
         with JobRunner(workload_name, workload, numjobs, self.exp_folder) as runner:
             self.workload_folder = runner.workload_folder
@@ -288,8 +320,9 @@ class Experiment:
 
         if failed_tasks:
             print('The following runs failed:')
-            print('\n'.join([t.name for t in failed_tasks]))
-            print(f'{len(failed_tasks)} failed runs in total')
+            print('\t', end='')
+            print('\t\n'.join([t.name for t in failed_tasks]))
+            print(f'{len(failed_tasks)}/{len(run_list)} runs failed in total')
             self.state = ExpState.Failed
             self.failed_step = 'run'
             return
@@ -303,28 +336,6 @@ class Experiment:
             return
 
         self.state = ExpState.Finished
-
-    # TODO: get rid of this, put it in run()
-    # run(rerun_from:str='')  --> if not rerun_from: # verify no existing runstate folders, etc
-    # and this: run(rerun_from:str='', skip_exp_pre=False) to allow skipping the pre-experiment
-    # step if desired...
-    def rerun(self, step:str):
-        '''
-        Rerun the experiment starting from the step with the specified name.
-
-        Since it doesn't make sense in general to start a new experiment from
-        a step other than the first one, this function assumes that there are
-        already existing saved runstates.
-        '''
-        self.save_to_yaml()
-
-        run_list = self.load_runs()
-        if not run_list:
-            print(f'No existing runs to rerun in experiment {self.exp_folder}')
-            return
-
-        for r in run_list:
-            self.algorithm.execute_from(step, r)
 
     def clean(self):
         '''

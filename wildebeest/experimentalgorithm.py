@@ -55,7 +55,7 @@ class ExperimentAlgorithm:
         for this run. Returns true if this is valid, false otherwise.
         '''
         if not self.has_step(step):
-            print(f'No step named {step}')
+            run.error_msg = f'No step named {step}'
             return False
 
         step_idx = self.get_index_of_step(step)
@@ -82,7 +82,7 @@ class ExperimentAlgorithm:
         rsfolder: The path to the experiment runstates folder
         '''
         if not self.is_valid_experiment():
-            print(f'Experiment invalid - not executing')
+            run.error_msg = f'Experiment invalid - not executing'
             return False
         if not self.validate_execute_from(run, step_name):
             return False

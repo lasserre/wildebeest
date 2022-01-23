@@ -3,18 +3,13 @@ from typing import List
 from ..sourcelanguages import *
 from ..projectrecipe import ProjectRecipe
 
-class CreateProjectRecipe:
-    def __init__(self, **kwargs) -> None:
-        self.kwargs = kwargs
-
-    def __call__(self) -> ProjectRecipe:
-        return ProjectRecipe(**self.kwargs)
+from . import CreateProjectRecipe
 
 def cbasic_only():
     recipe = ProjectRecipe('cmake', 'git@github.com:lasserre/test-programs.git',
         name='test-programs (cbasic only)',
         source_languages=[LANG_CPP, LANG_C])
-    recipe.build_options.cmdline_options = ['--target', 'cabasic']
+    recipe.build_options.cmdline_options = ['--target', 'cbasic']
     return recipe
 
 recipe_list = [

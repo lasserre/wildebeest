@@ -87,8 +87,8 @@ def cmd_run_job(args):
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
     return run_job(job_yaml)
 
-def cmd_run_exp(exp:Experiment, numjobs=1, force=False):
-    return exp.run(force=force, numjobs=numjobs)
+def cmd_run_exp(exp:Experiment, numjobs=1, force=False, run_from_step:str=''):
+    return exp.run(force=force, numjobs=numjobs, run_from_step=run_from_step)
 
 def cmd_ls_lists():
     for pl in get_project_list_names():
@@ -104,6 +104,11 @@ def cmd_ls_recipes(project_list=''):
 def cmd_ls_exps():
     for name in get_experiment_names():
         print(name)
+    return 0
+
+def cmd_ls_alg(exp:Experiment):
+    for s in exp.algorithm.steps:
+        print(s.name)
     return 0
 
 def cmd_status_exp(exp:Experiment):
@@ -149,10 +154,8 @@ def cmd_job_log(exp:Experiment, jobid:int):
     with open(job.logfile, 'r') as f:
         for line in f.readlines():
             lower = line.lower()
-            if 'failed during the' in lower:
+            if 'failed during the' in lower or 'error during run' in lower:
                 print(colored(line, 'red', attrs=['bold']), end='')
-            # elif 'error' in line.lower():
-            #     print(colored(line, 'red'), end='')
             else:
                 print(line, end='')
     return 0
@@ -172,10 +175,11 @@ def main():
     run_p.add_argument('--job', help='Job number to run', type=int)
     run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
+    run_p.add_argument('--from', dest='run_from_step', type=str, help='The step name to begin running (existing runs) from', default='')
 
     ls_p = subparsers.add_parser('ls', help='List information about requested content')
     ls_p.add_argument('object', help='The object to list',
-                        choices=['lists', 'recipes', 'exps', 'experiments'])
+                        choices=['lists', 'recipes', 'exps', 'experiments', 'alg'])
     ls_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
 
     log_p = subparsers.add_parser('log', help='Show logs from experiment or runs/jobs')
@@ -209,7 +213,7 @@ def main():
     elif args.subcmd == 'run':
         if args.job is not None:
             return cmd_run_job(args)
-        return cmd_run_exp(get_experiment(args), args.numjobs, args.force)
+        return cmd_run_exp(get_experiment(args), args.numjobs, args.force, args.run_from_step)
     # --- wdb ls
     elif args.subcmd == 'ls':
         if args.object == 'lists':
@@ -219,6 +223,9 @@ def main():
             return cmd_ls_recipes(pl)
         elif args.object == 'exps' or args.object == 'experiments':
             return cmd_ls_exps()
+        elif args.object == 'alg':
+            exp = get_experiment(args)
+            return cmd_ls_alg(exp)
     # --- wdb status
     elif args.subcmd == 'status':
         exp = get_experiment(args)
