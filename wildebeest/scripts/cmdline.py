@@ -180,16 +180,39 @@ def cmd_ls_alg(exp:Experiment, print_all:bool):
 
 def cmd_info_exp(exp1:Experiment):
     exp:Experiment = exp1
+
+    print(f'{exp.name}')
+    print(f'-----------------')
+    # TODO print exp.description (implement)
+    print()
+
+    print(f'Algorithm Summary')
+    print(f'-----------------')
+    cmd_ls_alg(exp, True)
+    print()
+
+    print(f'Run Configs')
+    print(f'-----------------')
+    for rc in exp.runconfigs:
+        print(rc.name)
+    print()
+
+    print(f'Project List')
+    print(f'-----------------')
+    print(f'Total # of projects: {len(exp.projectlist)}')
+    shortlist = exp.projectlist[:10]
+    for recipe in shortlist:
+        print(f'  {recipe.name}')
+    if len(shortlist) < len(exp.projectlist):
+        print('  ...')
+    print()
+
+    print(f'Runs')
+    print(f'-----------------')
     runs = exp.load_runs()
-
-    # pd.DataFrame()
-    import IPython; IPython.embed()
-
-    # if not runs:
-    #     print(f'No runs generated yet')
-    # else:
-    #     for r in runs:
-    #         print()
+    num_runs = len(runs) if runs else len(exp.runconfigs) * len(exp.projectlist)
+    print(f'Total # of runs = {num_runs}')
+    return 0
 
 def cmd_status_exp(exp:Experiment):
     runs = exp.load_runs()
