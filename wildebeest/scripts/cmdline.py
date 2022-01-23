@@ -1,9 +1,9 @@
 import argparse
-from asyncio import subprocess
-from os import killpg
-import runpy
+from datetime import datetime, timedelta
+import shutil
 import argcomplete
 from pathlib import Path
+import pandas as pd
 from termcolor import colored
 
 from wildebeest import Experiment, Job
@@ -111,13 +111,31 @@ def cmd_ls_alg(exp:Experiment):
         print(s.name)
     return 0
 
+def cmd_info_exp(exp1:Experiment):
+    exp:Experiment = exp1
+    runs = exp.load_runs()
+
+    # pd.DataFrame()
+    import IPython; IPython.embed()
+
+    # if not runs:
+    #     print(f'No runs generated yet')
+    # else:
+    #     for r in runs:
+    #         print()
+
 def cmd_status_exp(exp:Experiment):
     runs = exp.load_runs()
+    now = datetime.now()
     for r in runs:
         if r.status == RunStatus.FINISHED:
-            print(colored(f'Run {r.number} ({r.name}) - finished', 'green'))
+            print(colored(f'Run {r.number} ({r.name}) - finished [{r.runtime}]', 'green'))
         elif r.status == RunStatus.FAILED:
-            print(colored(f'Run {r.number} ({r.name}) - FAILED: "{r.error_msg}"', 'red', attrs=['bold']))
+            print(colored(f'Run {r.number} ({r.name}) - FAILED [{r.runtime}]: "{r.error_msg}"', 'red', attrs=['bold']))
+        elif r.status == RunStatus.RUNNING:
+            rt = now - r.starttime
+            rt = timedelta(days=rt.days, seconds=rt.seconds)    # remove subsecond precision
+            print(f'Run {r.number} ({r.name}) running "{r.current_step}" [Total runtime: {rt}...]')
         else:
             print(f'Run {r.number} ({r.name}) - {r.status}')
 
@@ -160,37 +178,70 @@ def cmd_job_log(exp:Experiment, jobid:int):
                 print(line, end='')
     return 0
 
+def cmd_rm_build(exp:Experiment, force:bool):
+    if exp.build_folder.exists():
+        if not force:
+            print(colored(f'Are you sure you want to remove ', 'yellow', attrs=[]), end='')
+            print(colored(f'ALL BUILD DATA??', 'red', attrs=['bold', 'underline', 'blink']), end='')
+            print(f' ({exp.build_folder})')
+            print(f'If so, rerun with -f')
+            return 1
+
+        shutil.rmtree(exp.build_folder)
+        print(f'Removed build folder {exp.build_folder}')
+        return 0
+    else:
+        print(f'No build folder at {exp.build_folder}')
+        return 1
+
 def main():
     p = argparse.ArgumentParser(description='Runs wildebeest commands')
     p.add_argument('--exp', type=Path, default=Path().cwd(), help='The experiment folder')
 
     subparsers = p.add_subparsers(dest='subcmd')
 
+    # --- create: creates an experiment
     create_p = subparsers.add_parser('create', help='Create instances of registered wildebeest experiments')
     create_p.add_argument('name', type=str, help='The registered name of the experiment to be created')
     create_p.add_argument('exp_folder', type=Path, default=None, help='The experiment folder', nargs='?')
     create_p.add_argument('-l', '--project-list', type=str, help='The name of the project list to use for this experiment')
 
-    run_p = subparsers.add_parser('run', help='Run commands on wildebeest jobs')
+    # --- run: execute experiment/runs
+    run_p = subparsers.add_parser('run', help='Run the experiment or specific runs/jobs')
     run_p.add_argument('--job', help='Job number to run', type=int)
     run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
     run_p.add_argument('--from', dest='run_from_step', type=str, help='The step name to begin running (existing runs) from', default='')
 
+    # --- ls: List information
     ls_p = subparsers.add_parser('ls', help='List information about requested content')
     ls_p.add_argument('object', help='The object to list',
                         choices=['lists', 'recipes', 'exps', 'experiments', 'alg'])
     ls_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
 
+    # --- info: Show (composite) information about experiments/runs
+    #           This is different from ls in that ls lists sequences of like things,
+    #           info shows a variety of content
+    info_p = subparsers.add_parser('info', help='Show info about requested content')
+
+    # --- log: Show logs
     log_p = subparsers.add_parser('log', help='Show logs from experiment or runs/jobs')
     log_p.add_argument('run_number', help='The run number whose log should be shown', type=int, nargs='?')
 
+    # --- status: Print experiment/run status
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
 
+    # --- kill: Kill running jobs
     kill_p = subparsers.add_parser('kill', help='Kill experiments or jobs')
     kill_p.add_argument('--job', help='Job number to kill', type=int)
     kill_p.add_argument('-f', '--force', help='Force option required to kill entire experiment', action='store_true')
+
+    # --- rm: Remove folders/artifacts from experiment
+    rm_p = subparsers.add_parser('rm', help='Delete folders or artifacts from the experiment')
+    rm_p.add_argument('object', help='The object to delete',
+                       choices=['build'])
+    rm_p.add_argument('-f', '--force', help='Force option required to remove experiment data', action='store_true')
 
     # job_cmds = run_p.add_subparsers(help='Run commands', dest='runcmd')
     # job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
@@ -226,6 +277,9 @@ def main():
         elif args.object == 'alg':
             exp = get_experiment(args)
             return cmd_ls_alg(exp)
+    elif args.subcmd == 'info':
+        exp = get_experiment(args)
+        return cmd_info_exp(exp)
     # --- wdb status
     elif args.subcmd == 'status':
         exp = get_experiment(args)
@@ -246,6 +300,10 @@ def main():
         exp = get_experiment(args)
         if args.run_number is not None:
             return cmd_job_log(exp, args.run_number)
+    elif args.subcmd == 'rm':
+        exp = get_experiment(args)
+        if args.object == 'build':
+            return cmd_rm_build(exp, args.force)
     import sys
     print(f'Unhandled cmd-line: {sys.argv}')
     return 1

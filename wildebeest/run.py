@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, List, Dict
 
@@ -61,6 +62,16 @@ class Run:
 
         self.error_msg = ''
         '''If a failure occurs, this holds an error message'''
+
+        self.current_step = ''
+        '''While running, the algorithm will set the name of the current step
+        for status info'''
+
+        self.starttime:datetime = None
+        '''The start time for the last execution of this run'''
+
+        self.runtime:timedelta = None
+        '''The runtime for the last completed execution of this run'''
 
     @property
     def runstate_file(self) -> Path:

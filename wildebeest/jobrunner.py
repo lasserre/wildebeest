@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import psutil
 import shutil
@@ -28,6 +28,38 @@ class Task:
         self.do_task = do_task
         self.state = state
         self.jobid = jobid
+        self.starttime:timedelta = None
+        '''Start time of this task (set by job runner)'''
+        self.finishtime:timedelta = None
+        '''Finish time of this task (set by job runner after task is complete)'''
+
+    @property
+    def runtime(self) -> timedelta:
+        '''Running time of this task up to the second (set by job runner after task is complete)'''
+        rt = self.finishtime - self.starttime
+        return timedelta(days=rt.days, seconds=rt.seconds)
+
+    def execute(self):
+        '''Executes the task'''
+        self.starttime = datetime.now()
+        self.finishtime = None
+        self.on_start()
+
+        try:
+            self.do_task(self.state)
+        finally:
+            # even if we failed, want to know how long it took
+            self.finishtime = datetime.now()
+
+        self.on_finished()
+
+    def on_start(self):
+        '''Derived tasks can override this to perform pre-run actions'''
+        pass
+
+    def on_finished(self):
+        '''Derived tasks can override this to perform post-run actions'''
+        pass
 
 class JobPaths:
     Workloads = Path().home()/'.wildebeest'/'workloads'
@@ -79,6 +111,7 @@ class Job:
 
         self._pid = None
         self._starttime = None
+        self._finishtime = None
         self.process = None
         self._error_msg = ''
 
@@ -135,6 +168,23 @@ class Job:
         self.save_to_yaml()
 
     @property
+    def finishtime(self) -> datetime:
+        return self._finishtime
+
+    @finishtime.setter
+    def finishtime(self, value:datetime):
+        self._finishtime = value
+        self.save_to_yaml()
+
+    @property
+    def runtime(self) -> timedelta:
+        '''Returns the time (to the second) it took this job to run'''
+        rt = self.finishtime - self.starttime
+        # remove subsecond precision for readability...if someone wants it they can
+        # subtract it themselves :)
+        return timedelta(days=rt.days, seconds=rt.seconds)
+
+    @property
     def error_msg(self) -> str:
         return self._error_msg
 
@@ -155,11 +205,11 @@ class Job:
         Runs this job in the current process
         '''
         try:
-            self.task.do_task(self.task.state)
+            self.task.execute()
+            self.save_to_yaml()     # updates any modified task state
             return 0
         except Exception as e:
             traceback.print_exc()
-            # self.error_msg = f'Task raised exception: "{e}"'
             self.error_msg = str(e)
             return 1
 
@@ -167,7 +217,7 @@ class Job:
         '''
         Starts the job in a subprocess, returning its PID
         '''
-        self.starttime = datetime.now()
+        # self.starttime = starttime
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
             with open(self.logfile, 'w') as log:
@@ -179,7 +229,11 @@ class Job:
 
     def kill(self):
         '''Kill this job'''
-        kill_process_and_descendents(psutil.Process(self.pid))
+        try:
+            kill_process_and_descendents(psutil.Process(self.pid))
+        except psutil.NoSuchProcess as nsp:
+            if nsp.pid == self.pid:
+                print(f'Looks like job {self.jobid} is no longer running')
 
     def finished(self) -> bool:
         '''
@@ -280,6 +334,10 @@ class JobRunner:
             return
         job.status = JobStatus.FAILED if failed else JobStatus.FINISHED
 
+        # these times should have been updated by running the task in the subprocess
+        job.starttime = job.task.starttime
+        job.finishtime = job.task.finishtime
+
     def start_next_job(self):
         '''Starts the next job from the ready queue'''
         next_job = self.ready_jobs.pop(0)
@@ -287,6 +345,25 @@ class JobRunner:
         pid = next_job.start_in_subprocess()
         self.running_jobs.append(next_job)
         print(f'[Started {next_job.task.name} (job {next_job.jobid}, pid = {pid})]')
+
+    def handle_finished_job(self, j:Job):
+        '''
+        Mark finish time, move job from running list to appropriate list, print status
+        '''
+        failed = j.failed()     # have to read this NOW before we lose handle to process via yaml reload
+        self.running_jobs.remove(j)
+
+        # load any updated state from job process BEFORE setting any
+        # new properties on this job
+        j = Job.load_from_yaml(j.yamlfile)
+        self.mark_job_finished(j, failed)
+
+        if failed:
+            self.failed_jobs.append(j)
+            print(colored(f'[{j.task.name} FAILED in {j.runtime}]: {j.error_msg}', 'red', attrs=['bold']))
+        else:
+            self.finished_jobs.append(j)
+            print(colored(f'[{j.task.name} finished in {j.runtime}]', 'green'))
 
     def wait_for_finished_job(self):
         '''
@@ -297,16 +374,7 @@ class JobRunner:
         while True:
             for j in self.running_jobs:
                 if j.finished():
-                    self.running_jobs.remove(j)
-                    failed = j.failed()     # have to read this NOW before we lose handle to process via yaml reload
-                    j = Job.load_from_yaml(j.yamlfile)  # load any updated state from job process
-                    self.mark_job_finished(j, failed=failed)
-                    if failed:
-                        self.failed_jobs.append(j)
-                        print(colored(f'[{j.task.name} FAILED]: {j.error_msg}', 'red', attrs=['bold']))
-                    else:
-                        self.finished_jobs.append(j)
-                        print(colored(f'[{j.task.name} finished]', 'green'))
+                    self.handle_finished_job(j)
                     return
             time.sleep(0.25)    # 250ms?
 

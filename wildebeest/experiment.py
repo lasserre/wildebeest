@@ -40,6 +40,14 @@ class RunTask(Task):
         elif not self.algorithm.execute(self.run):
             raise Exception(f'Error during run: {self.run.error_msg}')
 
+    def on_start(self):
+        self.run.starttime = self.starttime
+        self.run.save_to_runstate_file()
+
+    def on_finished(self):
+        self.run.runtime = self.runtime
+        self.run.save_to_runstate_file()
+
 class Experiment:
     postprocess_outputs:Dict[str,Any]
     workload_folder:Path

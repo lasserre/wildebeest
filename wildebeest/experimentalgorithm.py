@@ -99,6 +99,8 @@ class ExperimentAlgorithm:
 
         for step in steps_to_exec:
             try:
+                run.current_step = step.name
+                run.save_to_runstate_file()
                 step_output = step.process(run, step.params, run.outputs)
             except Exception as e:
                 traceback.print_exc()
