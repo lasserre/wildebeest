@@ -5,6 +5,7 @@ import argcomplete
 from pathlib import Path
 import pandas as pd
 from termcolor import colored
+from typing import List, Tuple
 
 from wildebeest import Experiment, Job
 from wildebeest import *
@@ -87,9 +88,55 @@ def cmd_run_job(args):
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
     return run_job(job_yaml)
 
-def cmd_run_exp(exp:Experiment, numjobs=1, force=False, run_from_step:str='',
+def parse_run_numbers(run_numbers:str) -> List[Tuple]:
+    try:
+        rn_list = []
+        for spec in run_numbers.split(','):
+            if '-' in spec:
+                speclist = spec.split('-')
+                if len(speclist) != 2:
+                    print(f'Error parsing spec {spec}')
+                    return None
+                start, stop = [int(x) for x in speclist]
+                rn_list.append((start, stop))
+            else:
+                rn_list.append((int(spec),))
+        return rn_list
+    except:
+        return None
+
+def extract_run_numbers(run_spec:str) -> List[int]:
+    '''
+    Extracts the run numbers from the run_spec and returns
+    a resulting equivalent list of expanded run numbers
+    that are unique and sorted
+    '''
+    run_num_set = set()
+    rn_list = parse_run_numbers(run_spec)
+    for rspec in rn_list:
+        if len(rspec) == 1:
+            run_num_set.add(rspec[0])
+        else:
+            start, stop = rspec
+            for i in range(start, stop+1):
+                run_num_set.add(i)
+    return sorted(list(run_num_set))
+
+def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_from_step:str='',
         no_pre:bool=False, no_post:bool=False):
-    return exp.run(force=force, numjobs=numjobs, run_from_step=run_from_step,
+
+    run_list = None
+    if run_spec:
+        exp_runs = exp.load_runs()
+        run_indices = [num-1 for num in extract_run_numbers(run_spec)]
+        if run_indices[0] < 0 or run_indices[-1] >= len(exp_runs):
+            print(f'Invalid run numbers specified')
+            return 1
+        print(f'Running the following runs: {run_spec}')
+        run_list = [exp_runs[i] for i in run_indices]
+
+    return exp.run(force=force, numjobs=numjobs, run_list=run_list,
+                   run_from_step=run_from_step,
                    no_pre=no_pre, no_post=no_post)
 
 def cmd_ls_lists():
@@ -228,6 +275,8 @@ def main():
 
     # --- run: execute experiment/runs
     run_p = subparsers.add_parser('run', help='Run the experiment or specific runs/jobs')
+    run_p.add_argument('run_numbers', nargs='?', type=str,
+                        help='Subset of runs to execute (e.g. "1", "2-5", "1,4", "1,4-8,9-10")')
     run_p.add_argument('--job', help='Job number to run', type=int)
     run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
@@ -287,7 +336,7 @@ def main():
     elif args.subcmd == 'run':
         if args.job is not None:
             return cmd_run_job(args)
-        return cmd_run_exp(get_experiment(args), args.numjobs, args.force, args.run_from_step,
+        return cmd_run_exp(get_experiment(args), args.run_numbers, args.numjobs, args.force, args.run_from_step,
                             no_pre=args.no_pre, no_post=args.no_post)
     # --- wdb ls
     elif args.subcmd == 'ls':
