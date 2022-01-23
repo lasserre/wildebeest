@@ -36,17 +36,15 @@ class RunTask(Task):
     def execute_run(self, state):
         if self.run_from_step:
             if not self.algorithm.execute_from(self.run_from_step, self.run):
-                raise Exception(f'Error during run: {self.run.error_msg}')
+                raise Exception(self.run.error_msg)
         elif not self.algorithm.execute(self.run):
-            raise Exception(f'Error during run: {self.run.error_msg}')
+            raise Exception(self.run.error_msg)
 
     def on_start(self):
         self.run.starttime = self.starttime
-        self.run.save_to_runstate_file()
 
     def on_finished(self):
         self.run.runtime = self.runtime
-        self.run.save_to_runstate_file()
 
 class Experiment:
     postprocess_outputs:Dict[str,Any]
@@ -257,7 +255,8 @@ class Experiment:
 
         return True
 
-    def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str=''):
+    def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str='',
+            no_pre:bool=False, no_post:bool=False):
         '''
         Run the entire experiment from the beginning.
 
@@ -273,19 +272,15 @@ class Experiment:
                  experiment
         run_list: If specified, run this set of runs
         run_from_step: If specified, run beginning at this step, not from the beginning
+        no_pre: Skip experiment pre-processing
+        no_post: Skip experiment post-processing
         '''
         if not self.validate_exp_before_run(run_from_step, force):
             return
 
-        # -----------------
-        # init/reset state
-        # only do these for first-time/fresh runs:
-        if not run_from_step:
-            self.preprocess_outputs = {}
-            self.postprocess_outputs = {}
-            self.workload_folder = None
-        # do these regardless:
-        self.failed_step = ''
+        # ----------------------------
+        # init/reset
+        self.failed_step = ''       # reset this state always
 
         if not run_list:
             if run_from_step:
@@ -296,22 +291,24 @@ class Experiment:
                     return
             else:
                 # --- first-time run
+                # only reset this state for first-time/fresh runs:
+                self.preprocess_outputs = {}
+                self.postprocess_outputs = {}
+                self.workload_folder = None
+
+                # initialize the runs for the entire experiment
                 run_list = self._generate_runs()
-                # initialize the runstate files for the entire experiment
                 for r in run_list:
                     r.save_to_runstate_file()
 
         # -----------------
         # preprocess
-        # My thought right now is if pre/post processing needs to
-        # look at runs, they can call exp.load_runs() (I guess we could
-        # make that a .runs property :P)
-        # self.load_runs()
-        self.state = ExpState.Preprocess
-        if not self.algorithm.preprocess(self):
-            self.state = ExpState.Failed
-            self.failed_step = 'preprocessing'
-            return
+        if not no_pre:
+            self.state = ExpState.Preprocess
+            if not self.algorithm.preprocess(self):
+                self.state = ExpState.Failed
+                self.failed_step = 'preprocessing'
+                return
 
         # -----------------
         # run jobs
@@ -337,11 +334,12 @@ class Experiment:
 
         # -----------------
         # postprocess
-        self.state = ExpState.PostProcess
-        if not self.algorithm.postprocess(self):
-            self.state = ExpState.Failed
-            self.failed_step = 'postprocess'
-            return
+        if not no_post:
+            self.state = ExpState.PostProcess
+            if not self.algorithm.postprocess(self):
+                self.state = ExpState.Failed
+                self.failed_step = 'postprocess'
+                return
 
         self.state = ExpState.Finished
 

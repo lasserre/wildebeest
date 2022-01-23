@@ -64,11 +64,15 @@ class ExperimentAlgorithm:
             last_completed_idx = self.get_index_of_step(run.last_completed_step)
             no_runs_completed = run.last_completed_step == ''
             if no_runs_completed and step_idx > 0:
-                print(f"Error: can't execute from step {step_idx} '{step}' when step 0 '{self.steps[0].name}' hasn't been completed")
+                msg = f"Error: can't execute from step {step_idx} '{step}' when step 0 '{self.steps[0].name}' hasn't been completed"
+                print(msg)
+                run.error_msg = msg
                 return False
             elif last_completed_idx < (step_idx-1):
                 lcs_name = self.steps[last_completed_idx].name
-                print(f"Error: can't execute from step {step_idx} '{step}' when last completed step is step {last_completed_idx} '{lcs_name}'")
+                msg = f"Can't execute from step {step_idx} '{step}' (last completed step is step {last_completed_idx} '{lcs_name}'"
+                print(msg)
+                run.error_msg = msg
                 return False
 
         return True
@@ -95,12 +99,10 @@ class ExperimentAlgorithm:
         run.failed_step = ''
         run.error_msg = ''
         run.status = RunStatus.RUNNING
-        run.save_to_runstate_file()
 
         for step in steps_to_exec:
             try:
                 run.current_step = step.name
-                run.save_to_runstate_file()
                 step_output = step.process(run, step.params, run.outputs)
             except Exception as e:
                 traceback.print_exc()
@@ -108,7 +110,6 @@ class ExperimentAlgorithm:
                 run.status = RunStatus.FAILED
                 run.failed_step = step.name
                 run.error_msg = str(e)
-                run.save_to_runstate_file()
                 return False  # bail here
             # if isinstance(step_output, list) and not step.do_not_parallelize:
                 # TODO: we have the opportunity to partition these outputs into parallel
@@ -121,16 +122,13 @@ class ExperimentAlgorithm:
 
             run.outputs[step.name] = step_output
             run.last_completed_step = step.name
-            run.save_to_runstate_file()
 
         run.status = RunStatus.FINISHED
-        run.save_to_runstate_file()
         return True
 
     def execute(self, run:Run) -> bool:
         '''Executes the algorithm using the given RunConfig'''
         run.init_running_state()
-        run.save_to_runstate_file()
         return self.execute_from(self.steps[0].name, run)
 
     def is_valid_experiment(self) -> bool:

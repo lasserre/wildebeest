@@ -87,8 +87,10 @@ def cmd_run_job(args):
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
     return run_job(job_yaml)
 
-def cmd_run_exp(exp:Experiment, numjobs=1, force=False, run_from_step:str=''):
-    return exp.run(force=force, numjobs=numjobs, run_from_step=run_from_step)
+def cmd_run_exp(exp:Experiment, numjobs=1, force=False, run_from_step:str='',
+        no_pre:bool=False, no_post:bool=False):
+    return exp.run(force=force, numjobs=numjobs, run_from_step=run_from_step,
+                   no_pre=no_pre, no_post=no_post)
 
 def cmd_ls_lists():
     for pl in get_project_list_names():
@@ -106,9 +108,27 @@ def cmd_ls_exps():
         print(name)
     return 0
 
-def cmd_ls_alg(exp:Experiment):
+def cmd_ls_alg(exp:Experiment, print_all:bool):
+    if print_all and exp.algorithm.preprocess_steps:
+        print('Preprocessing:')
+        for pp in exp.algorithm.preprocess_steps:
+            print(f'  {pp.name}')
+        print()
+
+    if print_all:
+        print('Algorithm:')
+
     for s in exp.algorithm.steps:
-        print(s.name)
+        if print_all:
+            print(f'  {s.name}')
+        else:
+            print(s.name)
+
+    if print_all and exp.algorithm.postprocess_steps:
+        print()
+        print('Postprocessing:')
+        for pp in exp.algorithm.postprocess_steps:
+            print(f'  {pp.name}')
     return 0
 
 def cmd_info_exp(exp1:Experiment):
@@ -157,7 +177,7 @@ def cmd_kill_job(exp:Experiment, jobid:int):
 def cmd_kill_exp(exp:Experiment):
     runs = exp.load_runs()
     for jobid in range(len(runs)):
-        cmd_kill_job(exp, jobid)
+        cmd_kill_job(exp, jobid+1)
     return 0
 
 def cmd_job_log(exp:Experiment, jobid:int):
@@ -212,12 +232,15 @@ def main():
     run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
     run_p.add_argument('--from', dest='run_from_step', type=str, help='The step name to begin running (existing runs) from', default='')
+    run_p.add_argument('--no-pre', help='Skip preprocessing steps', action='store_true')
+    run_p.add_argument('--no-post', help='Skip postprocessing steps', action='store_true')
 
     # --- ls: List information
     ls_p = subparsers.add_parser('ls', help='List information about requested content')
     ls_p.add_argument('object', help='The object to list',
                         choices=['lists', 'recipes', 'exps', 'experiments', 'alg'])
     ls_p.add_argument('-l', '--project-list', type=str, help='For recipes, limits results to this project list')
+    ls_p.add_argument('-a', '--all', help='For algorithms, print pre and post processing steps', action='store_true')
 
     # --- info: Show (composite) information about experiments/runs
     #           This is different from ls in that ls lists sequences of like things,
@@ -264,7 +287,8 @@ def main():
     elif args.subcmd == 'run':
         if args.job is not None:
             return cmd_run_job(args)
-        return cmd_run_exp(get_experiment(args), args.numjobs, args.force, args.run_from_step)
+        return cmd_run_exp(get_experiment(args), args.numjobs, args.force, args.run_from_step,
+                            no_pre=args.no_pre, no_post=args.no_post)
     # --- wdb ls
     elif args.subcmd == 'ls':
         if args.object == 'lists':
@@ -276,7 +300,7 @@ def main():
             return cmd_ls_exps()
         elif args.object == 'alg':
             exp = get_experiment(args)
-            return cmd_ls_alg(exp)
+            return cmd_ls_alg(exp, args.all)
     elif args.subcmd == 'info':
         exp = get_experiment(args)
         return cmd_info_exp(exp)

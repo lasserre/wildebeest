@@ -47,31 +47,96 @@ class Run:
         self.config = config
         '''The run configuration'''
 
-        self.outputs = {}
+        self._last_completed_step = ''
+        self._failed_step = ''
+        self._outputs = {}
+        self._status = RunStatus.READY
+        self._error_msg = ''
+        self._current_step = ''
+        self._starttime:datetime = None
+        self._runtime:timedelta = None
+
+    @property
+    def last_completed_step(self) -> str:
+        '''The name of the last algorithm step that was completed successfully'''
+        return self._last_completed_step
+
+    @last_completed_step.setter
+    def last_completed_step(self, value:str):
+        self._last_completed_step = value
+        self.save_to_runstate_file()
+
+    @property
+    def failed_step(self) -> str:
+        '''If a failure occurs, this holds the name of the failed step'''
+        return self._failed_step
+
+    @failed_step.setter
+    def failed_step(self, value:str):
+        self._failed_step = value
+        self.save_to_runstate_file()
+
+    @property
+    def outputs(self) -> Dict:
         '''The run outputs, where the name of each algorithm step is mapped to
         the output it returned'''
+        return self._outputs
 
-        self.status = RunStatus.READY
+    @outputs.setter
+    def outputs(self, value:Dict):
+        self._outputs = value
+        self.save_to_runstate_file()
+
+    @property
+    def status(self) -> str:
         '''Execution status of this run'''
+        return self._status
 
-        self.last_completed_step = ''
-        '''The name of the last algorithm step that was completed successfully'''
+    @status.setter
+    def status(self, value:str):
+        self._status = value
+        self.save_to_runstate_file()
 
-        self.failed_step = ''
-        '''If a failure occurs, this holds the name of the failed step'''
-
-        self.error_msg = ''
+    @property
+    def error_msg(self) -> str:
         '''If a failure occurs, this holds an error message'''
+        return self._error_msg
 
-        self.current_step = ''
+    @error_msg.setter
+    def error_msg(self, value:str):
+        self._error_msg = value
+        self.save_to_runstate_file()
+
+    @property
+    def current_step(self) -> str:
         '''While running, the algorithm will set the name of the current step
         for status info'''
+        return self._current_step
 
-        self.starttime:datetime = None
+    @current_step.setter
+    def current_step(self, value:str):
+        self._current_step = value
+        self.save_to_runstate_file()
+
+    @property
+    def starttime(self) -> datetime:
         '''The start time for the last execution of this run'''
+        return self._starttime
 
-        self.runtime:timedelta = None
+    @starttime.setter
+    def starttime(self, value:datetime):
+        self._starttime = value
+        self.save_to_runstate_file()
+
+    @property
+    def runtime(self) -> timedelta:
         '''The runtime for the last completed execution of this run'''
+        return self._runtime
+
+    @runtime.setter
+    def runtime(self, value:timedelta):
+        self._runtime = value
+        self.save_to_runstate_file()
 
     @property
     def runstate_file(self) -> Path:
@@ -109,8 +174,10 @@ class Run:
         save_to_yaml(self, self.runstate_file)
 
     def init_running_state(self):
-        self.outputs = {}
-        self.last_completed_step = ''
-        self.failed_step = ''
-        self.error_msg = ''
-        self.status = RunStatus.RUNNING
+        self._outputs = {}
+        self._last_completed_step = ''
+        self._failed_step = ''
+        self._error_msg = ''
+        self._status = RunStatus.RUNNING
+        # only one file write
+        self.save_to_runstate_file()
