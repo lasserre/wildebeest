@@ -39,7 +39,7 @@ class BuildSystemDriver:
 
     def _do_build_step(self, runconfig:RunConfig, build:ProjectBuild,
             opts:BuildStepOptions,
-            do_step:Callable[[RunConfig, ProjectBuild], Any]):
+            do_step:Callable[[RunConfig, ProjectBuild], Any], **kwargs):
         '''
         This algorithm was identical for all 3 steps, so I didn't want to
         write it in 3 places :)
@@ -50,7 +50,7 @@ class BuildSystemDriver:
             if opts.override_step:
                 opts.override_step(runconfig, build)
             else:
-                do_step(runconfig, build)
+                do_step(runconfig, build, **kwargs)
             if opts.postprocess:
                 opts.postprocess(runconfig, build)
 
@@ -75,7 +75,7 @@ class BuildSystemDriver:
         opts = build.recipe.build_options
         build_env = runconfig.generate_env()
         with env(build_env):
-            self._do_build_step(runconfig, build, opts, self._do_build)
+            self._do_build_step(runconfig, build, opts, self._do_build, numjobs=numjobs)
 
     def clean(self, runconfig:RunConfig, build:ProjectBuild):
         '''

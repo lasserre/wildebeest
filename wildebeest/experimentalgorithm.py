@@ -111,6 +111,18 @@ class ExperimentAlgorithm:
                 run.failed_step = step.name
                 run.error_msg = str(e)
                 return False  # bail here
+            # -------
+            # WARNING: there are some pitfalls going this route (below), like having
+            # multiple jobs trying to write to the same runstate file...we would have
+            # to rethink how this works a little bit, so I'm DEFINITELY postponing for now
+            # >>> it would have to be something like THIS process waits on all jobs, IF ALL
+            # JOBS succeed then it grabs all their outputs and combines them into a single
+            # Run output (combines all jobs into run.outputs for each step)...
+            # - would have to refactor "wdb run --job" to accept a workload folder param
+            #   for cases where we aren't tied to the top-level experiment
+            # - NOTE could potentially save each job's run outputs in its Task class instance,
+            #   since we creat them here and have handles (would have to reload from yaml)
+            # -------
             # if isinstance(step_output, list) and not step.do_not_parallelize:
                 # TODO: we have the opportunity to partition these outputs into parallel
                 # jobs according to the job manager's configuration (add them to the job pool?)

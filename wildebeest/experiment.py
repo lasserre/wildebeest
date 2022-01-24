@@ -256,7 +256,7 @@ class Experiment:
         return True
 
     def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str='',
-            no_pre:bool=False, no_post:bool=False):
+            no_pre:bool=False, no_post:bool=False, buildjobs:int=None):
         '''
         Run the entire experiment from the beginning.
 
@@ -274,6 +274,10 @@ class Experiment:
         run_from_step: If specified, run beginning at this step, not from the beginning
         no_pre: Skip experiment pre-processing
         no_post: Skip experiment post-processing
+        buildjobs: Number of jobs to use for each individual build (independent of numjobs).
+                   Typically, this won't be used for a large set of projects, but if you
+                   have a small set of large projects (e.g. 1 huge project) it can make sense
+                   to use this instead of specifying # of independent parallel jobs
         '''
         if not self.validate_exp_before_run(run_from_step, force):
             return
@@ -300,6 +304,13 @@ class Experiment:
                 run_list = self._generate_runs()
                 for r in run_list:
                     r.save_to_runstate_file()
+
+        # update runs to match buildjobs param if needed
+        if buildjobs:
+            for run in run_list:
+                if run.config.num_build_jobs != buildjobs:
+                    run.config.num_build_jobs = buildjobs
+                    run.save_to_runstate_file()
 
         # -----------------
         # preprocess

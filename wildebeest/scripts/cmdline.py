@@ -9,6 +9,7 @@ from typing import List, Tuple
 
 from wildebeest import Experiment, Job
 from wildebeest import *
+from wildebeest.defaultbuildalgorithm import build
 from wildebeest.jobrunner import run_job
 from wildebeest.run import RunStatus
 
@@ -123,7 +124,7 @@ def extract_run_numbers(run_spec:str) -> List[int]:
     return sorted(list(run_num_set))
 
 def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_from_step:str='',
-        no_pre:bool=False, no_post:bool=False):
+        no_pre:bool=False, no_post:bool=False, buildjobs:int=None):
 
     run_list = None
     if run_spec:
@@ -137,7 +138,7 @@ def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_fro
 
     return exp.run(force=force, numjobs=numjobs, run_list=run_list,
                    run_from_step=run_from_step,
-                   no_pre=no_pre, no_post=no_post)
+                   no_pre=no_pre, no_post=no_post, buildjobs=buildjobs)
 
 def cmd_ls_lists():
     for pl in get_project_list_names():
@@ -302,6 +303,8 @@ def main():
                         help='Subset of runs to execute (e.g. "1", "2-5", "1,4", "1,4-8,9-10")')
     run_p.add_argument('--job', help='Job number to run', type=int)
     run_p.add_argument('-j', '--numjobs', help='Number of parallel jobs to use while running', type=int, default=1)
+    run_p.add_argument('-b', '--buildjobs', help='Number of jobs to use for each individual build (independent of --numjobs)',
+                        type=int)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
     run_p.add_argument('--from', dest='run_from_step', type=str, help='The step name to begin running (existing runs) from', default='')
     run_p.add_argument('--no-pre', help='Skip preprocessing steps', action='store_true')
@@ -360,7 +363,7 @@ def main():
         if args.job is not None:
             return cmd_run_job(args)
         return cmd_run_exp(get_experiment(args), args.run_numbers, args.numjobs, args.force, args.run_from_step,
-                            no_pre=args.no_pre, no_post=args.no_post)
+                            no_pre=args.no_pre, no_post=args.no_post, buildjobs=args.buildjobs)
     # --- wdb ls
     elif args.subcmd == 'ls':
         if args.object == 'lists':
