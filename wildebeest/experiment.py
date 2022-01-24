@@ -266,7 +266,8 @@ class Experiment:
         return True
 
     def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str='',
-            no_pre:bool=False, no_post:bool=False, buildjobs:int=None):
+            no_pre:bool=False, no_post:bool=False, buildjobs:int=None,
+            debug_in_process=False):
         '''
         Run the entire experiment from the beginning.
 
@@ -288,6 +289,8 @@ class Experiment:
                    Typically, this won't be used for a large set of projects, but if you
                    have a small set of large projects (e.g. 1 huge project) it can make sense
                    to use this instead of specifying # of independent parallel jobs
+        debug_in_process: Prevent running jobs in subprocesses; everything will be run serially
+                          within this process to support debugging/breakpoints
         '''
         if not self.validate_exp_before_run(run_from_step, force):
             return
@@ -340,7 +343,8 @@ class Experiment:
         if run_from_step:
             print(f"Running experiment from step '{run_from_step}'")
         failed_tasks = []
-        with JobRunner(workload_name, workload, numjobs, self.exp_folder) as runner:
+
+        with JobRunner(workload_name, workload, numjobs, self.exp_folder, debug_in_process) as runner:
             self.workload_folder = runner.workload_folder
             failed_tasks = runner.run()
 

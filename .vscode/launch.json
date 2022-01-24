@@ -16,7 +16,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "2", "-j4", "--from", "find_binaries", "--no-pre"],
+            "args": ["run", "2", "-j4", "--from", "find_binaries", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
             "cwd": "/home/cls0027/test_builds/test.exp",
             "console": "integratedTerminal"

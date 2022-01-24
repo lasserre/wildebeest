@@ -103,7 +103,8 @@ class Job:
                 run1.job1.log
                 ...
     '''
-    def __init__(self, task:Task, workload_folder:Path, exp_folder:Path, jobid:int) -> None:
+    def __init__(self, task:Task, workload_folder:Path, exp_folder:Path, jobid:int,
+            debug_in_process:bool=False) -> None:
         self._status = JobStatus.READY
         self.task = task
         self.exp_folder = exp_folder    # this is so we can call wdb run -j from the proper cwd
@@ -117,6 +118,12 @@ class Job:
         self._finishtime = None
         self.process = None
         self._error_msg = ''
+
+        self.debug_in_process = debug_in_process
+        self._debug_failed = False
+        '''Only for debug_in_process mode, indicates if job failed'''
+        self._debug_finished = False
+        '''Only for debug_in_process mode, indicates if job finished'''
 
         # NOTE this is the 1 and only time we save ourselves from within a Job!
         # (and here just for convenience since we don't create ourselves from
@@ -249,11 +256,15 @@ class Job:
         >>> MUST BE CALLED ONLY FROM JOB MANAGER/SPAWNING PROCESS <<<
         (not within the Job process!)
         '''
+        if self.debug_in_process:
+            return self._debug_finished
         # if returncode is None it's still running
         return self.process.poll() is not None
 
     def failed(self) -> bool:
         '''Returns true if this Job failed to complete properly'''
+        if self.debug_in_process:
+            return self._debug_failed
         return self.process.returncode != 0 if self.finished() else False
 
 class WorkloadStatus:
@@ -288,18 +299,25 @@ class JobRunner:
     Runs a set of Tasks (work units) using a specified max number of parallel
     jobs.
     '''
-    def __init__(self, name:str, workload:List[Task], numjobs:int, exp_folder:Path=None) -> None:
+    def __init__(self, name:str, workload:List[Task], numjobs:int, exp_folder:Path=None,
+        debug_in_process:bool=False) -> None:
         '''
         name: Descriptive name for the workload
         workload: The tasks to be executed
         numjobs: Number of jobs to run in parallel
         exp_folder: The experiment folder (this facilitates running wdb commands in new processes)
+        debug_in_process: Debug flag to prevent running subprocesses - will serialize all
+                          jobs and run within this process to facilitate breakpoints, etc.
         '''
         self.name = name
         self.workload = workload
         self.numjobs = numjobs
         self.workload_folder = JobPaths.Workloads/f'{name}.workload'
         self.exp_folder = exp_folder
+        self.debug_in_process = debug_in_process
+        if debug_in_process and self.numjobs != 1:
+            print(f'Changing numjobs from {self.numjobs} to 1 because we are running in process')
+            self.numjobs = 1    # by definition
 
         self.ready_jobs = []
         self.running_jobs = []
@@ -348,9 +366,15 @@ class JobRunner:
         '''Starts the next job from the ready queue'''
         next_job = self.ready_jobs.pop(0)
         self.mark_job_running(next_job)
-        pid = next_job.start_in_subprocess()
+        if self.debug_in_process:
+            print(f'[Started {next_job.task.name} (job {next_job.jobid}, IN PROCESS)]')
+            rc = next_job.run()
+            next_job._debug_finished = True
+            next_job._debug_failed = rc != 0
+        else:
+            pid = next_job.start_in_subprocess()
+            print(f'[Started {next_job.task.name} (job {next_job.jobid}, pid = {pid})]')
         self.running_jobs.append(next_job)
-        print(f'[Started {next_job.task.name} (job {next_job.jobid}, pid = {pid})]')
 
     def handle_finished_job(self, j:Job):
         '''
