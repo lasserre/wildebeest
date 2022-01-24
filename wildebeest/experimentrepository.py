@@ -21,18 +21,21 @@ class ExperimentRepository:
         return exp_dict
 
 _experiment_repo:ExperimentRepository = None
-if _experiment_repo is None:
-    _experiment_repo = ExperimentRepository()
+
+def _get_exp_repo() -> ExperimentRepository:
+    global _experiment_repo
+    if _experiment_repo is None:
+        _experiment_repo = ExperimentRepository()
+    return _experiment_repo
 
 def create_experiment(name:str, **kwargs) -> Experiment:
     '''
     Creates an instance of the Experiment with the indicated name, or
     raises an exeption if it is not a registered experiment.
     '''
-    global _experiment_repo
-
-    if name in _experiment_repo.experiments:
-        exp:Experiment = _experiment_repo.experiments[name](**kwargs)  # construct a new instance
+    repo = _get_exp_repo()
+    if name in repo.experiments:
+        exp:Experiment = repo.experiments[name](**kwargs)  # construct a new instance
         if exp.exp_folder.exists():
             raise Exception(f'Experiment folder {exp.exp_folder} already exists')
         return exp
@@ -47,5 +50,5 @@ def load_experiment(exp_folder:Path) -> Experiment:
     return Experiment.load_from_yaml(exp_folder)
 
 def get_experiment_names() -> List[str]:
-    global _experiment_repo
-    return list(_experiment_repo.experiments.keys())
+    repo = _get_exp_repo()
+    return list(repo.experiments.keys())

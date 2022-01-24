@@ -26,23 +26,27 @@ class RecipeRepository:
         return recipe_dict
 
 _recipe_repo:RecipeRepository = None
-if not _recipe_repo:
-    _recipe_repo = RecipeRepository()
+
+def _get_recipe_repo() -> RecipeRepository:
+    global _recipe_repo
+    if _recipe_repo is None:
+        _recipe_repo = RecipeRepository()
+    return _recipe_repo
 
 def get_recipe(name:str) -> ProjectRecipe:
     '''
     Gets an instance of the ProjectRecipe with the indicated name, or
     raises an exeption if it is not a registered recipe.
     '''
-    global _recipe_repo
-    if name in _recipe_repo.recipes:
-        return _recipe_repo.recipes[name]()   # construct a new instance
+    repo = _get_recipe_repo()
+    if name in repo.recipes:
+        return repo.recipes[name]()   # construct a new instance
     raise Exception(f'Experiment {name} not a registered recipe name')
 
 def get_recipe_names() -> List[str]:
     '''Returns a list of registered recipe names'''
-    global _recipe_repo
-    return list(_recipe_repo.recipes.keys())
+    repo = _get_recipe_repo()
+    return list(repo.recipes.keys())
 
 def get_recipes() -> List[ProjectRecipe]:
     '''
