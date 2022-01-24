@@ -41,7 +41,6 @@ class Task:
 
     def execute(self):
         '''Executes the task'''
-        self.starttime = datetime.now()
         self.finishtime = None
         self.on_start()
 
@@ -59,6 +58,10 @@ class Task:
 
     def on_finished(self):
         '''Derived tasks can override this to perform post-run actions'''
+        pass
+
+    def on_failed(self):
+        '''Derived tasks can override this to indicate the task has failed'''
         pass
 
 class JobPaths:
@@ -179,10 +182,12 @@ class Job:
     @property
     def runtime(self) -> timedelta:
         '''Returns the time (to the second) it took this job to run'''
-        rt = self.finishtime - self.starttime
-        # remove subsecond precision for readability...if someone wants it they can
-        # subtract it themselves :)
-        return timedelta(days=rt.days, seconds=rt.seconds)
+        if self.finishtime and self.starttime:
+            rt = self.finishtime - self.starttime
+            # remove subsecond precision for readability...if someone wants it they can
+            # subtract it themselves :)
+            return timedelta(days=rt.days, seconds=rt.seconds)
+        return timedelta(days=0, seconds=0)     # build probably failed
 
     @property
     def error_msg(self) -> str:
@@ -205,6 +210,9 @@ class Job:
         Runs this job in the current process
         '''
         try:
+            self.task.starttime = datetime.now()
+            self.starttime = self.task.starttime
+            self.save_to_yaml()     # save starttime in case we get killed
             self.task.execute()
             self.save_to_yaml()     # updates any modified task state
             return 0
@@ -217,7 +225,6 @@ class Job:
         '''
         Starts the job in a subprocess, returning its PID
         '''
-        # self.starttime = starttime
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
             with open(self.logfile, 'w') as log:
@@ -335,7 +342,6 @@ class JobRunner:
         job.status = JobStatus.FAILED if failed else JobStatus.FINISHED
 
         # these times should have been updated by running the task in the subprocess
-        job.starttime = job.task.starttime
         job.finishtime = job.task.finishtime
 
     def start_next_job(self):
@@ -360,6 +366,9 @@ class JobRunner:
 
         if failed:
             self.failed_jobs.append(j)
+            j.task.finishtime = datetime.now()  # I'm seeing finishtime not set if we get externally killed
+            j.finishtime = j.task.finishtime
+            j.task.on_failed()      # allow the task a chance to mark itself failed
             print(colored(f'[{j.task.name} FAILED in {j.runtime}]: {j.error_msg}', 'red', attrs=['bold']))
         else:
             self.finished_jobs.append(j)

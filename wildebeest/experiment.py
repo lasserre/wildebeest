@@ -1,3 +1,4 @@
+from datetime import datetime
 import hashlib
 from pathlib import Path
 from telnetlib import IP
@@ -10,7 +11,7 @@ from .jobrunner import Job, JobRunner, Task
 from .postprocessing.llvm_instrumentation import _rebase_linker_objects
 from .projectbuild import ProjectBuild
 from .projectrecipe import ProjectRecipe
-from .run import Run
+from .run import Run, RunStatus
 from .runconfig import RunConfig
 from .utils import *
 
@@ -45,6 +46,15 @@ class RunTask(Task):
 
     def on_finished(self):
         self.run.runtime = self.runtime
+
+    def on_failed(self):
+        # reload in case run was already updated
+        self.run = Run.load_from_runstate_file(self.run.runstate_file, self.run.exp_root)
+
+        self.run.runtime = self.runtime
+        self.run.status = RunStatus.FAILED
+        if not self.run.error_msg:
+            self.run.error_msg = 'RunTask failed without an error message (possibly killed?)'
 
 class Experiment:
     postprocess_outputs:Dict[str,Any]
