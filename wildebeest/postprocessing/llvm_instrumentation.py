@@ -24,6 +24,8 @@ def do_find_instr_files(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 
     for lo in lobjs:
         binary = lo.with_suffix('')
+        if 'CMakeFiles' in binary.parts:
+            continue    # don't include the binaries cmake builds during configure
         result[binary] = {}
         df = pd.read_csv(lo, names=['Object','Status'])
         objs = [Path(x) for x in df[df['Status']=='OK'].Object]

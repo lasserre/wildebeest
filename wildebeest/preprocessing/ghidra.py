@@ -47,14 +47,17 @@ def _start_ghidra_server(exp:'Experiment', params:Dict[str,Any], outputs:Dict[st
     else:
         print('Ghidra already running')
 
-def start_ghidra_server(ghidra_path:str) -> ExpStep:
+def start_ghidra_server(ghidra_path:str='') -> ExpStep:
     '''
     Returns an ExpStep that checks to make sure ghidra server is running on the default port.
     If not, the ghidra server is started (as current user) in a new tmux window
+
+    ghidra_path: Path to ghidra. May be specified here or as part of experiment params
     '''
-    return ExpStep('start_ghidra_server', _start_ghidra_server, {
-        GhidraKeys.GHIDRA_INSTALL: ghidra_path
-    })
+    params = {}
+    if ghidra_path:
+        params[GhidraKeys.GHIDRA_INSTALL] = ghidra_path
+    return ExpStep('start_ghidra_server', _start_ghidra_server, params)
 
 def _create_shared_project(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     req_keys = [GhidraKeys.GHIDRA_INSTALL]
@@ -81,14 +84,14 @@ def _create_shared_project(exp:'Experiment', params:Dict[str,Any], outputs:Dict[
     rc = subprocess.call(cmdline)
     print(f'GHIDRA RETURN CODE = {rc}')
 
-def create_ghidra_repo(ghidra_path:Path, reponame:str='', username:str='', password:str='') -> ExpStep:
+def create_ghidra_repo(ghidra_path:Path=None, reponame:str='', username:str='', password:str='') -> ExpStep:
     '''
     Returns an ExpStep that creates the specified shared repository
     '''
-    params = {
-        GhidraKeys.GHIDRA_INSTALL: ghidra_path
-    }
+    params = {}
 
+    if ghidra_path:
+        params[GhidraKeys.GHIDRA_INSTALL] = ghidra_path
     if reponame:
         params[GhidraKeys.GHIDRA_REPO] = reponame
     if username:

@@ -18,6 +18,18 @@ def has_unique_stepnames(steps:List) -> bool:
     names = [x.name for x in steps]
     return len(set(names)) == len(names)
 
+def combine_params_with_step(exp_params:Dict[str,Any], step_params:Dict[str,Any]) -> Dict[str,Any]:
+    '''
+    Combine the global parameters for this experiment with the given
+    step-specific parameters, returning the combined parameter dictionary.
+
+    Global experiment parameters are defaults, but step-specific parameters
+    will override the global values
+    '''
+    combined = dict(exp_params)
+    combined.update(step_params)
+    return combined
+
 class ExperimentAlgorithm:
     def __init__(self, steps:List[RunStep], preprocess_steps:List[ExpStep]=[], postprocess_steps:List[ExpStep]=[]) -> None:
         '''
@@ -77,7 +89,7 @@ class ExperimentAlgorithm:
 
         return True
 
-    def execute_from(self, step_name:str, run:Run) -> bool:
+    def execute_from(self, step_name:str, run:Run, exp_params:Dict[str,Any]) -> bool:
         '''
         [Re-]Executes the algorithm beginning at the specified step. Note that the
         preceding steps in the algorithm must have already been completed for this
@@ -103,7 +115,8 @@ class ExperimentAlgorithm:
         for step in steps_to_exec:
             try:
                 run.current_step = step.name
-                step_output = step.process(run, step.params, run.outputs)
+                params = combine_params_with_step(exp_params, step.params)
+                step_output = step.process(run, params, run.outputs)
             except Exception as e:
                 traceback.print_exc()
                 print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
@@ -138,10 +151,10 @@ class ExperimentAlgorithm:
         run.status = RunStatus.FINISHED
         return True
 
-    def execute(self, run:Run) -> bool:
+    def execute(self, run:Run, exp_params:Dict[str,Any]) -> bool:
         '''Executes the algorithm using the given RunConfig'''
         run.init_running_state()
-        return self.execute_from(self.steps[0].name, run)
+        return self.execute_from(self.steps[0].name, run, exp_params)
 
     def is_valid_experiment(self) -> bool:
         '''Validates the experiment'''
@@ -179,7 +192,8 @@ class ExperimentAlgorithm:
 
         for s in steps:
             try:
-                step_output = s.process(exp, s.params, outputs)
+                params = combine_params_with_step(exp.params, s.params)
+                step_output = s.process(exp, params, outputs)
             except Exception as e:
                 traceback.print_exc()
                 print(f"{process_type}processing step {s.name} failed:\n\t'{e}'")

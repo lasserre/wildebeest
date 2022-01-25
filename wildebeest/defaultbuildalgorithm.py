@@ -1,3 +1,4 @@
+import shutil
 from typing import Any, Dict, List
 
 from wildebeest.buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
@@ -33,6 +34,11 @@ def configure(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 def build(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     get_driver(outputs).build(run.config, run.build, numjobs=run.config.num_build_jobs)
 
+def reset_data_folder(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    if run.data_folder.exists():
+        shutil.rmtree(run.data_folder)
+    run.data_folder.mkdir(parents=True, exist_ok=True)
+
 def clean(run:Run, outputs:Dict[str,Any]):
     '''
     Performs a build system specific clean on this build folder
@@ -59,6 +65,9 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
                 RunStep('init', init),
                 RunStep('configure', configure),
                 RunStep('build', build),
+                # reset_data resets the data folder if it exists, so if we want to
+                # clean and rerun postprocessing, this is the spot to run from
+                RunStep('reset_data', reset_data_folder),
                 *post_build_steps
             ],
             postprocess_steps=postprocess_steps

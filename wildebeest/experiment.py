@@ -24,10 +24,11 @@ class ExpState:
     Failed = 'FAILED'
 
 class RunTask(Task):
-    def __init__(self, run:Run, algorithm:ExperimentAlgorithm, run_from_step:str='') -> None:
+    def __init__(self, run:Run, algorithm:ExperimentAlgorithm, exp_params:Dict[str,Any], run_from_step:str='') -> None:
         self.run = run
         self.algorithm = algorithm
         self.run_from_step = run_from_step
+        self.exp_params = exp_params
 
         # state dict is for when you don't override the Task class to allow
         # you to just instantiate what you need on the fly
@@ -36,9 +37,9 @@ class RunTask(Task):
 
     def execute_run(self, state):
         if self.run_from_step:
-            if not self.algorithm.execute_from(self.run_from_step, self.run):
+            if not self.algorithm.execute_from(self.run_from_step, self.run, self.exp_params):
                 raise Exception(self.run.error_msg)
-        elif not self.algorithm.execute(self.run):
+        elif not self.algorithm.execute(self.run, self.exp_params):
             raise Exception(self.run.error_msg)
 
     def on_start(self):
@@ -63,13 +64,16 @@ class Experiment:
     def __init__(self, name:str, algorithm:ExperimentAlgorithm,
                 runconfigs:List[RunConfig],
                 projectlist:List[ProjectRecipe]=[],
-                exp_folder:Path=None) -> None:
+                exp_folder:Path=None, params:Dict[str,Any]={}) -> None:
         '''
         name:       A name to identify this (type of) experiment
         algorithm:  The algorithm that defines the experiment
         runconfigs: The set of run configs in the experiment
         projectlist: The list of projects included in the experiment
         exp_folder: The experiment folder
+        params: Any global experiment parameters. These will be combined with each
+                algorithm step's own parameters and made available to each step
+                in the params dictionary.
         '''
         self.name = name
         self.algorithm = algorithm
@@ -78,6 +82,7 @@ class Experiment:
         if not exp_folder:
             exp_folder = Path().home()/'.wildebeest'/'experiments'/f'{name}.exp'
         self.exp_folder = exp_folder
+        self.params = params
 
         self._workload_folder = None
         self._preprocess_outputs = {}
@@ -202,7 +207,7 @@ class Experiment:
     def get_build_folder_for_run(self, project_name:str, run_number:int):
         return self.build_folder/project_name/f'run{run_number}'
 
-    def _generate_runs(self) -> List[Run]:
+    def _generate_runlist(self) -> List[Run]:
         '''
         Generates the experiment runs from the projectlist and runconfigs
         '''
@@ -225,6 +230,25 @@ class Experiment:
                 proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
                 run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc))
                 run_number += 1
+        return run_list
+
+    def generate_runs(self) -> List[Run]:
+        '''
+        Generates the experiment runlist, resets first-time experiment state, saves them to their runstate yaml
+        files, and returns the resulting list of Runs
+        '''
+        if self.load_runs():
+            raise Exception(f'generate_runs called with existing saved runstates!')
+
+        # only reset this state for first-time/fresh runs:
+        self.preprocess_outputs = {}
+        self.postprocess_outputs = {}
+        self.workload_folder = None
+
+        # initialize the runs for the entire experiment
+        run_list = self._generate_runlist()
+        for r in run_list:
+            r.save_to_runstate_file()
         return run_list
 
     def load_runs(self) -> List[Run]:
@@ -255,8 +279,11 @@ class Experiment:
         if not run_from_step:
             # we don't run from beginning if it's already been run (without -f)
             if self.runstates_folder.exists() and not force:
-                print(f'Runstates folder already exists. Either supply force=True or use rerun()')
-                return False
+                run_list = self.load_runs()
+                for r in run_list:
+                    if r.last_completed_step:
+                        print(f'Found existing runs. Either supply force=True or use rerun()')
+                        return False
 
         # validate runconfigs are uniquely named
         if len(set([x.name for x in self.runconfigs])) < len(self.runconfigs):
@@ -308,15 +335,7 @@ class Experiment:
                     return
             else:
                 # --- first-time run
-                # only reset this state for first-time/fresh runs:
-                self.preprocess_outputs = {}
-                self.postprocess_outputs = {}
-                self.workload_folder = None
-
-                # initialize the runs for the entire experiment
-                run_list = self._generate_runs()
-                for r in run_list:
-                    r.save_to_runstate_file()
+                run_list = self.generate_runs()
 
         # update runs to match buildjobs param if needed
         if buildjobs:
@@ -337,7 +356,7 @@ class Experiment:
         # -----------------
         # run jobs
         self.state = ExpState.Running
-        workload = [RunTask(r, self.algorithm, run_from_step) for r in run_list]
+        workload = [RunTask(r, self.algorithm, self.params, run_from_step) for r in run_list]
         workload_name = f"{self.name}-{self.generate_workload_id()}"
         print(f'Experiment workload name: {workload_name}')
         if run_from_step:
@@ -374,3 +393,4 @@ class Experiment:
         '''
         for run in self.load_runs():
             clean(run, run.outputs)
+

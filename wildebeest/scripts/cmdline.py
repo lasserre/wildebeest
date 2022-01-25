@@ -64,8 +64,7 @@ def get_experiment(args) -> Experiment:
     '''
     exp_folder = args.exp
     if not Experiment.is_exp_folder(exp_folder):
-        print(f'{exp_folder} is not an experiment folder')
-        return None
+        raise Exception(f'{exp_folder} is not an experiment folder')
     return Experiment.load_from_yaml(exp_folder)
 
 def cmd_create_exp(exp_folder:Path, name:str, projectlist=[]):
@@ -129,6 +128,8 @@ def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_fro
     run_list = None
     if run_spec:
         exp_runs = exp.load_runs()
+        if not exp_runs:
+            exp_runs = exp.generate_runs()
         run_indices = [num-1 for num in extract_run_numbers(run_spec)]
         if run_indices[0] < 0 or run_indices[-1] >= len(exp_runs):
             print(f'Invalid run numbers specified')
@@ -240,17 +241,22 @@ def cmd_status_exp(exp:Experiment):
 
 def load_job_from_id(exp:Experiment, jobid:int) -> Job:
     yamlfile = Job.yamlfile_from_id(exp.workload_folder, jobid)
-    return Job.load_from_yaml(yamlfile)
+    return Job.load_from_yaml(yamlfile) if yamlfile.exists() else None
 
-def cmd_kill_job(exp:Experiment, jobid:int):
+def cmd_kill_job(exp:Experiment, jobid:int, quiet:bool=False):
     job = load_job_from_id(exp, jobid)
+    if not job:
+        if not quiet:
+            print(f'Job {jobid} yaml file not found')
+        return 1
     job.kill()
     return 0
 
 def cmd_kill_exp(exp:Experiment):
     runs = exp.load_runs()
     for jobid in range(len(runs)):
-        cmd_kill_job(exp, jobid+1)
+        # don't log missing jobs, we might have kicked off a subset of runs
+        cmd_kill_job(exp, jobid+1, quiet=True)
     return 0
 
 def cmd_job_log(exp:Experiment, jobid:int):
