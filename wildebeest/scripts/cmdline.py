@@ -225,7 +225,7 @@ def cmd_status_exp(exp:Experiment):
             print(colored(f'Run {r.number} ({r.name}) - finished [{r.runtime}]', 'green'))
         elif r.status == RunStatus.FAILED:
             print(colored(f'Run {r.number} ({r.name}) - FAILED during "{r.current_step}" [{r.runtime}]', 'red', attrs=['bold']))
-            print(colored(f'\t"{r.error_msg}"', 'red', attrs=['bold']))
+            print(colored(f'\t{r.error_msg}', 'red', attrs=['bold']))
         elif r.status == RunStatus.RUNNING:
             rt = now - r.starttime
             rt = timedelta(days=rt.days, seconds=rt.seconds)    # remove subsecond precision
