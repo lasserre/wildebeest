@@ -148,7 +148,7 @@ class FlatLayoutBinary:
         '''
         self.binary_file:Path = binary_file
         self.linker_objs = linker_objs
-        self.data_folder:Path = run.data_folder/f'binary{binary_id}'
+        self.data_folder:Path = run.data_folder/f'{binary_id}.{binary_file.stem}'
         self.id:int = binary_id
         self.data:Dict[str,Any] = {}
         '''
