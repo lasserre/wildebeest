@@ -6,7 +6,7 @@ from .. import ProjectList
 
 def create_test_list() -> List[str]:
     return [
-        'test-programs (cbasic only)'
+        'test-programs-cbasic'
     ]
 
 test_list = ProjectList('test', create_test_list)

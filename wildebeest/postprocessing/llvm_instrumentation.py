@@ -207,3 +207,19 @@ def flatten_binaries() -> RunStep:
     }
     '''
     return RunStep('flatten_binaries', _do_flatten_binaries)
+
+def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    # STRIP:
+    # -------
+    # ///cp fb.binary_file fb.data_folder/binary_file.stem
+    # cp program data_folder/program
+    # cp data_folder/program data_folder/program.debug  # (optional) copy debug info version local
+    # strip -s data_folder/program  # strips program in-place
+
+    # TODO SAVE path to stripped binary in fb.data?
+
+    print('TODO: strip binaries here')
+    # import IPython; IPython.embed()
+
+def strip_binaries() -> RunStep:
+    return RunStep('strip_binaries', _do_strip_binaries)

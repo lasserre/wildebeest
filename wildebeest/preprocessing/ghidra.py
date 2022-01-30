@@ -9,12 +9,7 @@ if TYPE_CHECKING:
 
 from ..experimentalgorithm import ExpStep
 from ..utils import *
-
-class GhidraKeys:
-    GHIDRA_INSTALL = 'GHIDRA_INSTALL'
-    GHIDRA_USER = 'GHIDRA_USER'
-    GHIDRA_PWD = 'GHIDRA_PWD'
-    GHIDRA_REPO = 'GHIDRA_REPO'
+from ..ghidrautil import *
 
 def _start_ghidra_server(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     '''
@@ -70,9 +65,12 @@ def _create_shared_project(exp:'Experiment', params:Dict[str,Any], outputs:Dict[
     ghidra_home = Path(params[GhidraKeys.GHIDRA_INSTALL])
     analyze_headless = ghidra_home/'support'/'analyzeHeadless'  # assuming linux for now
 
-    repo = exp.exp_folder.stem  # use the experiment folder name if not specified
-    if GhidraKeys.GHIDRA_REPO in params:
-        repo = params[GhidraKeys.GHIDRA_REPO]
+    repo = get_ghidra_repo(params, exp.exp_folder)
+
+    # saving it in params isn't normal, but this 1) gives the repo name to the
+    # run steps and 2) allows this to work after a rebase, where the exp_folder
+    # name has changed and needs to change for the new location
+    exp.params[GhidraKeys.GHIDRA_REPO] = repo
 
     cmdline = [analyze_headless, '.', 'empty', '-deleteProject', '-noanalysis',
         '-scriptPath', ghidra_scripts, '-postScript', 'create_repo.py', repo

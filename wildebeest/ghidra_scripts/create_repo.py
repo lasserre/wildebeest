@@ -16,6 +16,7 @@ except:
     pass
 
 from ghidra.base.project import GhidraProject
+from ghidra.util.exception import DuplicateNameException
 
 # Running from headless analyzer
 # ------------------------------
@@ -39,5 +40,21 @@ port = int(port)
 if username and password:
     print('Using username={}, password={}'.format(username, password))
     setServerCredentials(username, password)
+
+# delete a file:
+# https://github.com/NationalSecurityAgency/ghidra/issues/2180
+
+def get_items_recursive(repo, folder):
+    items = []
+    for subfolder in repo.getSubfolderList(folder):
+        items.extend(get_items_recursive(repo, subfolder))
+        items.extend(repo.getItemList(folder))
+    return items
+
+def clear_repo(repo):
+    for item in get_items_recursive(repo, '/'):
+        repo.deleteItem(item.parentPath, item.name, item.version)
+
+# NOTE: not using clear_repo yet, but it's here if I need it later
 
 GhidraProject.getServerRepository(host, port, repo_name, True)
