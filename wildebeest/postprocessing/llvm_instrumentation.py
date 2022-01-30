@@ -168,7 +168,7 @@ def _do_flatten_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         bdict[i] = FlatLayoutBinary(i, b, lobj, run)
 
     df = pd.DataFrame([vars(fb) for fb in bdict.values()])
-    df.to_csv(run.data_folder/'flat_layout.csv')
+    df.to_csv(run.data_folder/'flat_layout.csv', index=False)
 
     for fb in bdict.values():
         fb.data_folder.mkdir(parents=True, exist_ok=True)
