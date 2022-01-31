@@ -1,3 +1,4 @@
+from datetime import datetime
 import traceback
 from typing import List, Tuple, Dict, Any
 from typing import TYPE_CHECKING
@@ -114,12 +115,14 @@ class ExperimentAlgorithm:
 
         for step in steps_to_exec:
             try:
+                run.save_step_starttime(step.name, datetime.now())
                 run.current_step = step.name
                 params = combine_params_with_step(exp_params, step.params)
                 step_output = step.process(run, params, run.outputs)
             except Exception as e:
                 traceback.print_exc()
                 print(f"Run '{run.name}' failed during the '{step.name}' step:\n\t'{e}'")
+                run.save_step_runtime(step.name, datetime.now() - run.step_starttimes[step.name])
                 run.status = RunStatus.FAILED
                 run.failed_step = step.name
                 run.error_msg = str(e)
@@ -145,6 +148,7 @@ class ExperimentAlgorithm:
                 #   job_dict[step.name] = [output]  # only pass a subset of outputs (e.g. 1) to each job
                 #   Job('meaningful-job-name', lambda: self.runfrom(next_step.name), job_dict)
 
+            run.save_step_runtime(step.name, datetime.now() - run.step_starttimes[step.name])
             run.outputs[step.name] = step_output
             run.last_completed_step = step.name
 

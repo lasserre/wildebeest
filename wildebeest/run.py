@@ -55,6 +55,31 @@ class Run:
         self._current_step = ''
         self._starttime:datetime = None
         self._runtime:timedelta = None
+        self._step_starttimes:Dict[str,datetime] = {}
+        self._step_runtimes:Dict[str,timedelta] = {}
+
+    @property
+    def step_starttimes(self) -> Dict[str, datetime]:
+        '''Maps this run's algorithm step names to their start times'''
+        return self._step_starttimes
+
+    def save_step_starttime(self, stepname:str, starttime:datetime):
+        '''
+        Saves the new starttime for the given step. Since a simple property on
+        the dictionary member wouldn't work for setting dict items, this ensures
+        the runstate file is updated
+        '''
+        self._step_starttimes[stepname] = starttime
+        self.save_to_runstate_file()
+
+    @property
+    def step_runtimes(self) -> Dict[str, timedelta]:
+        '''Maps this run's algorithm step names to their runtimes'''
+        return self._step_runtimes
+
+    def save_step_runtime(self, stepname:str, runtime:timedelta):
+        self._step_runtimes[stepname] = runtime
+        self.save_to_runstate_file()
 
     @property
     def last_completed_step(self) -> str:

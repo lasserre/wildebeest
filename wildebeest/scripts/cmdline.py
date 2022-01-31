@@ -229,7 +229,9 @@ def cmd_status_exp(exp:Experiment):
         elif r.status == RunStatus.RUNNING:
             rt = now - r.starttime
             rt = timedelta(days=rt.days, seconds=rt.seconds)    # remove subsecond precision
-            print(f'Run {r.number} ({r.name}) running "{r.current_step}" [Total runtime: {rt}...]')
+            steprt = now - r.step_starttimes[r.current_step]
+            steprt = timedelta(days=steprt.days, seconds=steprt.seconds)
+            print(f'Run {r.number} ({r.name}) running "{r.current_step}" [{steprt}] Total: [{rt}]')
         else:
             print(f'Run {r.number} ({r.name}) - {r.status}')
 
