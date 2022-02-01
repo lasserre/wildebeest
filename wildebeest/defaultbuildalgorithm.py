@@ -50,7 +50,7 @@ def clean(run:Run, outputs:Dict[str,Any]):
 
 def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
      post_build_steps:List[RunStep]=[],
-     postprocess_steps:List[RunStep]=[]):
+     postprocess_steps:List[ExpStep]=[]):
     '''
     Creates a new instance of the default build algorithm
 

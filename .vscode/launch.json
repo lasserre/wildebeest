@@ -16,7 +16,8 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "3", "-j4", "--from", "reset_data", "--no-pre", "--debug"],
+            // "args": ["run", "3", "-j4", "--from", "reset_data", "--no-pre", "--debug"],
+            "args": ["run", "3", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
             "cwd": "/home/cls0027/test_builds/test.exp",
             "console": "integratedTerminal"

@@ -23,6 +23,9 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
     for bid, fb in outputs['flatten_binaries'].items():
         fb:FlatLayoutBinary
         binary = fb.data[binary_key] if binary_key else fb.binary_file
+        # CLS: right now I can't find a way to control the filename that a binary is
+        # imported as into ghidra, other than creating a link such that the filename
+        # is what I want it to be in ghidra :P
         bin_symlink = fb.data_folder/f'{fb.data_folder.name}'
         bin_symlink.symlink_to(binary)
         ghidra_folder = f'run{run.number}.{run.config.name}.{run.build.recipe.name}'

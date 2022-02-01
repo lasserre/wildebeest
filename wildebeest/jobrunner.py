@@ -421,7 +421,7 @@ class JobRunner:
         Runs the workload, and returns a list of failed Tasks (if none failed the list
         will be empty)
         '''
-        self.ready_jobs = [Job(task, self.workload_folder, self.exp_folder, task.jobid) for task in self.workload]
+        self.ready_jobs = [Job(task, self.workload_folder, self.exp_folder, task.jobid, self.debug_in_process) for task in self.workload]
         self.failed_jobs = []
         self.finished_jobs = []
 
