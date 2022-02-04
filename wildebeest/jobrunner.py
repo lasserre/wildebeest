@@ -280,12 +280,12 @@ ONLY THE JOB RUNNER MODIFIES JOB STATE - job processes do not do this!!
 --------------------------------------
 """
 
-def reset_folder(folder:Path):
+def reset_folder(folder:Path, delete_existing:bool=False):
     '''
-    Creates the folder if it does not exist. If it does exist, all contents
-    are deleted
+    Creates the folder if it does not exist. If delete_existing is specified and
+    it does exist, all contents are deleted
     '''
-    if folder.exists():
+    if delete_existing and folder.exists():
         shutil.rmtree(folder)
     folder.mkdir(parents=True, exist_ok=True)
 
@@ -325,7 +325,6 @@ class JobRunner:
         self.finished_jobs = []
 
     def __enter__(self):
-        # clear out any existing executions of this workload
         reset_folder(self.workload_folder)
         reset_folder(self.workload_folder/JobRelPaths.Logs)
         return self
