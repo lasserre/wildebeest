@@ -5,13 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test Driver",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceRoot}/wildebeest/scripts/test_driver.py",
-            "console": "integratedTerminal"
-        },
-        {
             "name": "Cmdline",
             "type": "python",
             "request": "launch",
@@ -21,6 +14,13 @@
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
             "cwd": "/home/cls0027/test_builds/test.exp",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Test Driver",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/test_driver.py",
             "console": "integratedTerminal"
         },
     ]

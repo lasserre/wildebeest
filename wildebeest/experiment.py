@@ -232,12 +232,12 @@ class Experiment:
                 run_number += 1
         return run_list
 
-    def generate_runs(self) -> List[Run]:
+    def generate_runs(self, force:bool=False) -> List[Run]:
         '''
         Generates the experiment runlist, resets first-time experiment state, saves them to their runstate yaml
         files, and returns the resulting list of Runs
         '''
-        if self.load_runs():
+        if self.load_runs() and not force:
             raise Exception(f'generate_runs called with existing saved runstates!')
 
         # only reset this state for first-time/fresh runs:
@@ -335,7 +335,7 @@ class Experiment:
                     return
             else:
                 # --- first-time run
-                run_list = self.generate_runs()
+                run_list = self.generate_runs(force)
 
         # update runs to match buildjobs param if needed
         if buildjobs:
