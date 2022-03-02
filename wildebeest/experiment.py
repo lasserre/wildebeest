@@ -380,6 +380,7 @@ class Experiment:
         # postprocess
         if not no_post:
             self.state = ExpState.PostProcess
+            self.expdata_folder.mkdir(exist_ok=True)
             if not self.algorithm.postprocess(self):
                 self.state = ExpState.Failed
                 self.failed_step = 'postprocess'
