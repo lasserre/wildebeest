@@ -14,7 +14,8 @@ class ExperimentRepository:
         wildebeest.experiments entry point
         '''
         exp_dict = {}
-        exp_eps = metadata.entry_points()['wildebeest.experiments']
+        EXPS_KEY = 'wildebeest.experiments'
+        exp_eps = metadata.entry_points()[EXPS_KEY] if EXPS_KEY in metadata.entry_points() else []
         for ep in exp_eps:
             exp_class = ep.load()
             exp_dict[exp_class().name] = exp_class
