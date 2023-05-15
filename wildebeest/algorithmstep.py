@@ -74,6 +74,7 @@ class RunStep:
     '''
     def __init__(self, name:str, process:Callable[[Run, Dict[str,Any], Dict[str, Any]], Any],
             params:Dict[str,Any]={},
+            run_in_docker:bool=False,
             do_not_parallelize:bool=False) -> None:
         '''
         name: The unique name of this RunStep
@@ -99,3 +100,6 @@ class RunStep:
         self.do_not_parallelize = do_not_parallelize
         '''Indicates that the outputs of this processing step should not be split
         into multiple parallel jobs, even if a list is returned'''
+
+        self.run_in_docker = run_in_docker
+        '''Indicates this RunStep is intended to be run within the docker container'''
