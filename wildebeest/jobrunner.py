@@ -26,6 +26,11 @@ class Task:
         '''
         self.name = name
         self.do_task = do_task
+
+
+        self.run_in_docker = False
+
+
         self.state = state
         self.jobid = jobid
         self.starttime:timedelta = None
@@ -103,10 +108,13 @@ class Job:
                 run1.job1.log
                 ...
     '''
-    def __init__(self, task:Task, workload_folder:Path, exp_folder:Path, jobid:int,
+    def __init__(self, task_list:List[Task], workload_folder:Path, exp_folder:Path, jobid:int,
             debug_in_process:bool=False) -> None:
         self._status = JobStatus.READY
-        self.task = task
+
+        # TODO: add a docker flag to each so we can kick it off in docker if needed?
+        self.task_list = task_list
+
         self.exp_folder = exp_folder    # this is so we can call wdb run -j from the proper cwd
         self.jobid = jobid
 
@@ -381,6 +389,13 @@ class JobRunner:
         '''
         failed = j.failed()     # have to read this NOW before we lose handle to process via yaml reload
         self.running_jobs.remove(j)
+
+        # TODO: if we haven't failed already (verify this...) then check
+        # j.current_task_idx and see if we have more tasks remaining
+        # (roll this into j.all_tasks_completed() or something, then j.run_next_task()
+        #   - first we have to increment current_task_idx then
+        #   - run current_task_idx task...
+        # )
 
         # load any updated state from job process BEFORE setting any
         # new properties on this job

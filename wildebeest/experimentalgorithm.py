@@ -32,16 +32,24 @@ def combine_params_with_step(exp_params:Dict[str,Any], step_params:Dict[str,Any]
     return combined
 
 class ExperimentAlgorithm:
-    def __init__(self, steps:List[RunStep], preprocess_steps:List[ExpStep]=[], postprocess_steps:List[ExpStep]=[]) -> None:
+    def __init__(self, buildsteps:List[RunStep],
+                 prebuild_steps:List[RunStep]=[], postbuild_steps:List[RunStep]=[],
+                 preprocess_steps:List[ExpStep]=[], postprocess_steps:List[ExpStep]=[]) -> None:
         '''
         steps: The core experiment steps that are performed for each Run individually (possibly in parallel)
         preprocess_steps: Optional pre-processing steps that are performed on the entire experiment
         postprocess_steps: Optional post-processing steps that are performed on the entire experiment
         '''
-        self.steps = steps
-        '''A list of processing steps that define the algorithm'''
         self.preprocess_steps = preprocess_steps
         '''Optional pre-processing steps that are performed on the entire experiment'''
+
+        self.prebuild_steps = prebuild_steps
+        '''Optional pre-build steps that are performed per run'''
+        self.buildsteps = buildsteps
+        '''A list of build steps'''
+        self.postbuild_steps = postbuild_steps
+        '''Optional post-build steps that are performed per run'''
+
         self.postprocess_steps = postprocess_steps
         '''Optional post-processing steps that are performed on the entire experiment'''
 
@@ -105,7 +113,31 @@ class ExperimentAlgorithm:
             return False
 
         step_idx = self.get_index_of_step(step_name)
-        steps_to_exec = self.steps[step_idx:]
+
+        # TODO: execute_prebuild()
+        # TODO: execute_build()
+        # TODO: execute_postbuild()
+
+        # -> all 3 of these call execute_from() which adds another parameter that
+        # is the step_list: e.g. execute_from(steplist=self.prebuild_steps) for execute_prebuild()
+
+        # TODO: then create DockerBuildAlgorithm and start adding prebuild steps to customize
+        # the base image for a project recipe (after creating the base image in preprocessing...)
+
+        # TODO: "lastly", have 3 different tasks in Job.task_list:
+        # Job.task_list = [PrebuildTask(), BuildTask(), PostBuildTask()] and have the JobRunner
+        # class be able to run through a list of tasks, optionally calling "docker run 'wdb run -j 1'"
+        # instead of subprocess.call() if the task is MARKED as a docker task
+
+        # ---- >>> it HAS to work this way since we want to call "docker run 'wdb run...'" and use
+        # the filesystem to "pass state" into the docker container
+        #       - if we subprocess.call(wdb run) and inside that call docker run we will try to
+        #         read the YAML file for the job WE'RE CURRENTLY RUNNING! NOT GOOD
+
+        # NOTE: docker algorithm's prebuild task HAS to create the bindmount on the image somehow...
+        # (specific to this build folder, etc)
+
+        steps_to_exec = self.buildsteps[step_idx:]
 
         # reset status, but don't overwrite outputs in case we're starting
         # mid-way through
