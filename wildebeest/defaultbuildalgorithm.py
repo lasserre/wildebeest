@@ -104,14 +104,15 @@ def create_recipe_docker_image(recipe:ProjectRecipe):
         dockerfile = tmpdir/'dockerfile'
 
         dockerfile_lines = [
-            f'FROM {BASE_DOCKER_IMAGE}'
+            f'FROM {BASE_DOCKER_IMAGE}\n'
         ]
 
         if recipe.apt_deps:
-            dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
+            dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}\n')
 
         with open(dockerfile, 'w') as f:
             f.writelines(dockerfile_lines)
+            f.flush()
 
         # build the recipe image from our temporary dockerfile
         p = subprocess.run(['docker', 'build', '-t', recipe.docker_image_name, '-f', dockerfile, dockerfile.parent])
