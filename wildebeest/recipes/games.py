@@ -1,5 +1,7 @@
 from wildebeest.sourcelanguages import LANG_C, LANG_CPP
 from . import CreateProjectRecipe
+from .. import ProjectList
+from typing import List
 
 # this wouldn't work because raceintospace is an instance, not a callable!
 # raceintospace = ProjectRecipe('cmake', 'https://github.com/raceintospace/raceintospace',
@@ -11,7 +13,7 @@ game_list = [
 ]
 
 # eventually move this into game_list ...
-docker_test_list = [
+docker_tests = [
     # CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/superjer/tinyc.games',
     #     source_languages=[LANG_C])
 
@@ -26,3 +28,10 @@ docker_test_list = [
         ]
     )
 ]
+
+def create_test_list() -> List[str]:
+    return [
+        'astera'
+    ]
+
+docker_test_list = ProjectList('docker_test_list', create_test_list)

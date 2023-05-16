@@ -42,7 +42,7 @@ def get_project_list(name:str) -> List[ProjectRecipe]:
     if name in repo.project_lists:
         recipe_names = repo.project_lists[name]()   # call the ProjectList instance
         return [get_recipe(r) for r in recipe_names]
-    raise Exception(f'Experiment {name} not a registered project list')
+    raise Exception(f'{name} is not a registered project list')
 
 def get_project_list_names() -> List[str]:
     '''Returns a list of registered project list names'''
