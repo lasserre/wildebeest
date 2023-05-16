@@ -270,9 +270,6 @@ class Job:
         to_step: Optional name of last step to run (this controls docker/nondocker phases)
         '''
         try:
-            self.task.starttime = datetime.now()
-            self.starttime = self.task.starttime
-            self.save_to_yaml()     # save starttime in case we get killed
             self.task.execute(from_step, to_step)
             self.save_to_yaml()     # updates any modified task state
             return 0
@@ -454,6 +451,9 @@ class JobRunner:
         to_step = job.task.algorithm.steps[stop_idx].name
 
         self.mark_job_running(job)
+        job.task.starttime = datetime.now()
+        job.starttime = job.task.starttime
+
         if self.debug_in_process:
             print(f'[Started {job.task.name} (job {job.jobid}, IN PROCESS)]')
             rc = job.run()
