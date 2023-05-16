@@ -4,7 +4,7 @@ from typing import Callable, Dict, List
 
 from wildebeest.projectrecipe import ProjectRecipe
 
-from . import ProjectList
+from .projectlist import ProjectList
 from .reciperepository import get_recipe
 
 class ProjectListRepository:

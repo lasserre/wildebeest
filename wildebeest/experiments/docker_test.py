@@ -2,16 +2,17 @@
 
 from pathlib import Path
 from typing import Any, Dict, List
-from wildebeest import DefaultBuildAlgorithm
+from wildebeest import DockerBuildAlgorithm
 from wildebeest.projectrecipe import ProjectRecipe
 from wildebeest.runconfig import RunConfig
 from wildebeest.utils import Dict, Path
 from .. import Experiment
+from wildebeest import ProjectList
 
 class DockerTest(Experiment):
     def __init__(self, exp_folder:Path=None, projectlist:List[ProjectRecipe]=[], params={}) -> None:
 
-        algorithm = DefaultBuildAlgorithm(
+        algorithm = DockerBuildAlgorithm(
             preprocess_steps = [
             ],
             post_build_steps = [
@@ -23,7 +24,6 @@ class DockerTest(Experiment):
 
         super().__init__('docker_test', algorithm=algorithm, runconfigs=runconfigs, projectlist=projectlist,
                         exp_folder=exp_folder, params=params)
-
 
 # --- Create/run experiment
 # - use docker_test_list

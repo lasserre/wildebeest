@@ -186,7 +186,7 @@ class Experiment:
         for recipe in self.projectlist:
             for i, rc in enumerate(self.runconfigs):
                 project_name = recipe.name
-                run_name = f'{recipe.name} - {rc.name}' if len(self.runconfigs) > 1 else f'{recipe.name}'
+                run_name = f'{recipe.name}-{rc.name}' if len(self.runconfigs) > 1 else f'{recipe.name}'
                 # NOTE: has to use run number to guarantee separate folders...sometimes we will have
                 # 2 instances of the same recipe with different config tweaks. In case we forget to rename
                 # one config, this is safer!

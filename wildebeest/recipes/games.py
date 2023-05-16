@@ -16,6 +16,13 @@ docker_test_list = [
     #     source_languages=[LANG_C])
 
     # not really a game but oh well hahaha
-    CreateProjectRecipe(build_system='make', git_remote='https://github.com/orangeduck/Corange',
-                        source_languages=[LANG_C])
+    # CreateProjectRecipe(build_system='make', git_remote='https://github.com/orangeduck/Corange',
+    #                     source_languages=[LANG_C])
+
+    CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/tek256/astera.git',
+        source_languages=[LANG_C],
+        apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev', 'xorg-dev',
+            'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev'
+        ]
+    )
 ]

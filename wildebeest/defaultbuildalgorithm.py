@@ -1,4 +1,7 @@
+from pathlib import Path
 import shutil
+import subprocess
+import tempfile
 from typing import Any, Dict, List
 
 from wildebeest.buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
@@ -74,6 +77,115 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
             postprocess_steps=postprocess_steps
         )
 
+# --- Create/run experiment
+# - use docker_test_list
+# - add step to build base image
+# - add step to build recipe image
+# - add step to build run-specific image (derived from recipe image? or do we start a fresh instance of same image??)
+# - try building project in a single run - this should fail bc of dependencies
+# - VERIFY failed build is captured via docker return code
+# - add missing dependency in recipe
+# - add step to install dependencies in recipe image
+# ...get it working!!
+# - VERIFY successful build is captured via docker return code
+BASE_DOCKER_IMAGE = 'wdb_base'
+
+def docker_image_exists(image_name:str) -> bool:
+    # if docker image inspect IMAGE_NAME is successful then IMAGE_NAME exists
+    p = subprocess.run(['docker', 'image', 'inspect', image_name], capture_output=True)
+    return p.returncode == 0
+
+def create_recipe_docker_image(recipe:ProjectRecipe):
+    if docker_image_exists(recipe.docker_image_name):
+        return
+
+    with tempfile.NamedTemporaryFile('w') as tmp:
+        dockerfile_lines = [
+            f'FROM {BASE_DOCKER_IMAGE}'
+        ]
+
+        if recipe.apt_deps:
+            dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
+
+        tmp.writelines(dockerfile_lines)
+        tmp.flush()
+
+        # build the recipe image from our temporary dockerfile
+        dockerfile = Path(tmp.name)
+        p = subprocess.run(['docker', 'build', '-t', recipe.docker_image_name, '-f', dockerfile, dockerfile.parent])
+        if p.returncode != 0:
+            raise Exception(f'docker build failed to build recipe image for {recipe.name}')
+
+def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
+    # create base docker image
+    # right now nothing is exp-specific, so don't create a new one if it already exists globally
+
+    if not docker_image_exists(BASE_DOCKER_IMAGE):
+        p = subprocess.run(['docker', 'build', '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
+        if p.returncode != 0:
+            raise Exception(f'docker build failed with code {p.returncode} while building base image')
+
+    for recipe in exp.projectlist:
+        create_recipe_docker_image(recipe)
+
+def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    # clone repos
+    outputs = init(run, params, outputs)
+
+    # docker
+    # NOTE: if needed, I can create a run-specific docker image here derived from the
+    # recipe image. But I'm not sure that is needed...
+
+    # TODO: run init outside docker and
+        # - docker run -t -d --name run.container_name \
+        #       -v HOST_EXP:MATCH_PATH \
+        #       -v ~/.wildebeest:/root/.wildebeest \
+        #       -v LLVM_FEATURES??
+
+    bindmounts = [
+        # experiment folder @ matching location
+        f'{run.exp_root}:{run.exp_root}',
+        # .wildebeest home folder (to access workloads/job.yaml files)
+        f'{Path.home()/".wildebeest"}:/root/.wildebeest',
+    ]
+
+    docker_run_cmd = ['docker', 'run', '-td', '--name', run.container_name]
+
+    for bm in bindmounts:
+        docker_run_cmd.append('-v')
+        docker_run_cmd.append(bm)
+
+    docker_run_cmd.append(run.build.recipe.docker_image_name)
+
+    # -t: TTY, -d: run in background
+    p = subprocess.run(docker_run_cmd)
+    if p.returncode != 0:
+        raise Exception(f'docker run failed for run {run.number}')
+
+    # TODO: allow experiment to specify additional bindmounts? (host, container) pairs
+    # TODO: should I use the --rm flag so that the container is auto-deleted when it's done running?
+        # - I think this would work because I'm using bindmounts...any "progress" of the build
+        # will not be lost since it's stored on the host side...
+
+    return outputs
+
+# to allow possibly running multiple sets of commands (for different phases/runs of docker steps)
+# we can just do this:
+
+# -t: TTY
+# -d: background
+# docker run -t -d --name CONTAINER IMAGE
+# docker exec CONTAINER wdb run --job --from X --to Y
+# docker exec CONTAINER wdb run --job --from X2 --to Y2
+# docker stop CONTAINER_IMAGE   # when finished for good
+
+def docker_cleanup(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    # just STOP container for now...eventually REMOVE it!
+    p = subprocess.run(['docker', 'stop', run.container_name])
+    if p.returncode != 0:
+        # does this warrant a "failed run"?
+        raise Exception(f'Failed to stop run {run.number} docker container')
+
 def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
      pre_init_steps:List[RunStep]=[],
      pre_build_steps:List[RunStep]=[],
@@ -91,21 +203,16 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
     return ExperimentAlgorithm(
             preprocess_steps=[
                 clone_repos(),
-                # TODO: create base docker image EXP_BASE? or just BASE
+                ExpStep('docker_exp_setup', docker_exp_setup),
                 *preprocess_steps
             ],
             steps=[
                 *pre_init_steps,
-                # TODO: run init outside docker and
-                # - clone repos
-                # - create run-specific docker image (derived from base)
-                # - docker run -t -d ...
-                RunStep('init', init),      # make this a step OUTSIDE of docker! (clone/init repo outside)
-                # ...then we MIGHT be able to get away with just mapping the build folder in docker
+                RunStep('init', docker_init),
                 *pre_build_steps,
-                RunStep('configure', configure),
-                RunStep('build', build),
-                # TODO: docker STOP
+                RunStep('configure', configure, run_in_docker=True),
+                RunStep('build', build, run_in_docker=True),
+                RunStep('docker_cleanup', docker_cleanup),
 
                 # reset_data resets the data folder if it exists, so if we want to
                 # clean and rerun postprocessing, this is the spot to run from
@@ -114,13 +221,3 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
             ],
             postprocess_steps=postprocess_steps
         )
-
-# to allow possibly running multiple sets of commands (for different phases/runs of docker steps)
-# we can just do this:
-
-# -t: TTY
-# -d: background
-# docker run -t -d --name CONTAINER IMAGE
-# docker exec CONTAINER wdb run --job --from X --to Y
-# docker exec CONTAINER wdb run --job --from X2 --to Y2
-# docker stop CONTAINER_IMAGE   # when finished for good

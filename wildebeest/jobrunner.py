@@ -285,11 +285,13 @@ class Job:
         '''
         Starts the job in docker (via a subprocess), returning its PID
         '''
+        # we can use this exp_folder cwd since we exactly mirror it within the container
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
-        with cd(cwd):
-            with open(self.logfile, 'w') as log:
-                self.process = subprocess.Popen([f'docker exec {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
-                    shell=True, stdout=log, stderr=log)
+
+        with open(self.logfile, 'w') as log:
+            self.process = subprocess.Popen([f'docker exec -w {cwd} {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
+                shell=True, stdout=log, stderr=log)
+
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
         return self.pid
