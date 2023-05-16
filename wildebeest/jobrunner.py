@@ -288,7 +288,7 @@ class Job:
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
             with open(self.logfile, 'w') as log:
-                self.process = subprocess.Popen([f'docker run --name {} run --job {self.jobid} --from {from_step} --to {to_step}'],
+                self.process = subprocess.Popen([f'docker exec {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
                     shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
@@ -434,6 +434,10 @@ class JobRunner:
     def start_next_job(self):
         '''Starts the next job from the ready queue'''
         next_job = self.ready_jobs.pop(0)
+
+        # this can be useful, e.g. generating unique but deterministic container names
+        next_job.task.run.workload_id = self.name
+
         self.start_next_phase(next_job, next_job.task.run_from_step_idx)
 
     def start_next_phase(self, job:Job, first_step_idx:int):

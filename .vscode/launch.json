@@ -13,7 +13,7 @@
             // "args": ["run", "1", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
-            "args": ["run", "-h"],
+            "args": ["ls", "exps"],
             "cwd": "/home/cls0027/test_builds/test.exp",
             "console": "integratedTerminal"
         },
