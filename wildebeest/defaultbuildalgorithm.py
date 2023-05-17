@@ -130,12 +130,6 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
     # right now nothing is exp-specific, so don't create a new one if it already exists globally
 
     if not docker_image_exists(BASE_DOCKER_IMAGE):
-        subprocess.run(['eval', '$(ssh-agent)'], shell=True)
-        subprocess.run(['ssh-add', Path.home()/'.ssh'/'id_rsa'])
-        subprocess.run(['ssh-add', '-l'])
-        import time
-        time.sleep(5)
-
         username = getpass.getuser()
         uid = os.getuid()
         gid = os.getgid()

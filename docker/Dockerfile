@@ -25,8 +25,21 @@ RUN apt update && apt install -y \
 # download public key for github.com
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-# 1. Set up ssh-agent on host machine: https://support.atlassian.com/bitbucket-cloud/docs/set-up-personal-ssh-keys-on-linux/
-# 2. How to forward ssh keys into docker: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
+###############################################################
+# FOR THIS TO WORK:
+# - Add this to ~/.bashrc:
+#       eval $(ssh-agent)
+#       ssh-add ~/.ssh/id_rsa
+#
+# - Add this to ~/.bash_logout:
+#       kill $SSH_AGENT_PID
+#
+# Refs:
+# https://support.atlassian.com/bitbucket-cloud/docs/set-up-personal-ssh-keys-on-linux/
+# https://kb.iu.edu/d/aeww
+###############################################################
+
+# How to forward ssh keys into docker: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
 RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
 
 RUN cd llvm-features && mkdir build && cd build
