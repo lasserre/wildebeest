@@ -134,12 +134,14 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
         uid = os.getuid()
         gid = os.getgid()
         with env({'DOCKER_BUILDKIT': '1'}):
-            p = subprocess.run(['docker', 'build',
-                                '--ssh', f'default={Path.home()/".ssh"/"id_rsa"}'
+            buildcmd = ['docker', 'build',
+                                '--ssh', 'default',
                                 '--build-arg', f'USERNAME={username}',
                                 '--build-arg', f'USER_UID={uid}',
                                 '--build-arg', f'USER_GID={gid}',
-                                '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
+                                '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker']
+            print(' '.join(buildcmd))
+            p = subprocess.run(buildcmd)
             if p.returncode != 0:
                 raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
 
