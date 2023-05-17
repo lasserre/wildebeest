@@ -13,6 +13,7 @@ from .experimentalgorithm import ExperimentAlgorithm
 from .run import Run
 from .algorithmstep import ExpStep, RunStep
 from .preprocessing.repos import *
+from .utils import env
 
 def init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     run.build.init()
@@ -132,13 +133,15 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
         username = getpass.getuser()
         uid = os.getuid()
         gid = os.getgid()
-        p = subprocess.run(['docker', 'build',
-                            '--build-arg', f'USERNAME={username}',
-                            '--build-arg', f'USER_UID={uid}',
-                            '--build-arg', f'USER_GID={gid}',
-                             '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
-        if p.returncode != 0:
-            raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
+        with env({'DOCKER_BUILDKIT', '1'}):
+            p = subprocess.run(['docker', 'build',
+                                '--ssh', f'default={Path.home()/".ssh"/"id_rsa"}'
+                                '--build-arg', f'USERNAME={username}',
+                                '--build-arg', f'USER_UID={uid}',
+                                '--build-arg', f'USER_GID={gid}',
+                                '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
+            if p.returncode != 0:
+                raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
 
     for recipe in exp.projectlist:
         create_recipe_docker_image(recipe)
