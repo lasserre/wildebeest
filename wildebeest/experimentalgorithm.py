@@ -204,6 +204,7 @@ class ExperimentAlgorithm:
                 run.save_step_starttime(step.name, datetime.now())
                 run.current_step = step.name
                 params = combine_params_with_step(exp_params, step.params)
+                print(f'------------------ [Run {run.number} ({run.name})] {step.name} ------------------')
                 step_output = step.process(run, params, run.outputs)
             except Exception as e:
                 traceback.print_exc()

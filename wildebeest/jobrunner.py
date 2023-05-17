@@ -286,7 +286,7 @@ class Job:
         # we can use this exp_folder cwd since we exactly mirror it within the container
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
 
-        with open(self.logfile, 'w') as log:
+        with self.logfile.open('a') as log:
             self.process = subprocess.Popen([f'docker exec -w {cwd} {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
                 shell=True, stdout=log, stderr=log)
 
@@ -300,7 +300,7 @@ class Job:
         '''
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
-            with open(self.logfile, 'w') as log:
+            with self.logfile.open('a') as log:
                 self.process = subprocess.Popen([f'wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
                     shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
@@ -413,6 +413,9 @@ class JobRunner:
         '''
         Marks a ready job as running
         '''
+        if job.status == JobStatus.RUNNING:
+            return      # this is ok now, we hit this when moving to next phase (docker/nondocker)
+
         if job.status != JobStatus.READY:
             print(f'Warning: trying to move a {job.status} job ({job.task.name}) to {JobStatus.RUNNING}!')
             return
@@ -451,9 +454,15 @@ class JobRunner:
         from_step = job.task.algorithm.steps[start_idx].name
         to_step = job.task.algorithm.steps[stop_idx].name
 
+        # reset the log file if we're starting a new job
+        if start_idx == 0:
+            job.logfile.write_text('')
+
         self.mark_job_running(job)
         job.task.starttime = datetime.now()
         job.starttime = job.task.starttime
+
+        from_to_descr = f'{from_step} -> {to_step}' if start_idx != stop_idx else from_step
 
         if self.debug_in_process:
             print(f'[Started {job.task.name} (job {job.jobid}, IN PROCESS)]')
@@ -464,12 +473,12 @@ class JobRunner:
         elif docker_phase:
             job.running_in_docker = True      # save this before it gets read by job
             pid = job.start_in_docker(from_step, to_step)
-            print(f'[Started {job.task.name} in docker (job {job.jobid}, pid = {pid})]')
+            print(f'[Started {job.task.name} in docker] {from_to_descr} | job {job.jobid}, pid = {pid}')
         else:
             # non-docker phase
             job.running_in_docker = False      # save this before it gets read by job
             pid = job.start_in_subprocess(from_step, to_step)
-            print(f'[Started {job.task.name} (job {job.jobid}, pid = {pid})]')
+            print(f'[Started {job.task.name} in subprocess] {from_to_descr} | job {job.jobid}, pid = {pid}')
         self.running_jobs.append(job)
 
     def handle_finished_job(self, j:Job):

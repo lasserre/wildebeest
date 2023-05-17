@@ -14,7 +14,7 @@
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
             "args": ["run", "-f"],
-            "cwd": "/home/cls0027/test_builds/docker_test.exp",
+            "cwd": "/home/cls0027/test_builds/d2",
             "console": "integratedTerminal"
         },
         {
