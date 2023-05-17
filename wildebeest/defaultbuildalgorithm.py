@@ -104,7 +104,10 @@ def create_recipe_docker_image(recipe:ProjectRecipe):
         dockerfile = tmpdir/'dockerfile'
 
         dockerfile_lines = [
-            f'FROM {BASE_DOCKER_IMAGE}\n'
+            f'FROM {BASE_DOCKER_IMAGE}\n',
+            # define home path to be same as host machine (we'll bindmount .wildebeest
+            # with -v later) so paths work consistently
+            f'ENV HOME={Path.home()}\n',
         ]
 
         if recipe.apt_deps:
@@ -117,7 +120,7 @@ def create_recipe_docker_image(recipe:ProjectRecipe):
         # build the recipe image from our temporary dockerfile
         p = subprocess.run(['docker', 'build', '-t', recipe.docker_image_name, '-f', dockerfile, dockerfile.parent])
         if p.returncode != 0:
-            raise Exception(f'docker build failed to build recipe image for {recipe.name}')
+            raise Exception(f'docker build failed to build recipe image for {recipe.name} [return code {p.returncode}]')
 
 def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     # create base docker image
@@ -126,7 +129,7 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
     if not docker_image_exists(BASE_DOCKER_IMAGE):
         p = subprocess.run(['docker', 'build', '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
         if p.returncode != 0:
-            raise Exception(f'docker build failed with code {p.returncode} while building base image')
+            raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
 
     for recipe in exp.projectlist:
         create_recipe_docker_image(recipe)
@@ -145,11 +148,13 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         #       -v ~/.wildebeest:/root/.wildebeest \
         #       -v LLVM_FEATURES??
 
+    dot_wildebeest = f'{Path.home()/".wildebeest"}'
+
     bindmounts = [
         # experiment folder @ matching location
         f'{run.exp_root}:{run.exp_root}',
         # .wildebeest home folder (to access workloads/job.yaml files)
-        f'{Path.home()/".wildebeest"}:/root/.wildebeest',
+        f'{dot_wildebeest}:{dot_wildebeest}',
     ]
 
     docker_run_cmd = ['docker', 'run', '-td', '--name', run.container_name]
@@ -163,7 +168,7 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     # -t: TTY, -d: run in background
     p = subprocess.run(docker_run_cmd)
     if p.returncode != 0:
-        raise Exception(f'docker run failed for run {run.number}')
+        raise Exception(f'docker run failed for run {run.number} [return code {p.returncode}]')
 
     # TODO: allow experiment to specify additional bindmounts? (host, container) pairs
     # TODO: should I use the --rm flag so that the container is auto-deleted when it's done running?
@@ -187,7 +192,12 @@ def docker_cleanup(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     p = subprocess.run(['docker', 'stop', run.container_name])
     if p.returncode != 0:
         # does this warrant a "failed run"?
-        raise Exception(f'Failed to stop run {run.number} docker container')
+        print(f'Failed to stop run {run.number} docker container [return code {p.returncode}]')
+        return  # don't bother trying to remove it, it's still running or something
+
+    p = subprocess.run(['docker', 'container', 'rm', run.container_name])
+    if p.returncode != 0:
+        print(f'Failed to remove run {run.number} docker container [return code {p.returncode}]')
 
 def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
      pre_init_steps:List[RunStep]=[],

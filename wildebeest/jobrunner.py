@@ -275,7 +275,8 @@ class Job:
             return 0
         except Exception as e:
             traceback.print_exc()
-            self.error_msg = str(e)
+            prefix = '[DOCKER] ' if self.running_in_docker else ''
+            self.error_msg = prefix + str(e)
             return 1
 
     def start_in_docker(self, from_step:str, to_step:str) -> int:
@@ -447,7 +448,7 @@ class JobRunner:
         docker_phase = job.task.algorithm.steps[start_idx].run_in_docker
 
         # ...now in string form to make cmd-line happy :)
-        from_step = job.task.run_from_step
+        from_step = job.task.algorithm.steps[start_idx].name
         to_step = job.task.algorithm.steps[stop_idx].name
 
         self.mark_job_running(job)
@@ -456,6 +457,7 @@ class JobRunner:
 
         if self.debug_in_process:
             print(f'[Started {job.task.name} (job {job.jobid}, IN PROCESS)]')
+            job.running_in_docker = False      # save this before it gets read by job
             rc = job.run()
             job._debug_finished = True
             job._debug_failed = rc != 0
@@ -488,6 +490,11 @@ class JobRunner:
             j.finishtime = j.task.finishtime
             j.task.on_failed()      # allow the task a chance to mark itself failed
             print(colored(f'[{j.task.name} FAILED in {j.runtime}]: {j.error_msg}', 'red', attrs=['bold']))
+            if j.running_in_docker:
+                # at least stop the container, then I can manually "docker container prune" to clean up if needed
+                p = subprocess.run(['docker', 'stop', j.task.run.container_name])
+                if p.returncode != 0:
+                    print(f'docker stop failed for run {j.task.run.number} container [return code {p.returncode}]')
             return
 
         # did we actually COMPLETE the run, or just finish this phase?

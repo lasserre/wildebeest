@@ -62,11 +62,13 @@ class ExperimentAlgorithm:
         try:
             change_idx = docker_flags.index(not docker_flags[0])
         except ValueError:
-            return start_idx + len(docker_flags)    # all steps are the same, return last index
+            return start_idx + len(docker_flags) - 1    # all steps are the same, return last index
 
         # add start_idx to adjust for where we started from relative to the
         # whole list of steps
-        return change_idx + start_idx
+        # (change_idx-1) to refer to the last step with the SAME docker_flag value as start_idx
+        # (change_idx is the index of the first step with a DIFFERENT docker_flag value...)
+        return (change_idx-1) + start_idx
 
     def has_step(self, step_name:str) -> bool:
         '''True if this algorithm contains a step with the given name'''
@@ -102,7 +104,7 @@ class ExperimentAlgorithm:
                 run.error_msg = f'No step named {to_step}'
                 return False
             to_idx = self.get_index_of_step(to_step)
-            if step_idx >= to_idx:
+            if step_idx > to_idx:
                 run.error_msg = f'--from step ({from_step}) is not before the --to step ({to_step})'
                 print(run.error_msg)
                 return False
