@@ -109,7 +109,7 @@ def create_recipe_docker_image(recipe:ProjectRecipe):
             f'FROM {BASE_DOCKER_IMAGE}\n',
             # define home path to be same as host machine (we'll bindmount .wildebeest
             # with -v later) so paths work consistently
-            f'ENV HOME={Path.home()}\n',
+            # f'ENV HOME={Path.home()}\n',
         ]
 
         if recipe.apt_deps:
