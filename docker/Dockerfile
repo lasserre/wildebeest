@@ -42,11 +42,10 @@ RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # How to forward ssh keys into docker: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
 RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
 
-RUN cd llvm-features && mkdir build && cd build
-RUN pwd
-RUN cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm
-RUN cmake --build -j40 .
-RUN cmake --install .
+RUN cd llvm-features && mkdir build && cd build && \
+    cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm && \
+    cmake --build -j40 . && \
+    cmake --install .
 
 # TODO: remove @BRANCH when I merge back to master
 RUN pip install git+https://github.com/lasserre/wildebeest.git@docker-integration
