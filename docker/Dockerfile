@@ -43,6 +43,7 @@ RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
 
 RUN cd llvm-features && mkdir build && cd build
+RUN pwd
 RUN cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm
 RUN cmake --build -j40 .
 RUN cmake --install .
