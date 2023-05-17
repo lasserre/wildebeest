@@ -17,7 +17,8 @@ RUN apt update && apt install -y \
     python3.8 \
     python3-pip \
     git \
-    cmake
+    cmake \
+    ninja-build
 
 # TODO: install llvm-features by default
 
@@ -27,6 +28,11 @@ RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # 1. Set up ssh-agent on host machine: https://support.atlassian.com/bitbucket-cloud/docs/set-up-personal-ssh-keys-on-linux/
 # 2. How to forward ssh keys into docker: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
 RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
+
+RUN cd llvm-features && mkdir build && cd build
+RUN cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm
+RUN cmake --build -j40 .
+RUN cmake --install .
 
 # TODO: remove @BRANCH when I merge back to master
 RUN pip install git+https://github.com/lasserre/wildebeest.git@docker-integration
