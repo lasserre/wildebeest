@@ -1,4 +1,6 @@
+import getpass
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import tempfile
@@ -127,7 +129,14 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
     # right now nothing is exp-specific, so don't create a new one if it already exists globally
 
     if not docker_image_exists(BASE_DOCKER_IMAGE):
-        p = subprocess.run(['docker', 'build', '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
+        username = getpass.getuser()
+        uid = os.getuid()
+        gid = os.getgid()
+        p = subprocess.run(['docker', 'build',
+                            '--build-arg', f'USERNAME={username}',
+                            '--build-arg', f'USER_UID={uid}',
+                            '--build-arg', f'USER_GID={gid}',
+                             '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
         if p.returncode != 0:
             raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
 
@@ -157,7 +166,10 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         f'{dot_wildebeest}:{dot_wildebeest}',
     ]
 
-    docker_run_cmd = ['docker', 'run', '-td', '--name', run.container_name]
+    username = getpass.getuser()
+
+    # should I change to interactive? it would allow me to attach manually if needed...
+    docker_run_cmd = ['docker', 'run', '--user', username, '-td', '--name', run.container_name]
 
     for bm in bindmounts:
         docker_run_cmd.append('-v')

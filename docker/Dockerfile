@@ -2,6 +2,15 @@ FROM ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+ARG USERNAME=testuser
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+# create a user with matching uid/gid inside docker so all our output files
+# come out with the right permissions!
+RUN groupadd -g ${USER_GID} ${USERNAME}
+RUN useradd ${USERNAME} -u ${USER_UID} -g ${USER_GID} -m -s /bin/bash
+
 #  http://www.gtlib.gatech.edu/pub/ubuntu/
 RUN sed -i 's/archive.ubuntu.com/www.gtlib.gatech.edu\/pub/g' /etc/apt/sources.list
 RUN apt update && apt install -y \
