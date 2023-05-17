@@ -20,6 +20,9 @@ RUN apt update && apt install -y \
     cmake
 
 # TODO: install llvm-features by default
+# 1. Set up ssh-agent on host machine: https://support.atlassian.com/bitbucket-cloud/docs/set-up-personal-ssh-keys-on-linux/
+# 2. How to forward ssh keys into docker: https://medium.com/@tonistiigi/build-secrets-and-ssh-forwarding-in-docker-18-09-ae8161d066
+RUN git clone git@github.com:lasserre/llvm-features.git
 
 # TODO: remove @BRANCH when I merge back to master
 RUN pip install git+https://github.com/lasserre/wildebeest.git@docker-integration
