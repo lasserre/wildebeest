@@ -133,7 +133,7 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
         username = getpass.getuser()
         uid = os.getuid()
         gid = os.getgid()
-        with env({'DOCKER_BUILDKIT', '1'}):
+        with env({'DOCKER_BUILDKIT': '1'}):
             p = subprocess.run(['docker', 'build',
                                 '--ssh', f'default={Path.home()/".ssh"/"id_rsa"}'
                                 '--build-arg', f'USERNAME={username}',
