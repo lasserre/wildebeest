@@ -124,7 +124,7 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
                                 '--build-arg', f'USERNAME={username}',
                                 '--build-arg', f'USER_UID={uid}',
                                 '--build-arg', f'USER_GID={gid}',
-                                '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#docker-integration:docker'])
+                                '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#:docker'])
             if p.returncode != 0:
                 raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
 

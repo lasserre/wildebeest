@@ -48,4 +48,4 @@ RUN cd llvm-features && mkdir build && cd build && \
     cmake --install .
 
 # TODO: remove @BRANCH when I merge back to master
-RUN pip install git+https://github.com/lasserre/wildebeest.git@docker-integration
+RUN pip install git+https://github.com/lasserre/wildebeest.git
