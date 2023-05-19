@@ -10,9 +10,11 @@ import traceback
 from typing import Any, Callable, List
 
 from .utils import *
+from wildebeest.run import Run, RunStatus
+from wildebeest import experimentalgorithm
 
-class Task:
-    def __init__(self, name:str, do_task:Callable[[Any], None], state:Any, jobid:int) -> None:
+class RunTask:
+    def __init__(self, run:Run, algorithm:'experimentalgorithm.ExperimentAlgorithm', exp_params:Dict[str,Any], run_from_step:str='') -> None:
         '''
         Creates a new Task that may be run by the JobManager
 
@@ -24,14 +26,22 @@ class Task:
         jobid: This allows the task creator to specify job ids and tie a job to the
                appropriate unit of work (e.g. Runs)
         '''
-        self.name = name
-        self.do_task = do_task
-        self.state = state
-        self.jobid = jobid
+        self.run = run
+        self.algorithm = algorithm
+        self.exp_params = exp_params
+        self.run_from_step = run_from_step
+        self.name = f'Run {run.number} ({run.name})'
+        self.jobid = run.number
         self.starttime:timedelta = None
         '''Start time of this task (set by job runner)'''
         self.finishtime:timedelta = None
         '''Finish time of this task (set by job runner after task is complete)'''
+
+    @property
+    def run_from_step_idx(self) -> int:
+        if self.run_from_step:
+            return self.algorithm.get_index_of_step(self.run_from_step)
+        return 0    # no run_from_step specified, start at beginning
 
     @property
     def runtime(self) -> timedelta:
@@ -39,13 +49,30 @@ class Task:
         rt = self.finishtime - self.starttime
         return timedelta(days=rt.days, seconds=rt.seconds)
 
-    def execute(self):
+    def _execute_run(self, from_step:str='', to_step:str=''):
+        first_step = self.algorithm.steps[0].name
+        last_step = self.algorithm.steps[-1].name
+
+        # from_step (job control) overrides run_from_step since it is used to run
+        # portions of a larger run_from_step sequence
+        if from_step:
+            first_step = from_step
+        elif self.run_from_step:
+            first_step = self.run_from_step
+
+        if to_step:
+            last_step = to_step
+
+        if not self.algorithm.execute_from(first_step, self.run, self.exp_params, last_step):
+            raise Exception(self.run.error_msg)
+
+    def execute(self, from_step:str='', to_step:str=''):
         '''Executes the task'''
         self.finishtime = None
         self.on_start()
 
         try:
-            self.do_task(self.state)
+            self._execute_run(from_step, to_step)
         finally:
             # even if we failed, want to know how long it took
             self.finishtime = datetime.now()
@@ -53,16 +80,22 @@ class Task:
         self.on_finished()
 
     def on_start(self):
-        '''Derived tasks can override this to perform pre-run actions'''
-        pass
+        '''Pre-run actions'''
+        self.run.starttime = self.starttime
 
     def on_finished(self):
-        '''Derived tasks can override this to perform post-run actions'''
-        pass
+        '''Post-run actions'''
+        self.run.runtime = self.runtime
 
     def on_failed(self):
         '''Derived tasks can override this to indicate the task has failed'''
-        pass
+        # reload in case run was already updated
+        self.run = Run.load_from_runstate_file(self.run.runstate_file, self.run.exp_root)
+
+        self.run.runtime = self.runtime
+        self.run.status = RunStatus.FAILED
+        if not self.run.error_msg:
+            self.run.error_msg = 'RunTask failed without an error message (possibly killed?)'
 
 class JobPaths:
     Workloads = Path().home()/'.wildebeest'/'workloads'
@@ -103,15 +136,16 @@ class Job:
                 run1.job1.log
                 ...
     '''
-    def __init__(self, task:Task, workload_folder:Path, exp_folder:Path, jobid:int,
+    def __init__(self, task:RunTask, workload_folder:Path, exp_folder:Path, jobid:int,
             debug_in_process:bool=False) -> None:
         self._status = JobStatus.READY
         self.task = task
         self.exp_folder = exp_folder    # this is so we can call wdb run -j from the proper cwd
         self.jobid = jobid
-
         self.yamlfile = Job.yamlfile_from_id(workload_folder, jobid)
         self.logfile = workload_folder/JobRelPaths.Logs/f'{self.jobname}.log'
+        self.debug_in_process = debug_in_process
+        self._running_in_docker = False      # set ONLY by JobRunner as the job changes states while running
 
         self._pid = None
         self._starttime = None
@@ -119,7 +153,6 @@ class Job:
         self.process = None
         self._error_msg = ''
 
-        self.debug_in_process = debug_in_process
         self._debug_failed = False
         '''Only for debug_in_process mode, indicates if job failed'''
         self._debug_finished = False
@@ -157,6 +190,22 @@ class Job:
     @status.setter
     def status(self, value):
         self._status = value
+        self.save_to_yaml()
+
+    @property
+    def running_in_docker(self) -> bool:
+        '''
+        True if this job is CURRENTLY running in docker.
+
+        This must ONLY be set by the JobRunner as the job will be changing states
+        at various times while running through phases of docker and non-docker
+        operation.
+        '''
+        return self._running_in_docker
+
+    @running_in_docker.setter
+    def running_in_docker(self, value):
+        self._running_in_docker = value
         self.save_to_yaml()
 
     @property
@@ -212,30 +261,47 @@ class Job:
     def save_to_yaml(self):
         save_to_yaml(self, self.yamlfile)
 
-    def run(self) -> int:
+    def run(self, from_step:str='', to_step:str='') -> int:
         '''
         Runs this job in the current process
+
+        from_step: Optional name of first step to begin running (this controls docker/nondocker phases,
+                   and is different from experiment-wide --from control)
+        to_step: Optional name of last step to run (this controls docker/nondocker phases)
         '''
         try:
-            self.task.starttime = datetime.now()
-            self.starttime = self.task.starttime
-            self.save_to_yaml()     # save starttime in case we get killed
-            self.task.execute()
+            self.task.execute(from_step, to_step)
             self.save_to_yaml()     # updates any modified task state
             return 0
         except Exception as e:
             traceback.print_exc()
-            self.error_msg = str(e)
+            prefix = '[DOCKER] ' if self.running_in_docker else ''
+            self.error_msg = prefix + str(e)
             return 1
 
-    def start_in_subprocess(self) -> int:
+    def start_in_docker(self, from_step:str, to_step:str) -> int:
+        '''
+        Starts the job in docker (via a subprocess), returning its PID
+        '''
+        # we can use this exp_folder cwd since we exactly mirror it within the container
+        cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
+
+        with self.logfile.open('a') as log:
+            self.process = subprocess.Popen([f'docker exec -w {cwd} {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
+                shell=True, stdout=log, stderr=log)
+
+        # process doesn't get serialized, so we save pid separately
+        self.pid = self.process.pid
+        return self.pid
+
+    def start_in_subprocess(self, from_step:str, to_step:str) -> int:
         '''
         Starts the job in a subprocess, returning its PID
         '''
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
         with cd(cwd):
-            with open(self.logfile, 'w') as log:
-                self.process = subprocess.Popen([f'wdb run --job {self.jobid}'],
+            with self.logfile.open('a') as log:
+                self.process = subprocess.Popen([f'wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
                     shell=True, stdout=log, stderr=log)
         # process doesn't get serialized, so we save pid separately
         self.pid = self.process.pid
@@ -258,14 +324,18 @@ class Job:
         '''
         if self.debug_in_process:
             return self._debug_finished
-        # if returncode is None it's still running
-        return self.process.poll() is not None
+        else:
+            # works for EITHER docker or nondocker (both using subprocess)
+            # if returncode is None it's still running
+            return self.process.poll() is not None
 
     def failed(self) -> bool:
         '''Returns true if this Job failed to complete properly'''
         if self.debug_in_process:
             return self._debug_failed
-        return self.process.returncode != 0 if self.finished() else False
+        else:
+            # works for EITHER docker or nondocker (both using subprocess)
+            return self.process.returncode != 0 if self.finished() else False
 
 class WorkloadStatus:
     pass
@@ -299,7 +369,7 @@ class JobRunner:
     Runs a set of Tasks (work units) using a specified max number of parallel
     jobs.
     '''
-    def __init__(self, name:str, workload:List[Task], numjobs:int, exp_folder:Path=None,
+    def __init__(self, name:str, workload:List[RunTask], numjobs:int, exp_folder:Path=None,
         debug_in_process:bool=False) -> None:
         '''
         name: Descriptive name for the workload
@@ -343,6 +413,9 @@ class JobRunner:
         '''
         Marks a ready job as running
         '''
+        if job.status == JobStatus.RUNNING:
+            return      # this is ok now, we hit this when moving to next phase (docker/nondocker)
+
         if job.status != JobStatus.READY:
             print(f'Warning: trying to move a {job.status} job ({job.task.name}) to {JobStatus.RUNNING}!')
             return
@@ -364,16 +437,49 @@ class JobRunner:
     def start_next_job(self):
         '''Starts the next job from the ready queue'''
         next_job = self.ready_jobs.pop(0)
-        self.mark_job_running(next_job)
+
+        # this can be useful, e.g. generating unique but deterministic container names
+        next_job.task.run.workload_id = self.name
+
+        self.start_next_phase(next_job, next_job.task.run_from_step_idx)
+
+    def start_next_phase(self, job:Job, first_step_idx:int):
+        '''Starts the next phase for this job and adds it to the running job queue'''
+        # detect next docker/nondocker phase
+        start_idx = first_step_idx
+        stop_idx = job.task.algorithm.indexof_last_contiguous_step(start_idx)
+        docker_phase = job.task.algorithm.steps[start_idx].run_in_docker
+
+        # ...now in string form to make cmd-line happy :)
+        from_step = job.task.algorithm.steps[start_idx].name
+        to_step = job.task.algorithm.steps[stop_idx].name
+
+        # reset the log file if we're starting a new job
+        if start_idx == 0:
+            job.logfile.write_text('')
+
+        self.mark_job_running(job)
+        job.task.starttime = datetime.now()
+        job.starttime = job.task.starttime
+
+        from_to_descr = f'{from_step} -> {to_step}' if start_idx != stop_idx else from_step
+
         if self.debug_in_process:
-            print(f'[Started {next_job.task.name} (job {next_job.jobid}, IN PROCESS)]')
-            rc = next_job.run()
-            next_job._debug_finished = True
-            next_job._debug_failed = rc != 0
+            print(f'[Started {job.task.name} (job {job.jobid}, IN PROCESS)]')
+            job.running_in_docker = False      # save this before it gets read by job
+            rc = job.run()
+            job._debug_finished = True
+            job._debug_failed = rc != 0
+        elif docker_phase:
+            job.running_in_docker = True      # save this before it gets read by job
+            pid = job.start_in_docker(from_step, to_step)
+            print(f'[Started {job.task.name} in docker] {from_to_descr} | job {job.jobid}, pid = {pid}')
         else:
-            pid = next_job.start_in_subprocess()
-            print(f'[Started {next_job.task.name} (job {next_job.jobid}, pid = {pid})]')
-        self.running_jobs.append(next_job)
+            # non-docker phase
+            job.running_in_docker = False      # save this before it gets read by job
+            pid = job.start_in_subprocess(from_step, to_step)
+            print(f'[Started {job.task.name} in subprocess] {from_to_descr} | job {job.jobid}, pid = {pid}')
+        self.running_jobs.append(job)
 
     def handle_finished_job(self, j:Job):
         '''
@@ -385,17 +491,33 @@ class JobRunner:
         # load any updated state from job process BEFORE setting any
         # new properties on this job
         j = Job.load_from_yaml(j.yamlfile)
-        self.mark_job_finished(j, failed)
 
         if failed:
+            self.mark_job_finished(j, failed)
             self.failed_jobs.append(j)
             j.task.finishtime = datetime.now()  # I'm seeing finishtime not set if we get externally killed
             j.finishtime = j.task.finishtime
             j.task.on_failed()      # allow the task a chance to mark itself failed
             print(colored(f'[{j.task.name} FAILED in {j.runtime}]: {j.error_msg}', 'red', attrs=['bold']))
-        else:
+            if j.running_in_docker:
+                # at least stop the container, then I can manually "docker container prune" to clean up if needed
+                p = subprocess.run(['docker', 'stop', j.task.run.container_name])
+                if p.returncode != 0:
+                    print(f'docker stop failed for run {j.task.run.number} container [return code {p.returncode}]')
+            return
+
+        # did we actually COMPLETE the run, or just finish this phase?
+        completed_run = j.task.run.last_completed_step == j.task.algorithm.steps[-1].name
+
+        if completed_run:
+            self.mark_job_finished(j, failed)
             self.finished_jobs.append(j)
             print(colored(f'[{j.task.name} finished in {j.runtime}]', 'green'))
+        else:
+            # not finished - start next phase!
+            last_step_name = j.task.run.last_completed_step
+            last_step_idx = j.task.algorithm.get_index_of_step(last_step_name)
+            self.start_next_phase(j, last_step_idx + 1)
 
     def wait_for_finished_job(self):
         '''
@@ -415,7 +537,7 @@ class JobRunner:
         while self.ready_jobs and len(self.running_jobs) < max_jobs:
             self.start_next_job()
 
-    def run(self) -> List[Task]:
+    def run(self) -> List[RunTask]:
         '''
         Runs the workload, and returns a list of failed Tasks (if none failed the list
         will be empty)
@@ -445,6 +567,6 @@ class JobRunner:
         print(f'Finished running {self.name}')
         return [j.task for j in self.failed_jobs]
 
-def run_job(yaml:Path) -> int:
+def run_job(yaml:Path, from_step:str='', to_step:str='') -> int:
     job = Job.load_from_yaml(yaml)
-    return job.run()
+    return job.run(from_step, to_step)

@@ -7,10 +7,10 @@ import pandas as pd
 from termcolor import colored
 from typing import List, Tuple
 
-from wildebeest import Experiment, Job
+from wildebeest import Experiment
+from wildebeest.jobrunner import Job, run_job
 from wildebeest import *
 from wildebeest.defaultbuildalgorithm import build
-from wildebeest.jobrunner import run_job
 from wildebeest.run import RunStatus
 
 # Other wdb command line examples/ideas:
@@ -86,7 +86,7 @@ def cmd_run_job(args):
         return 1
 
     job_yaml = Job.yamlfile_from_id(exp.workload_folder, args.job)
-    return run_job(job_yaml)
+    return run_job(job_yaml, args.run_from_step, args.run_to_step)
 
 def parse_run_numbers(run_numbers:str) -> List[Tuple]:
     try:
@@ -317,6 +317,7 @@ def main():
                         type=int)
     run_p.add_argument('-f', '--force', help='Force running the experiment or job', action='store_true')
     run_p.add_argument('--from', dest='run_from_step', type=str, help='The step name to begin running (existing runs) from', default='')
+    run_p.add_argument('--to', dest='run_to_step', type=str, help='The step name to run to (including this step)', default='')
     run_p.add_argument('--no-pre', help='Skip preprocessing steps', action='store_true')
     run_p.add_argument('--no-post', help='Skip postprocessing steps', action='store_true')
     run_p.add_argument('--debug', help='Run everything serially in-process for debugging', action='store_true')

@@ -50,6 +50,7 @@ class ProjectRecipe:
             source_languages:List[str]=[],
             out_of_tree:bool=True,
             git_head:str='',
+            apt_deps:List[str]=[],
             configure_options:BuildStepOptions=None,
             build_options:BuildStepOptions=None,
             clean_options:BuildStepOptions=None) -> None:
@@ -68,6 +69,7 @@ class ProjectRecipe:
                      by project basis.
         git_head: If specified, this pathspec will be used to check out a specific
                   revision of the project instead of the default master/main/etc.
+        apt_deps: List of apt packages which are build dependencies for this project
         configure_options: Custom configure options specific to this project
         build_options:  Custom build options specific to this project
         clean_options:  Custom clean options specific to this project
@@ -87,9 +89,15 @@ class ProjectRecipe:
         '''
         self.git_head = git_head
         '''If specified, check out this revision of the project instead of the default'''
+        self.apt_deps = apt_deps
+        '''List of apt packages which are build dependencies for this project'''
         self.configure_options = configure_options if configure_options else BuildStepOptions()
         '''Custom configure options specific to this project'''
         self.build_options = build_options if build_options else BuildStepOptions()
         '''Custom build options specific to this project'''
         self.clean_options = clean_options if clean_options else BuildStepOptions()
         '''Custom clean options specific to this project'''
+
+    @property
+    def docker_image_name(self) -> str:
+        return f'recipe_{self.name}'

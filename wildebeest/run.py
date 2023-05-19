@@ -47,6 +47,9 @@ class Run:
         self.config = config
         '''The run configuration'''
 
+        self.workload_id = None     # filled in by JobRunner
+        '''The workload id, which is unique & deterministic per exp folder location'''
+
         self._last_completed_step = ''
         self._failed_step = ''
         self._outputs = {}
@@ -57,6 +60,11 @@ class Run:
         self._runtime:timedelta = None
         self._step_starttimes:Dict[str,datetime] = {}
         self._step_runtimes:Dict[str,timedelta] = {}
+
+    @property
+    def container_name(self) -> str:
+        '''The name of the docker container for this run, if one exists'''
+        return f'{self.workload_id}_run{self.number}'
 
     @property
     def step_starttimes(self) -> Dict[str, datetime]:

@@ -1,17 +1,15 @@
-from datetime import datetime
 import hashlib
 from pathlib import Path
-from telnetlib import IP
 from typing import Any, Dict, List
 
 from .defaultbuildalgorithm import clean
 from. experimentalgorithm import ExperimentAlgorithm
 from .experimentpaths import ExpRelPaths
-from .jobrunner import Job, JobRunner, Task
+from .jobrunner import JobRunner, RunTask
 from .postprocessing.llvm_instrumentation import _rebase_linker_objects
 from .projectbuild import ProjectBuild
 from .projectrecipe import ProjectRecipe
-from .run import Run, RunStatus
+from .run import Run
 from .runconfig import RunConfig
 from .utils import *
 
@@ -23,39 +21,6 @@ class ExpState:
     Finished = 'FINISHED'
     Failed = 'FAILED'
 
-class RunTask(Task):
-    def __init__(self, run:Run, algorithm:ExperimentAlgorithm, exp_params:Dict[str,Any], run_from_step:str='') -> None:
-        self.run = run
-        self.algorithm = algorithm
-        self.run_from_step = run_from_step
-        self.exp_params = exp_params
-
-        # state dict is for when you don't override the Task class to allow
-        # you to just instantiate what you need on the fly
-
-        super().__init__(f'Run {run.number} ({run.name})', self.execute_run, {}, jobid=run.number)
-
-    def execute_run(self, state):
-        if self.run_from_step:
-            if not self.algorithm.execute_from(self.run_from_step, self.run, self.exp_params):
-                raise Exception(self.run.error_msg)
-        elif not self.algorithm.execute(self.run, self.exp_params):
-            raise Exception(self.run.error_msg)
-
-    def on_start(self):
-        self.run.starttime = self.starttime
-
-    def on_finished(self):
-        self.run.runtime = self.runtime
-
-    def on_failed(self):
-        # reload in case run was already updated
-        self.run = Run.load_from_runstate_file(self.run.runstate_file, self.run.exp_root)
-
-        self.run.runtime = self.runtime
-        self.run.status = RunStatus.FAILED
-        if not self.run.error_msg:
-            self.run.error_msg = 'RunTask failed without an error message (possibly killed?)'
 
 class Experiment:
     postprocess_outputs:Dict[str,Any]
@@ -221,7 +186,7 @@ class Experiment:
         for recipe in self.projectlist:
             for i, rc in enumerate(self.runconfigs):
                 project_name = recipe.name
-                run_name = f'{recipe.name} - {rc.name}' if len(self.runconfigs) > 1 else f'{recipe.name}'
+                run_name = f'{recipe.name}-{rc.name}' if len(self.runconfigs) > 1 else f'{recipe.name}'
                 # NOTE: has to use run number to guarantee separate folders...sometimes we will have
                 # 2 instances of the same recipe with different config tweaks. In case we forget to rename
                 # one config, this is safer!

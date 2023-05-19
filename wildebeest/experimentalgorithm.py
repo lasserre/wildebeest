@@ -32,18 +32,43 @@ def combine_params_with_step(exp_params:Dict[str,Any], step_params:Dict[str,Any]
     return combined
 
 class ExperimentAlgorithm:
-    def __init__(self, steps:List[RunStep], preprocess_steps:List[ExpStep]=[], postprocess_steps:List[ExpStep]=[]) -> None:
+    def __init__(self, steps:List[RunStep],
+                 preprocess_steps:List[ExpStep]=[], postprocess_steps:List[ExpStep]=[]) -> None:
         '''
         steps: The core experiment steps that are performed for each Run individually (possibly in parallel)
         preprocess_steps: Optional pre-processing steps that are performed on the entire experiment
         postprocess_steps: Optional post-processing steps that are performed on the entire experiment
         '''
-        self.steps = steps
-        '''A list of processing steps that define the algorithm'''
         self.preprocess_steps = preprocess_steps
         '''Optional pre-processing steps that are performed on the entire experiment'''
+
+        self.steps = steps
+        '''A list of build steps'''
+
         self.postprocess_steps = postprocess_steps
         '''Optional post-processing steps that are performed on the entire experiment'''
+
+    def indexof_last_contiguous_step(self, start_idx:int) -> int:
+        '''
+        Returns the index of the last contiguous step in the sequence beginning with run_from_step,
+        where contiguous steps either all run in docker or all run outside of docker.
+
+        Essentially this finds the end of the current "run" of docker or non-docker steps
+        and returns the index of the last step in this run.
+
+        start_idx: The index of the first step in the sequence
+        '''
+        docker_flags = [s.run_in_docker for s in self.steps[start_idx:]]
+        try:
+            change_idx = docker_flags.index(not docker_flags[0])
+        except ValueError:
+            return start_idx + len(docker_flags) - 1    # all steps are the same, return last index
+
+        # add start_idx to adjust for where we started from relative to the
+        # whole list of steps
+        # (change_idx-1) to refer to the last step with the SAME docker_flag value as start_idx
+        # (change_idx is the index of the first step with a DIFFERENT docker_flag value...)
+        return (change_idx-1) + start_idx
 
     def has_step(self, step_name:str) -> bool:
         '''True if this algorithm contains a step with the given name'''
@@ -62,50 +87,106 @@ class ExperimentAlgorithm:
         '''Inserts the step after the step with the given name'''
         self.steps.insert(self.get_index_of_step(step_name) + 1, step)
 
-    def validate_execute_from(self, run:Run, step:str) -> bool:
+    def validate_execute_from_to(self, run:Run, from_step:str, to_step:str=None) -> bool:
         '''
         Validates that we can execute the algorithm from the specified step
         for this run. Returns true if this is valid, false otherwise.
         '''
-        if not self.has_step(step):
-            run.error_msg = f'No step named {step}'
+        if not self.has_step(from_step):
+            run.error_msg = f'No step named {from_step}'
             return False
 
-        step_idx = self.get_index_of_step(step)
+        step_idx = self.get_index_of_step(from_step)
 
+        # validate to_step conditions also if it was supplied
+        if to_step is not None:
+            if not self.has_step(to_step):
+                run.error_msg = f'No step named {to_step}'
+                return False
+            to_idx = self.get_index_of_step(to_step)
+            if step_idx > to_idx:
+                run.error_msg = f'--from step ({from_step}) is not before the --to step ({to_step})'
+                print(run.error_msg)
+                return False
+
+        # validate starting step in relation to what we've completed
         if step_idx > 0:
             last_completed_idx = self.get_index_of_step(run.last_completed_step)
             no_runs_completed = run.last_completed_step == ''
             if no_runs_completed and step_idx > 0:
-                msg = f"Error: can't execute from step {step_idx} '{step}' when step 0 '{self.steps[0].name}' hasn't been completed"
+                msg = f"Error: can't execute from step {step_idx} '{from_step}' when step 0 '{self.steps[0].name}' hasn't been completed"
                 print(msg)
                 run.error_msg = msg
                 return False
             elif last_completed_idx < (step_idx-1):
                 lcs_name = self.steps[last_completed_idx].name
-                msg = f"Can't execute from step {step_idx} '{step}' (last completed step is step {last_completed_idx} '{lcs_name}'"
+                msg = f"Can't execute from step {step_idx} '{from_step}' (last completed step is step {last_completed_idx} '{lcs_name}'"
                 print(msg)
                 run.error_msg = msg
                 return False
 
         return True
 
-    def execute_from(self, step_name:str, run:Run, exp_params:Dict[str,Any]) -> bool:
+    # TODO: then create DockerBuildAlgorithm and start adding prebuild steps to customize
+    # the base image for a project recipe (after creating the base image in preprocessing...)
+
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # NO: this will BREAK the way a Run works (current step #, last completed step, etc) and
+    # we'll have to add phases with separate numbers or keep track of current phase # + current step #
+    # and it all becomes a HUGE MESS
+    #
+    # INSTEAD: implement ALL of this at the algorithm level by doing the following:
+    #       1. Each RunStep can INDIVIDUALLY specify run_in_docker=True/False
+    #       2. JobRunner automatically creates "phases" artificially by splitting the
+    #          "runs" of adjacent docker (or non-docker) steps into chunks that get run at once
+    #       3. Each chunk is run using 'wdb run -j 1 --from <STEP_START> --to <STEP_END>'
+    #       4. JobRunner launches each "chunk" in either docker, subprocess, or directly calling it
+    #          based on the chunk settings
+    #
+    #       >> because the chunks ARE NOT EXPLICIT we don't have to add "special code" or
+    #          processing to handle them - under the hood "wdb run job" just has to be
+    #          able to handle running a subset of steps (from/to)
+    #       >> everything else WORKS AS-IS with respect to:
+    #           - 1 task per job (simple)
+    #           - 1 current_step #/last completed step #...and all that logic remains the same
+
+    # NOTE: I think I can collect all the apt packages and add a single line to
+    # the dockerfile like "sudo apt update && sudo apt install p1 p2 p3 ... pN"
+
+    # NOTE: The Run class has a .container member (or it lives in params["container"] on a run-level)
+    # so that the DockerBuildRunner can locate the appropriate container for a
+    # specific job to run in
+
+    # ---- >>> it HAS to work this way since we want to call "docker run 'wdb run...'" and use
+    # the filesystem to "pass state" into the docker container
+    #       - if we subprocess.call(wdb run) and inside that call docker run we will try to
+    #         read the YAML file for the job WE'RE CURRENTLY RUNNING! NOT GOOD
+
+    # NOTE: docker algorithm's prebuild task HAS to create the bindmount on the image somehow...
+    # (specific to this build folder, etc)
+
+    def execute_from(self, from_step:str, run:Run, exp_params:Dict[str,Any], to_step:str=None) -> bool:
         '''
         [Re-]Executes the algorithm beginning at the specified step. Note that the
         preceding steps in the algorithm must have already been completed for this
         Run.
 
-        rsfolder: The path to the experiment runstates folder
+        steps: The appropriate list of RunSteps for this phase of the algorithm (prebuild, build, or postbuild).
+               This allows us to not worry here about what is executed in docker or not, just execute this chunk
+               of steps from the given step name
+        step_name: Name of the step (in steps list) from which to begin
+        run: The current run
+        exp_params: Experiment parameters dict
         '''
         if not self.is_valid_experiment():
             run.error_msg = f'Experiment invalid - not executing'
             return False
-        if not self.validate_execute_from(run, step_name):
+        if not self.validate_execute_from_to(run, from_step, to_step):
             return False
 
-        step_idx = self.get_index_of_step(step_name)
-        steps_to_exec = self.steps[step_idx:]
+        from_idx = self.get_index_of_step(from_step)
+        to_idx = len(self.steps)-1 if to_step is None else self.get_index_of_step(to_step)
+        steps_to_exec = self.steps[from_idx:to_idx+1]
 
         # reset status, but don't overwrite outputs in case we're starting
         # mid-way through
@@ -113,10 +194,16 @@ class ExperimentAlgorithm:
         run.error_msg = ''
         run.status = RunStatus.RUNNING
 
+        if steps_to_exec[0].name == self.steps[0].name:
+            # reset all state - this will apply for initial run or reruns from beginning
+            run.outputs = {}
+            run.last_completed_step = ''
+
         for step in steps_to_exec:
             try:
                 run.save_step_starttime(step.name, datetime.now())
                 run.current_step = step.name
+                print(f'------------------ [Run {run.number} ({run.name})] {step.name} ------------------', flush=True)
                 params = combine_params_with_step(exp_params, step.params)
                 step_output = step.process(run, params, run.outputs)
             except Exception as e:
@@ -127,38 +214,16 @@ class ExperimentAlgorithm:
                 run.failed_step = step.name
                 run.error_msg = str(e)
                 return False  # bail here
-            # -------
-            # WARNING: there are some pitfalls going this route (below), like having
-            # multiple jobs trying to write to the same runstate file...we would have
-            # to rethink how this works a little bit, so I'm DEFINITELY postponing for now
-            # >>> it would have to be something like THIS process waits on all jobs, IF ALL
-            # JOBS succeed then it grabs all their outputs and combines them into a single
-            # Run output (combines all jobs into run.outputs for each step)...
-            # - would have to refactor "wdb run --job" to accept a workload folder param
-            #   for cases where we aren't tied to the top-level experiment
-            # - NOTE could potentially save each job's run outputs in its Task class instance,
-            #   since we creat them here and have handles (would have to reload from yaml)
-            # -------
-            # if isinstance(step_output, list) and not step.do_not_parallelize:
-                # TODO: we have the opportunity to partition these outputs into parallel
-                # jobs according to the job manager's configuration (add them to the job pool?)
-                # ---------
-                # for output in step_output:
-                #   job_dict = dict(outputs)
-                #   job_dict[step.name] = [output]  # only pass a subset of outputs (e.g. 1) to each job
-                #   Job('meaningful-job-name', lambda: self.runfrom(next_step.name), job_dict)
 
             run.save_step_runtime(step.name, datetime.now() - run.step_starttimes[step.name])
             run.outputs[step.name] = step_output
             run.last_completed_step = step.name
 
-        run.status = RunStatus.FINISHED
+        if run.last_completed_step == self.steps[-1].name:
+            run.status = RunStatus.FINISHED
+        else:
+            run.status = RunStatus.RUNNING  # this could be something new, like CHECKPOINT or PARTIAL_COMPLETE
         return True
-
-    def execute(self, run:Run, exp_params:Dict[str,Any]) -> bool:
-        '''Executes the algorithm using the given RunConfig'''
-        run.init_running_state()
-        return self.execute_from(self.steps[0].name, run, exp_params)
 
     def is_valid_experiment(self) -> bool:
         '''Validates the experiment'''

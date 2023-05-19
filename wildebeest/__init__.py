@@ -1,5 +1,5 @@
 from .buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
-from .defaultbuildalgorithm import DefaultBuildAlgorithm
+from .defaultbuildalgorithm import DefaultBuildAlgorithm, DockerBuildAlgorithm
 from .experiment import *
 from .experimentrepository import create_experiment, load_experiment, get_experiment_names
 from .gitrepository import GitRepository
