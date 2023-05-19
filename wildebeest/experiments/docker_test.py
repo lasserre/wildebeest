@@ -20,7 +20,13 @@ class DockerTest(Experiment):
             postprocess_steps = [
             ])
 
+        # TODO: add compiler arguments to runconfigs to use our llvm-features LINKER (only)
+        # >> this works for GCC or CLANG: -fuse-ld=lld (and just add the folder containing lld to PATH in base docker)
         runconfigs = [RunConfig()]
+
+        # TODO: add other .linker-objects steps (reuse) - can I build and get .linker-objects files generated?
+        # TODO: now test if I can SWITCH COMPILERS! (gcc or clang) and everything still work with llvm-features linker :D
+
 
         super().__init__('docker_test', algorithm=algorithm, runconfigs=runconfigs, projectlist=projectlist,
                         exp_folder=exp_folder, params=params)

@@ -68,8 +68,7 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
                 *preprocess_steps
             ],
             steps=[
-                RunStep('init', init),      # make this a step OUTSIDE of docker! (clone/init repo outside)
-                # ...then we MIGHT be able to get away with just mapping the build folder in docker
+                RunStep('init', init),
                 RunStep('configure', configure),
                 RunStep('build', build),
                 # reset_data resets the data folder if it exists, so if we want to
@@ -80,17 +79,6 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
             postprocess_steps=postprocess_steps
         )
 
-# --- Create/run experiment
-# - use docker_test_list
-# - add step to build base image
-# - add step to build recipe image
-# - add step to build run-specific image (derived from recipe image? or do we start a fresh instance of same image??)
-# - try building project in a single run - this should fail bc of dependencies
-# - VERIFY failed build is captured via docker return code
-# - add missing dependency in recipe
-# - add step to install dependencies in recipe image
-# ...get it working!!
-# - VERIFY successful build is captured via docker return code
 BASE_DOCKER_IMAGE = 'wdb_base'
 
 def docker_image_exists(image_name:str) -> bool:
@@ -108,9 +96,6 @@ def create_recipe_docker_image(recipe:ProjectRecipe):
 
         dockerfile_lines = [
             f'FROM {BASE_DOCKER_IMAGE}\n',
-            # define home path to be same as host machine (we'll bindmount .wildebeest
-            # with -v later) so paths work consistently
-            # f'ENV HOME={Path.home()}\n',
         ]
 
         if recipe.apt_deps:
@@ -153,12 +138,6 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     # docker
     # NOTE: if needed, I can create a run-specific docker image here derived from the
     # recipe image. But I'm not sure that is needed...
-
-    # TODO: run init outside docker and
-        # - docker run -t -d --name run.container_name \
-        #       -v HOST_EXP:MATCH_PATH \
-        #       -v ~/.wildebeest:/root/.wildebeest \
-        #       -v LLVM_FEATURES??
 
     dot_wildebeest = f'{Path.home()/".wildebeest"}'
 
