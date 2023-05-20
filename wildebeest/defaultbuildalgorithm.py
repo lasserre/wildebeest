@@ -81,43 +81,75 @@ def DefaultBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
 
 BASE_DOCKER_IMAGE = 'wdb_base'
 
+def get_exp_docker_imagename(exp:'Experiment'):
+    '''Return the name of the experiment base docker image'''
+    return f'wdb_{exp.name}'
+
 def docker_image_exists(image_name:str) -> bool:
     # if docker image inspect IMAGE_NAME is successful then IMAGE_NAME exists
     p = subprocess.run(['docker', 'image', 'inspect', image_name], capture_output=True)
     return p.returncode == 0
 
-def create_recipe_docker_image(recipe:ProjectRecipe):
+class TemporaryDockerfile:
+    '''
+    Create a temporary dockerfile somewhere that gets automatically cleaned up
+    when we exit a with block
+    '''
+    def __init__(self, dockerfile_lines:List[str]) -> None:
+        self.dockerfile_lines = dockerfile_lines
+
+    def __enter__(self) -> 'TemporaryDockerfile':
+        self.td = tempfile.TemporaryDirectory().__enter__()
+        self.tempdir = Path(self.td)
+        self.dockerfile = self.tempdir/'dockerfile'
+        with open(self.dockerfile, 'w') as f:
+            for line in self.dockerfile_lines:
+                f.write(f'{line}\n')
+            f.flush()
+        return self
+
+    def docker_build(self, image_name) -> int:
+        '''
+        Runs docker build -t <image_name> -f <tmp_dockerfile> <folder containing tmp_dockerfile>
+        and returns the returncode of the subprocess.run() command.
+
+        If you need to build your image differently, then call subprocess.run() yourself
+        without calling docker_build()
+        '''
+        # build the recipe image from our temporary dockerfile
+        p = subprocess.run(['docker', 'build', '-t', image_name, '-f', self.dockerfile, self.dockerfile.parent])
+        return p.returncode
+
+    def __exit__(self, etype, value, traceback):
+        self.td.__exit__(etype, value, traceback)
+
+def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
     if docker_image_exists(recipe.docker_image_name):
         return
 
-    with tempfile.TemporaryDirectory() as td:
-        tmpdir = Path(td)
-        dockerfile = tmpdir/'dockerfile'
+    dockerfile_lines = [
+        f'FROM {get_exp_docker_imagename(exp)}',
+    ]
 
-        dockerfile_lines = [
-            f'FROM {BASE_DOCKER_IMAGE}\n',
-        ]
+    if recipe.apt_deps:
+        dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
 
-        if recipe.apt_deps:
-            dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}\n')
-
-        with open(dockerfile, 'w') as f:
-            f.writelines(dockerfile_lines)
-            f.flush()
-
-        # build the recipe image from our temporary dockerfile
-        p = subprocess.run(['docker', 'build', '-t', recipe.docker_image_name, '-f', dockerfile, dockerfile.parent])
-        if p.returncode != 0:
-            raise Exception(f'docker build failed to build recipe image for {recipe.name} [return code {p.returncode}]')
+    with TemporaryDockerfile(dockerfile_lines) as tdf:
+        rcode = tdf.docker_build(recipe.docker_image_name)
+        if rcode != 0:
+            raise Exception(f'docker build failed to build recipe image for {recipe.name} [return code {rcode}]')
 
 def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,Any]):
     # create base docker image
     # right now nothing is exp-specific, so don't create a new one if it already exists globally
 
+    exp_docker_image = get_exp_docker_imagename(exp)
+    username = getpass.getuser()
+    uid = os.getuid()
+    gid = os.getgid()
+
+    # create base image if it DNE
     if not docker_image_exists(BASE_DOCKER_IMAGE):
-        username = getpass.getuser()
-        uid = os.getuid()
-        gid = os.getgid()
         with env({'DOCKER_BUILDKIT': '1'}):
             p = subprocess.run(['docker', 'build',
                                 '--ssh', 'default',
@@ -127,6 +159,21 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
                                 '-t', BASE_DOCKER_IMAGE, 'https://github.com/lasserre/wildebeest.git#:docker'])
             if p.returncode != 0:
                 raise Exception(f'docker build failed while building base image [return code {p.returncode}]')
+
+    # create exp image if it DNE
+    if not docker_image_exists(exp_docker_image):
+        dockerfile_lines = [f'FROM {BASE_DOCKER_IMAGE}']
+
+        if 'exp_docker_cmds' in params:
+            for cmd in params['exp_docker_cmds']:
+                dockerfile_lines.append(cmd)
+
+        with TemporaryDockerfile(dockerfile_lines) as tdf:
+            p = subprocess.run(['docker', 'build',
+                                '--ssh', 'default',
+                                '-t', exp_docker_image, '-f', tdf.dockerfile, tdf.dockerfile.parent])
+            if p.returncode != 0:
+                raise Exception(f'docker build failed to create experiment image "{exp_docker_image}" with return code {p.returncode}')
 
     for recipe in exp.projectlist:
         create_recipe_docker_image(recipe)
