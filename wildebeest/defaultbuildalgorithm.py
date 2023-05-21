@@ -99,8 +99,9 @@ class TemporaryDockerfile:
         self.dockerfile_lines = dockerfile_lines
 
     def __enter__(self) -> 'TemporaryDockerfile':
-        self.td = tempfile.TemporaryDirectory().__enter__()
-        self.tempdir = Path(self.td)
+        self.tdref = tempfile.TemporaryDirectory()
+        self.tdname = self.tdref.__enter__()
+        self.tempdir = Path(self.tdname)
         self.dockerfile = self.tempdir/'dockerfile'
         with open(self.dockerfile, 'w') as f:
             for line in self.dockerfile_lines:
@@ -121,7 +122,7 @@ class TemporaryDockerfile:
         return p.returncode
 
     def __exit__(self, etype, value, traceback):
-        self.td.__exit__(etype, value, traceback)
+        self.tdref.__exit__(etype, value, traceback)
 
 def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
     if docker_image_exists(recipe.docker_image_name):
@@ -176,7 +177,7 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
                 raise Exception(f'docker build failed to create experiment image "{exp_docker_image}" with return code {p.returncode}')
 
     for recipe in exp.projectlist:
-        create_recipe_docker_image(recipe)
+        create_recipe_docker_image(exp, recipe)
 
 def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     # clone repos
@@ -198,7 +199,7 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     username = getpass.getuser()
 
     # should I change to interactive? it would allow me to attach manually if needed...
-    docker_run_cmd = ['docker', 'run', '--user', username, '-td', '--name', run.container_name]
+    docker_run_cmd = ['docker', 'run', '--user', username, '-tid', '--name', run.container_name]
 
     for bm in bindmounts:
         docker_run_cmd.append('-v')

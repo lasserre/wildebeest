@@ -13,8 +13,8 @@
             // "args": ["run", "1", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
-            "args": ["run", "-f"],
-            "cwd": "/home/cls0027/test_builds/d2",
+            "args": ["run", "-f", "--to", "configure"],
+            "cwd": "/home/cls0027/test_builds/basic-dataset.exp",
             "console": "integratedTerminal"
         },
         {

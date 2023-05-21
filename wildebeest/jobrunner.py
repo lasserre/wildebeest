@@ -467,7 +467,7 @@ class JobRunner:
         if self.debug_in_process:
             print(f'[Started {job.task.name} (job {job.jobid}, IN PROCESS)]')
             job.running_in_docker = False      # save this before it gets read by job
-            rc = job.run()
+            rc = job.run(from_step, to_step)
             job._debug_finished = True
             job._debug_failed = rc != 0
         elif docker_phase:
