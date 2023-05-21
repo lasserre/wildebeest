@@ -45,6 +45,7 @@ RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
 RUN cd llvm-features && mkdir build && cd build && \
     cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm && \
     cmake --build . -j40 && \
-    cmake --install .
+    cmake --install . && \
+    echo "export PATH=$PATH:/llvm-build/bin" >> /home/${USERNAME}/.bashrc
 
 RUN pip install git+https://github.com/lasserre/wildebeest.git
