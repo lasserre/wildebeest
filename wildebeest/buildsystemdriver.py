@@ -1,5 +1,6 @@
 from importlib import metadata
 from os import environ
+import subprocess
 from typing import Any, Callable, Dict
 
 from wildebeest.sourcelanguages import LANG_C
@@ -65,6 +66,8 @@ class BuildSystemDriver:
         # a specific build system requires something different, that driver can implement it
         opts = build.recipe.configure_options
         configure_env = runconfig.generate_env()
+        subprocess.run(['echo CALEB TEST (before env()): PATH=$PATH'], shell=True)
+        subprocess.run(['echo CALEB TEST checking userid: `id`'], shell=True)
         with env(configure_env):
             self._do_build_step(runconfig, build, opts, self._do_configure)
 
@@ -74,6 +77,8 @@ class BuildSystemDriver:
         '''
         opts = build.recipe.build_options
         build_env = runconfig.generate_env()
+        subprocess.run(['echo CALEB TEST (before env()): PATH=$PATH'], shell=True)
+        subprocess.run(['echo CALEB TEST checking userid: `id`'], shell=True)
         with env(build_env):
             self._do_build_step(runconfig, build, opts, self._do_build, numjobs=numjobs)
 
