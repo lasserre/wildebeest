@@ -33,7 +33,6 @@ class CompilationSettings:
     '''
     compiler_path: Path
     compiler_flags: List[str]
-    linker_flags: List[str]
 
     def __init__(self) -> None:
         self.compiler_path = None
@@ -43,8 +42,6 @@ class CompilationSettings:
         self.append_compiler_flags = False
         '''If set, compiler flags will be appended to any existing flags set
         in environment variables (e.g. CFLAGS) rather than replacing them'''
-        self.linker_flags = []
-        '''List of additional linker arguments'''
 
     def enable_debug_info(self):
         '''
@@ -92,6 +89,7 @@ class RunConfig:
     '''
     compile_options: Dict[str, CompilationSettings]
     num_build_jobs: int
+    linker_flags: List[str]
 
     def __init__(self, name:str='default') -> None:
         '''
@@ -106,6 +104,15 @@ class RunConfig:
         '''
         self.compile_options[LANG_C] = CompilationSettings()
         self.compile_options[LANG_CPP] = CompilationSettings()
+
+        # linker flags (LDFLAGS) apply to both C and C++ using this mechanism
+        # if we need C/C++-specific linker settings, use compiler flags to pass
+        # linker flags through (e.g. -Wl)
+        self.linker_flags = []
+        '''List of additional linker arguments'''
+        self.append_linker_flags = False
+        '''If set, linker flags will be appended to any existing flags set
+        in environment variables (LDFLAGS) rather than replacing them'''
 
         self.num_build_jobs = 1
         '''Default number of build jobs to use per build (e.g. make -j N)'''
@@ -126,4 +133,12 @@ class RunConfig:
         env_dict = {}
         self.c_options.add_c_cpp_vars_to_env(env_dict, LANG_C)
         self.cpp_options.add_c_cpp_vars_to_env(env_dict, LANG_CPP)
+
+        # add linker flags to LDFLAGS only 1x (not within add_c_cpp_vars multiple times)
+        if self.linker_flags:
+            existing = []
+            if 'LDFLAGS' in os.environ and self.append_linker_flags:
+                existing = os.environ['LDFLAGS'].split()
+            env_dict['LDFLAGS'] = ' '.join([*existing, *self.linker_flags])
+
         return env_dict

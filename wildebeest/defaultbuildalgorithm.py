@@ -199,7 +199,8 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     username = getpass.getuser()
 
     # should I change to interactive? it would allow me to attach manually if needed...
-    docker_run_cmd = ['docker', 'run', '--user', username, '-tid', '--name', run.container_name]
+    # no, I can run: "docker exec --user USER -it CONTAINER bash" to get a shell
+    docker_run_cmd = ['docker', 'run', '--user', username, '-td', '--name', run.container_name]
 
     for bm in bindmounts:
         docker_run_cmd.append('-v')

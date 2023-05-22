@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import getpass
 from pathlib import Path
 import psutil
 import shutil
@@ -287,7 +288,8 @@ class Job:
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
 
         with self.logfile.open('a') as log:
-            self.process = subprocess.Popen([f'docker exec -w {cwd} {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
+            username = getpass.getuser()
+            self.process = subprocess.Popen([f'docker exec -w {cwd} --user {username} {self.task.run.container_name} wdb run --job {self.jobid} --from {from_step} --to {to_step}'],
                 shell=True, stdout=log, stderr=log)
 
         # process doesn't get serialized, so we save pid separately
