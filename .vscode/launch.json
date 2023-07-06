@@ -13,8 +13,10 @@
             // "args": ["run", "1", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
-            "args": ["run", "-f", "--to", "configure"],
-            "cwd": "/home/cls0027/test_builds/basic-dataset.exp",
+
+            // "args": ["run", "-f", "--to", "configure"],
+            "args": ["run", "-f", "--from", "ghidra_import", "--debug"],
+            "cwd": "/home/cls0027/test_builds/timing.exp",
             "console": "integratedTerminal"
         },
         {

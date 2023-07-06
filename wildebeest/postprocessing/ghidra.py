@@ -42,6 +42,21 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
             analyze_cmd.extend(['-scriptPath', scriptdir,
                 '-postScript', postscript.name, *args])
 
+        # TODO: make this behavior optional...for now we always want this
+        # TODO: set GHIDRA_AST_CONFIG_FILE=<json_file>
+        # TODO: in <json_file>:
+        # {
+        #   'output_folder': <path_for_this_program>
+        # }
+        from ..utils import env
+        import json
+
+        # ast_config = run.data_folder/'ghidra_ast.json'
+        # with open(ast_config, 'w') as f:
+        #     f.write(json.dumps({'output_folder': run.data_folder/''}))
+        #     pass
+
+        # with env({ 'GHIDRA_AST_CONFIG_FILE': ast_config }):
         subprocess.call(analyze_cmd)
 
     # import IPython; IPython.embed()

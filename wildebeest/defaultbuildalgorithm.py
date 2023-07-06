@@ -194,6 +194,8 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         f'{run.exp_root}:{run.exp_root}',
         # .wildebeest home folder (to access workloads/job.yaml files)
         f'{dot_wildebeest}:{dot_wildebeest}',
+        # sync timezones so timing measurements "just work"
+        '/etc/localtime:/etc/localtime:ro',
     ]
 
     username = getpass.getuser()
