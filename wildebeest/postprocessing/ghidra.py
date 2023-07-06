@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import subprocess
 from typing import Any, Dict, List, Callable
@@ -6,6 +7,7 @@ from ..algorithmstep import RunStep
 from ..run import Run
 from ..ghidrautil import GhidraKeys
 from .flatlayoutbinary import FlatLayoutBinary
+from ..utils import env
 
 def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     req_keys = [GhidraKeys.GHIDRA_INSTALL, GhidraKeys.GHIDRA_REPO, 'binary_key']
@@ -43,21 +45,18 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
                 '-postScript', postscript.name, *args])
 
         # TODO: make this behavior optional...for now we always want this
-        # TODO: set GHIDRA_AST_CONFIG_FILE=<json_file>
-        # TODO: in <json_file>:
-        # {
-        #   'output_folder': <path_for_this_program>
-        # }
-        from ..utils import env
-        import json
-
         # ast_config = run.data_folder/'ghidra_ast.json'
-        # with open(ast_config, 'w') as f:
-        #     f.write(json.dumps({'output_folder': run.data_folder/''}))
-        #     pass
+        ast_config = fb.data_folder/'ghidra_ast.json'
+        ast_folder = fb.data_folder/'ast_dumps'
+        ast_folder.mkdir(exist_ok=True)     # folder has to exist or we don't get output!
 
-        # with env({ 'GHIDRA_AST_CONFIG_FILE': ast_config }):
-        subprocess.call(analyze_cmd)
+        with open(ast_config, 'w') as f:
+            f.write(json.dumps({'output_folder': str(ast_folder)}))
+
+        with env({'GHIDRA_AST_CONFIG_FILE': str(ast_config)}):
+            rcode = subprocess.call(analyze_cmd)
+            if rcode != 0:
+                raise Exception(f'Ghidra import failed with return code {rcode}')
 
     # import IPython; IPython.embed()
 
