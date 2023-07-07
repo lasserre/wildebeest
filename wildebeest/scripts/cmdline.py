@@ -306,6 +306,7 @@ def main():
     create_p.add_argument('name', type=str, help='The registered name of the experiment to be created')
     create_p.add_argument('exp_folder', type=Path, default=None, help='The experiment folder', nargs='?')
     create_p.add_argument('-l', '--project-list', type=str, help='The name of the project list to use for this experiment')
+    create_p.add_argument('-r', '--recipe', type=str, help='The name of the recipe to use for this experiment (overrides -l)')
 
     # --- run: execute experiment/runs
     run_p = subparsers.add_parser('run', help='Run the experiment or specific runs/jobs')
@@ -367,7 +368,10 @@ def main():
         name = args.name
         exp_folder = args.exp_folder if args.exp_folder else Path().cwd()/f'{name}.exp'
         proj_list = []
-        if args.project_list:
+        if args.recipe:
+            # create custom list right here containing only the given recipe
+            proj_list = [get_recipe(args.recipe)]
+        elif args.project_list:
             proj_list = get_project_list(args.project_list)
         return cmd_create_exp(exp_folder, name, proj_list)
     # --- wdb run
