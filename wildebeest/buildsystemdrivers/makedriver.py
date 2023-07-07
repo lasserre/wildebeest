@@ -18,7 +18,7 @@ class MakeDriver(BuildSystemDriver):
         build_opts = build.recipe.build_options.cmdline_options
         p = subprocess.run(['make', f'-j{numjobs}', *build_opts])
         if p.returncode != 0:
-            raise Exception(f'cmake build failed with return code {p.returncode}')
+            raise Exception(f'make build failed with return code {p.returncode}')
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
         clean_opts = build.recipe.clean_options.cmdline_options

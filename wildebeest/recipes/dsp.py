@@ -5,7 +5,7 @@ from typing import List
 
 dsp_recipes = [
     CreateProjectRecipe(build_system='make', git_remote='https://github.com/FFmpeg/FFmpeg.git',
-        source_languages=[LANG_C]),
+        source_languages=[LANG_C], apt_deps=['nasm']),
 ]
 
 dsp_list = ProjectList('dsp', lambda: [cpr().name for cpr in dsp_recipes])
