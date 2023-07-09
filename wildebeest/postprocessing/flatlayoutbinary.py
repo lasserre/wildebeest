@@ -18,6 +18,7 @@ class FlatLayoutBinary:
              this binary's data folder
         '''
         self.binary_file:Path = binary_file
+        self.debug_binary_file:Path = None  # filled out by strip_binaries
         self.linker_objs = linker_objs
         self.data_folder:Path = run.data_folder/f'{binary_id}.{binary_file.stem}'
         self.id:int = binary_id
@@ -99,6 +100,7 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         shutil.copy(fb.binary_file, stripped)
         subprocess.call(['strip', '-s', stripped])
         fb.data['strip_binaries'] = stripped
+        fb.debug_binary_file = origcopy
 
     # import IPython; IPython.embed()
 

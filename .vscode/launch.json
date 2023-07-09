@@ -15,8 +15,8 @@
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
 
             // "args": ["run", "-f", "--to", "configure"],
-            "args": ["run", "-f", "--from", "ghidra_import", "--debug"],
-            "cwd": "/home/cls0027/test_builds/timing.exp",
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug"],
+            "cwd": "/home/cls0027/test_builds/astera.exp",
             "console": "integratedTerminal"
         },
         {
