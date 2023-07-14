@@ -15,8 +15,18 @@
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
 
             // "args": ["run", "-f", "--to", "configure"],
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug"],
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/astera.exp",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "SOURCE AST",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            // "args": ["run", "-f", "--to", "configure"],
+            "args": ["run", "-f", "--debug"],     //, "--no-pre"],
+            "cwd": "/home/cls0027/test_builds/source_ast.exp",
             "console": "integratedTerminal"
         },
         {

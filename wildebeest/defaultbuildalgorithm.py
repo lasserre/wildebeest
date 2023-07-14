@@ -246,7 +246,9 @@ def docker_cleanup(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 
 def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
      pre_init_steps:List[RunStep]=[],
+     pre_configure_steps:List[RunStep]=[],
      pre_build_steps:List[RunStep]=[],
+     extra_build_steps:List[RunStep]=[],
      post_build_steps:List[RunStep]=[],
      postprocess_steps:List[ExpStep]=[]):
     '''
@@ -255,7 +257,9 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
     preprocess_steps: Additional steps to run on the experiment level before the experiment begins executing runs
     pre_init_steps: Additional steps to prepend before init. Since the docker container is created
                     during the init step, pre_init_steps won't work inside the container (since it DNE).
-    pre_build_steps: Additional steps to run just before the build steps (but after init). These may run within docker
+    pre_configure_steps: Additional steps to run just before the build steps (before configure but after init). These may run within docker
+    pre_build_steps: Additional steps to run after configure just before the build. Can be inside docker.
+    extra_build_steps: Additional steps to run just after the build, before docker cleanup (these can be inside docker)
     post_build_steps: Additional steps to append after the build step (these are outside docker)
     '''
     return ExperimentAlgorithm(
@@ -267,9 +271,11 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
             steps=[
                 *pre_init_steps,
                 RunStep('init', docker_init),
-                *pre_build_steps,
+                *pre_configure_steps,
                 RunStep('configure', configure, run_in_docker=True),
+                *pre_build_steps,
                 RunStep('build', build, run_in_docker=True),
+                *extra_build_steps,
                 RunStep('docker_cleanup', docker_cleanup),
 
                 # reset_data resets the data folder if it exists, so if we want to
