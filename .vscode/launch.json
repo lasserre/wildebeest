@@ -25,7 +25,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             // "args": ["run", "-f", "--to", "configure"],
-            "args": ["run", "-f", "--debug"],     //, "--no-pre"],
+            "args": ["run", "-f", "--from", "process_source_ast_dump", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/source_ast.exp",
             "console": "integratedTerminal"
         },

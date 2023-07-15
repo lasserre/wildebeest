@@ -1,7 +1,7 @@
 from importlib import metadata
 from os import environ
 import subprocess
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from wildebeest.sourcelanguages import LANG_C
 from .runconfig import RunConfig
@@ -88,6 +88,21 @@ class BuildSystemDriver:
         clean_env = runconfig.generate_env()
         with env(clean_env):
             self._do_build_step(runconfig, build, opts, self._do_clean)
+
+    def _do_subprocess_build(self, build:ProjectBuild, build_cmd:List[str]):
+        '''
+        Runs the build command in a subprocess and handles capturing and writing
+        stdout to a file if the build_options request it
+        '''
+        if build.recipe.build_options.capture_stdout:
+            # capture stdout and write to file
+            p = subprocess.run(build_cmd, stdout=subprocess.PIPE)
+            with open(build.recipe.build_options.capture_stdout, 'w') as f:
+                f.write(p.stdout.decode('utf-8'))
+        else:
+            p = subprocess.run(build_cmd)
+        if p.returncode != 0:
+            raise Exception(f'{self.name} build failed with return code {p.returncode}')
 
     def _do_configure(self, runconfig:RunConfig, build:ProjectBuild):
         '''

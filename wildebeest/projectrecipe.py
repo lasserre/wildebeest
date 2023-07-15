@@ -32,6 +32,11 @@ class BuildStepOptions:
         '''Optional callback to run just before this step'''
         self.postprocess = postprocess
         '''Optional callback to run immediately after this step'''
+        self.capture_stdout:Path = None
+        '''
+        Parameter to allow an algorithm to run a build step with the output
+        written to a specific file
+        '''
 
 class ProjectRecipe:
     '''

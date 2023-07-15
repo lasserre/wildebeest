@@ -14,11 +14,10 @@ class MakeDriver(BuildSystemDriver):
         # subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
         subprocess.run([build.project_root/'configure', *configure_opts])
 
-    def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
+    def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
-        p = subprocess.run(['make', f'-j{numjobs}', *build_opts])
-        if p.returncode != 0:
-            raise Exception(f'make build failed with return code {p.returncode}')
+        build_cmd = ['make', f'-j{numjobs}', *build_opts]
+        self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
         clean_opts = build.recipe.clean_options.cmdline_options
