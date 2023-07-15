@@ -19,6 +19,10 @@ class CmakeDriver(BuildSystemDriver):
 
         build_opts = build.recipe.build_options.cmdline_options
         build_cmd = ['cmake', '--build', '.', f'-j{numjobs}', *build_opts]
+        if build.recipe.build_options.capture_stdout:
+            # want this effect to capture compiler stdout:
+            #   cmake --build . -- VERBOSE=1
+            build_cmd.extend(['--', 'VERBOSE=1'])
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
