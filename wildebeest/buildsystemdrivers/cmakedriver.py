@@ -22,7 +22,9 @@ class CmakeDriver(BuildSystemDriver):
         if build.recipe.build_options.capture_stdout:
             # want this effect to capture compiler stdout:
             #   cmake --build . -- VERBOSE=1
-            build_cmd.extend(['--', 'VERBOSE=1'])
+
+            # HACK CLS TEST:
+            build_cmd.extend(['--', 'VERBOSE=1', '-Xclang', '-ast-dump=json', '-fsyntax-only'])
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
