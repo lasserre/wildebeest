@@ -9,10 +9,8 @@ class CmakeDriver(BuildSystemDriver):
 
     def _do_configure(self, runconfig: RunConfig, build: ProjectBuild):
         configure_opts = build.recipe.configure_options.cmdline_options
-
-        # TODO: TEST THIS - IS MY PATH RIGHT HERE??
-        subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
-        subprocess.run(['cmake', build.project_root, *configure_opts])
+        # I think the configure options (e.g. -Dxyz) have to come before the path
+        subprocess.run(['cmake', *configure_opts, build.project_root])
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         subprocess.run(['echo CALEB TEST: CFLAGS=$CFLAGS'], shell=True)
@@ -22,9 +20,7 @@ class CmakeDriver(BuildSystemDriver):
         if build.recipe.build_options.capture_stdout:
             # want this effect to capture compiler stdout:
             #   cmake --build . -- VERBOSE=1
-
-            # HACK CLS TEST:
-            build_cmd.extend(['--', 'VERBOSE=1', '-Xclang', '-ast-dump=json', '-fsyntax-only'])
+            build_cmd.extend(['--', 'VERBOSE=1'])
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
