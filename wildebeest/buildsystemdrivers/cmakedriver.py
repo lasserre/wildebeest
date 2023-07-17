@@ -12,6 +12,13 @@ class CmakeDriver(BuildSystemDriver):
         # I think the configure options (e.g. -Dxyz) have to come before the path
         subprocess.run(['cmake', *configure_opts, build.project_root])
 
+        # if this ever becomes a problem again:
+        # you can disable the initial compiler check (when you run "cmake ..") by
+        # supplying -DCMAKE_C_COMPILER_WORKS=1 (or C++ version)
+        # -> this bit me when using "-ast-dump=json -fsyntax-only" because no exe was built
+        # e.g:
+        # run.build.recipe.configure_options.cmdline_options.append('-DCMAKE_C_COMPILER_WORKS=1')
+
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         subprocess.run(['echo CALEB TEST: CFLAGS=$CFLAGS'], shell=True)
 
