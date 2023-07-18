@@ -13,8 +13,6 @@ class CmakeDriver(BuildSystemDriver):
         subprocess.run(['cmake', *configure_opts, build.project_root])
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
-        subprocess.run(['echo CALEB TEST: CFLAGS=$CFLAGS'], shell=True)
-
         build_opts = build.recipe.build_options.cmdline_options
         build_cmd = ['cmake', '--build', '.', f'-j{numjobs}', *build_opts]
         if build.recipe.build_options.capture_stdout:

@@ -67,6 +67,8 @@ class BuildSystemDriver:
         opts = build.recipe.configure_options
         configure_env = runconfig.generate_env()
         with env(configure_env):
+            subprocess.run([f'echo Executing {self.name} configure:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
+                           shell=True)
             self._do_build_step(runconfig, build, opts, self._do_configure)
 
     def build(self, runconfig:RunConfig, build:ProjectBuild, numjobs:int=1):
@@ -76,6 +78,8 @@ class BuildSystemDriver:
         opts = build.recipe.build_options
         build_env = runconfig.generate_env()
         with env(build_env):
+            subprocess.run([f'echo Executing {self.name} build:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
+                           shell=True)
             self._do_build_step(runconfig, build, opts, self._do_build, numjobs=numjobs)
 
     def clean(self, runconfig:RunConfig, build:ProjectBuild):
