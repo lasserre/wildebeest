@@ -78,4 +78,4 @@ def ghidra_import(binary_key:str='', postscript:Path=None,
         params['postscript'] = postscript
     if get_postscriptargs:
         params['get_postscriptargs'] = get_postscriptargs
-    return RunStep('ghidra_import', do_import_binary_to_ghidra, params)
+    return RunStep(f'ghidra_import_{binary_key}', do_import_binary_to_ghidra, params)
