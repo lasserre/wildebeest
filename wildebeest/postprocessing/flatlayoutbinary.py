@@ -100,6 +100,7 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         shutil.copy(fb.binary_file, stripped)
         subprocess.call(['strip', '-s', stripped])
         fb.data['strip_binaries'] = stripped
+        fb.data['debug_binaries'] = origcopy
         fb.debug_binary_file = origcopy
 
     # import IPython; IPython.embed()
