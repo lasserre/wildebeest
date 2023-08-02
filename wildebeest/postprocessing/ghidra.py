@@ -29,7 +29,8 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
         # CLS: right now I can't find a way to control the filename that a binary is
         # imported as into ghidra, other than creating a link such that the filename
         # is what I want it to be in ghidra :P
-        bin_symlink = fb.data_folder/f'{fb.data_folder.name}'
+        debug_suffix = '.debug' if binary.name.endswith('.debug') else ''
+        bin_symlink = fb.data_folder/f'{fb.data_folder.name}{debug_suffix}'
         if not bin_symlink.exists():
             bin_symlink.symlink_to(binary)
 
@@ -44,11 +45,14 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
             analyze_cmd.extend(['-scriptPath', scriptdir,
                 '-postScript', postscript.name, *args])
 
-        # TODO: make this behavior optional...for now we always want this
-        # ast_config = run.data_folder/'ghidra_ast.json'
         ast_config = fb.data_folder/'ghidra_ast.json'
-        ast_folder = fb.data_folder/'ast_dumps'
-        ast_folder.mkdir(exist_ok=True)     # folder has to exist or we don't get output!
+        if debug_suffix:
+            ast_folder = fb.data_folder/'ast_dumps'/'debug'
+            fb.data['debug_asts'] = ast_folder
+        else:
+            ast_folder = fb.data_folder/'ast_dumps'/'stripped'
+            fb.data['stripped_asts'] = ast_folder
+        ast_folder.mkdir(exist_ok=True, parents=True)     # folder has to exist or we don't get output!
 
         with open(ast_config, 'w') as f:
             f.write(json.dumps({'output_folder': str(ast_folder)}))
