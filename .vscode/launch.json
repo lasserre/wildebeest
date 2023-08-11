@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "astera",
+            "name": "astera2",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
@@ -17,7 +17,7 @@
             // "args": ["run", "-f", "--to", "configure"],
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
             // "args": ["run", "-f", "--from", "ghidra_import_debug_binaries", "--debug", "--no-pre"],
-            "cwd": "/home/cls0027/test_builds/astera.exp",
+            "cwd": "/home/cls0027/test_builds/astera2.exp",
             "console": "integratedTerminal"
         },
         {

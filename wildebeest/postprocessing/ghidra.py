@@ -35,32 +35,46 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
             bin_symlink.symlink_to(binary)
 
         ghidra_folder = f'run{run.number}.{run.config.name}.{run.build.recipe.name}'
-        analyze_cmd = [analyze_headless, f"ghidra://localhost/{repo}/{ghidra_folder}",
-            "-import", f'{bin_symlink}', '-overwrite']
+        analyze_cmd_BASE = [analyze_headless, f"ghidra://localhost/{repo}/{ghidra_folder}"]
+
+        # CLS: try doing this in 2 steps to avoid "Function @ 0x... not fully decompiled
+        # (no structure present)" error I was getting a ton of...
+        import_cmd = [*analyze_cmd_BASE, "-import", f'{bin_symlink}', '-overwrite']
+        analyze_cmd = []
+
         if postscript:
             args = []
             if 'get_postscriptargs' in params:
                 args = params['get_postscriptargs'](fb)
             scriptdir = postscript.parent
-            analyze_cmd.extend(['-scriptPath', scriptdir,
-                '-postScript', postscript.name, *args])
+            analyze_cmd = [*analyze_cmd_BASE,
+                           '-process', f'{bin_symlink.name}', '-noanalysis',
+                           '-scriptPath', scriptdir,
+                           '-postScript', postscript.name, *args]
 
-        ast_config = fb.data_folder/'ghidra_ast.json'
         if debug_suffix:
+            ast_config = fb.data_folder/'ghidra_ast.debug.json'
             ast_folder = fb.data_folder/'ast_dumps'/'debug'
             fb.data['debug_asts'] = ast_folder
         else:
+            ast_config = fb.data_folder/'ghidra_ast.json'
             ast_folder = fb.data_folder/'ast_dumps'/'stripped'
             fb.data['stripped_asts'] = ast_folder
         ast_folder.mkdir(exist_ok=True, parents=True)     # folder has to exist or we don't get output!
 
+        # import the binary first, run autoanalysis
+        rcode = subprocess.call(import_cmd)
+        if rcode != 0:
+            raise Exception(f'Ghidra import failed with return code {rcode}')
+
+        # write AST config file, process the imported binary
         with open(ast_config, 'w') as f:
             f.write(json.dumps({'output_folder': str(ast_folder)}))
 
         with env({'GHIDRA_AST_CONFIG_FILE': str(ast_config)}):
             rcode = subprocess.call(analyze_cmd)
             if rcode != 0:
-                raise Exception(f'Ghidra import failed with return code {rcode}')
+                raise Exception(f'Ghidra postscript processing failed with return code {rcode}')
 
     # import IPython; IPython.embed()
 
