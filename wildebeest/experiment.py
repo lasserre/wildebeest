@@ -1,4 +1,5 @@
 import hashlib
+import pandas as pd
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -214,6 +215,12 @@ class Experiment:
         run_list = self._generate_runlist()
         for r in run_list:
             r.save_to_runstate_file()
+
+        # write the run matrix to a file
+        self.expdata_folder.mkdir(parents=True, exist_ok=True)
+        runs_df = pd.DataFrame([(r.number, r.name) for r in run_list], columns=['RunNumber', 'Name'])
+        runs_df.to_csv(self.expdata_folder/'run_matrix.csv', index=False)
+
         return run_list
 
     def load_runs(self) -> List[Run]:
