@@ -41,7 +41,7 @@ def get_recipe(name:str) -> ProjectRecipe:
     repo = _get_recipe_repo()
     if name in repo.recipes:
         return repo.recipes[name]()   # construct a new instance
-    raise Exception(f'Experiment {name} not a registered recipe name')
+    raise Exception(f'{name} is not a registered recipe name')
 
 def get_recipe_names() -> List[str]:
     '''Returns a list of registered recipe names'''
