@@ -17,7 +17,7 @@ coreutils_v8_32 = CreateProjectRecipe(build_system='make', git_remote='https://g
                     out_of_tree=False,
                     configure_options=BuildStepOptions(preprocess=pre_config_coreutils),
                     apt_deps=['autoconf', 'automake', 'autopoint', 'bison', 'gettext', 'git', 'gperf', 'gzip',
-                              'perl', 'rsync', 'texinfo']
+                              'perl', 'rsync', 'texinfo', 'wget']
                     )
 
 benchmark_recipes = [
