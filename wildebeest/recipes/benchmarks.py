@@ -15,7 +15,7 @@ coreutils_v8_32 = CreateProjectRecipe(build_system='make', git_remote='https://g
                     git_head='v8.32',
                     source_languages=[LANG_C],
                     out_of_tree=False,
-                    configure_options=BuildStepOptions(preprocess=pre_config_coreutils),
+                    configure_options=BuildStepOptions(preprocess=pre_config_coreutils, compiler_flags=['-Wno-error']),
                     build_options=BuildStepOptions(compiler_flags=['-Wno-error']),
                     apt_deps=['autoconf', 'automake', 'autopoint', 'bison', 'gettext', 'git', 'gperf', 'gzip',
                               'perl', 'rsync', 'texinfo', 'wget']
