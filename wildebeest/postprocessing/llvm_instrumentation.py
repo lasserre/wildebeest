@@ -114,6 +114,8 @@ def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 
     # remove .linker-objects to get binary name
     binaries = [x.with_suffix('') for x in lobjs]
+    # skip any transient or otherwise non-existent binaries
+    binaries = [b for b in binaries if b.exists()]
 
     result = {}
     result['linker-objects'] = lobjs
