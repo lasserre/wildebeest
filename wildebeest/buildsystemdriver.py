@@ -65,7 +65,8 @@ class BuildSystemDriver:
         # setting these variables so each driver doesn't have to replicate that. If
         # a specific build system requires something different, that driver can implement it
         opts = build.recipe.configure_options
-        configure_env = runconfig.generate_env()
+        langs = build.recipe.source_languages
+        configure_env = runconfig.generate_env(langs, opts.compiler_flags, opts.linker_flags)
         with env(configure_env):
             subprocess.run([f'echo Executing {self.name} configure:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
                            shell=True)
@@ -76,7 +77,8 @@ class BuildSystemDriver:
         Builds the project directing the build system to use the specified number of jobs
         '''
         opts = build.recipe.build_options
-        build_env = runconfig.generate_env()
+        langs = build.recipe.source_languages
+        build_env = runconfig.generate_env(langs, opts.compiler_flags, opts.linker_flags)
         with env(build_env):
             subprocess.run([f'echo Executing {self.name} build:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
                            shell=True)
@@ -87,9 +89,10 @@ class BuildSystemDriver:
         Performs a clean using the build system
         '''
         opts = build.recipe.clean_options
+        langs = build.recipe.source_languages
         # probably unnecessary to define the env here, but more predictable
         # this way...can remove if never used
-        clean_env = runconfig.generate_env()
+        clean_env = runconfig.generate_env(langs, opts.compiler_flags, opts.linker_flags)
         with env(clean_env):
             self._do_build_step(runconfig, build, opts, self._do_clean)
 

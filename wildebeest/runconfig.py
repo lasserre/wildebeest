@@ -125,7 +125,8 @@ class RunConfig:
     def cpp_options(self) -> CompilationSettings:
         return self.compile_options[LANG_CPP]
 
-    def generate_env(self) -> Dict[str,str]:
+    def generate_env(self, recipe_languages:List[str],
+                     recipe_compiler_flags:List[str], recipe_linker_flags:List[str]) -> Dict[str,str]:
         '''
         Generates a dictionary of environment variable key/value pairs
         representing the RunConfig
@@ -134,11 +135,18 @@ class RunConfig:
         self.c_options.add_c_cpp_vars_to_env(env_dict, LANG_C)
         self.cpp_options.add_c_cpp_vars_to_env(env_dict, LANG_CPP)
 
+        # add recipe-specific compiler flags
+        if recipe_compiler_flags:
+            recipe_settings = CompilationSettings()
+            recipe_settings.compiler_flags = recipe_compiler_flags
+            for lang in recipe_languages:
+                recipe_settings.add_c_cpp_vars_to_env(env_dict, lang)
+
         # add linker flags to LDFLAGS only 1x (not within add_c_cpp_vars multiple times)
-        if self.linker_flags:
+        if self.linker_flags or recipe_linker_flags:
             existing = []
             if 'LDFLAGS' in os.environ and self.append_linker_flags:
                 existing = os.environ['LDFLAGS'].split()
-            env_dict['LDFLAGS'] = ' '.join([*existing, *self.linker_flags])
+            env_dict['LDFLAGS'] = ' '.join([*existing, *self.linker_flags, *recipe_linker_flags])
 
         return env_dict

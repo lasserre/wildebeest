@@ -19,6 +19,7 @@ class MakeDriver(BuildSystemDriver):
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
         build_cmd = ['make', f'-j{numjobs}', *build_opts]
+        print(' '.join(build_cmd))
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
