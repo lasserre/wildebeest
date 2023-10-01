@@ -1,4 +1,5 @@
 import subprocess
+import shutil
 
 from .. import BuildSystemDriver
 from .. import RunConfig, ProjectBuild
@@ -12,7 +13,8 @@ class MakeDriver(BuildSystemDriver):
 
         # TODO: TEST THIS - IS MY PATH RIGHT HERE??
         # subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
-        subprocess.run([build.project_root/'configure', *configure_opts])
+        configure = build.project_root/'configure' if build.recipe.supports_out_of_tree else './configure'
+        subprocess.run([configure, *configure_opts])
 
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
@@ -22,4 +24,5 @@ class MakeDriver(BuildSystemDriver):
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
         clean_opts = build.recipe.clean_options.cmdline_options
         # alternatively, we could delete the build folder?
-        subprocess.run(['make', 'clean', *clean_opts])
+        # subprocess.run(['make', 'clean', *clean_opts])
+        shutil.rmtree(build.build_folder)

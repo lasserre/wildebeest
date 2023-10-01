@@ -220,6 +220,9 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         # - I think this would work because I'm using bindmounts...any "progress" of the build
         # will not be lost since it's stored on the host side...
 
+    if params['debug_docker']:
+        raise Exception(f'Killing exp with docker running for debugging. Use "docker exec --user USER -it CONTAINER bash" to get a shell')
+
     return outputs
 
 # to allow possibly running multiple sets of commands (for different phases/runs of docker steps)

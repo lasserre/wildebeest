@@ -123,7 +123,8 @@ def extract_run_numbers(run_spec:str) -> List[int]:
     return sorted(list(run_num_set))
 
 def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_from_step:str='',
-        no_pre:bool=False, no_post:bool=False, buildjobs:int=None, debug:bool=False):
+        no_pre:bool=False, no_post:bool=False, buildjobs:int=None, debug:bool=False,
+        debug_docker:bool=False):
 
     run_list = None
     if run_spec:
@@ -140,7 +141,7 @@ def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_fro
     return exp.run(force=force, numjobs=numjobs, run_list=run_list,
                    run_from_step=run_from_step,
                    no_pre=no_pre, no_post=no_post, buildjobs=buildjobs,
-                   debug_in_process=debug)
+                   debug_in_process=debug, debug_docker=debug_docker)
 
 def cmd_ls_lists():
     for pl in get_project_list_names():
@@ -322,6 +323,8 @@ def main():
     run_p.add_argument('--no-pre', help='Skip preprocessing steps', action='store_true')
     run_p.add_argument('--no-post', help='Skip postprocessing steps', action='store_true')
     run_p.add_argument('--debug', help='Run everything serially in-process for debugging', action='store_true')
+    run_p.add_argument('--debug_docker', help='Start docker but kill experiment, leaving docker running to manually attach and debug builds',
+                       action='store_true')
 
     # --- ls: List information
     ls_p = subparsers.add_parser('ls', help='List information about requested content')
@@ -380,7 +383,7 @@ def main():
             return cmd_run_job(args)
         return cmd_run_exp(get_experiment(args), args.run_numbers, args.numjobs, args.force, args.run_from_step,
                             no_pre=args.no_pre, no_post=args.no_post, buildjobs=args.buildjobs,
-                            debug=args.debug)
+                            debug=args.debug, debug_docker=args.debug_docker)
     # --- wdb ls
     elif args.subcmd == 'ls':
         if args.object == 'lists':

@@ -64,7 +64,12 @@ class ProjectBuild:
         project build without harm.
         '''
         self.init_project_root()
-        self.build_folder.mkdir(parents=True, exist_ok=True)
+
+        if self.recipe.supports_out_of_tree:
+            self.build_folder.mkdir(parents=True, exist_ok=True)
+        elif not self.build_folder.exists():
+            print(f'Copying source folder to build folder as this project does not support out-of-tree builds')
+            shutil.copytree(self.project_root, self.build_folder)
 
     def destroy(self, destroy_repo:bool=False):
         '''

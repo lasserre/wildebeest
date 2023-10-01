@@ -266,7 +266,7 @@ class Experiment:
 
     def run(self, force:bool=False, numjobs=1, run_list:List[Run]=None, run_from_step:str='',
             no_pre:bool=False, no_post:bool=False, buildjobs:int=None,
-            debug_in_process=False):
+            debug_in_process=False, debug_docker:bool=False):
         '''
         Run the entire experiment from the beginning.
 
@@ -290,9 +290,15 @@ class Experiment:
                    to use this instead of specifying # of independent parallel jobs
         debug_in_process: Prevent running jobs in subprocesses; everything will be run serially
                           within this process to support debugging/breakpoints
+        debug_docker: Start the (first) docker container but then kill the experiment, leaving
+                      the docker container running. This allows manually attaching and debugging
+                      why a build system isn't happy
         '''
         if not self.validate_exp_before_run(run_from_step, force):
             return
+
+        # pass this flag along to the experiment
+        self.params['debug_docker'] = debug_docker
 
         # ----------------------------
         # init/reset
