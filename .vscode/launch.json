@@ -21,6 +21,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "coreutils",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "cwd": "/home/cls0027/test_builds/coreutils.exp",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "SOURCE AST",
             "type": "python",
             "request": "launch",

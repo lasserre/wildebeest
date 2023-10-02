@@ -34,12 +34,12 @@ class CompilationSettings:
     compiler_path: Path
     compiler_flags: List[str]
 
-    def __init__(self) -> None:
+    def __init__(self, append_flags:bool=False) -> None:
         self.compiler_path = None
         '''Path to desired compiler executable'''
         self.compiler_flags = []
         '''List of additional compiler arguments'''
-        self.append_compiler_flags = False
+        self.append_compiler_flags = append_flags
         '''If set, compiler flags will be appended to any existing flags set
         in environment variables (e.g. CFLAGS) rather than replacing them'''
 
@@ -137,7 +137,7 @@ class RunConfig:
 
         # add recipe-specific compiler flags
         if recipe_compiler_flags:
-            recipe_settings = CompilationSettings()
+            recipe_settings = CompilationSettings(append_flags=True)
             recipe_settings.compiler_flags = recipe_compiler_flags
             for lang in recipe_languages:
                 recipe_settings.add_c_cpp_vars_to_env(env_dict, lang)
