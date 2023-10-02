@@ -11,7 +11,8 @@ from .runconfig import RunConfig
 class BuildStepOptions:
     def __init__(self,
             cmdline_options:List[str]=[],
-            compiler_flags:List[str]=[],
+            extra_cflags:List[str]=[],
+            extra_cxxflags:List[str]=[],
             linker_flags:List[str]=[],
             override_step:Callable[[RunConfig, 'ProjectBuild'], Any]=None,
             preprocess:Callable[[RunConfig, 'ProjectBuild'], Any]=None,
@@ -19,9 +20,10 @@ class BuildStepOptions:
         '''
         cmdline_options: Additional options for this build step that will be passed
                          on the command line as-is.
-        compiler_flags: Additional compiler flags required to successfully build this recipe.
+        extra_cflags:   Additional C compiler flags required to successfully build this recipe.
                         Since the RunConfig may set compiler flags for an experiment, this should
                         only be used to pass options without which the recipe will not build
+        extra_cxxflags: Same as extra_cflags, but for C++ compiler
         linker_flags:   Same as compiler_flags, but for the linker
         override_step:  If supplied, this Callable will be called instead of the
                         build driver's default implementation. This should be used
@@ -32,8 +34,10 @@ class BuildStepOptions:
         '''
         self.cmdline_options = cmdline_options
         '''Additional options that will be passed on the command line as-is'''
-        self.compiler_flags = compiler_flags
-        '''Additional compiler flags required to successfully build this recipe'''
+        self.extra_cflags = extra_cflags
+        '''Additional C compiler flags required to successfully build this recipe'''
+        self.extra_cxxflags = extra_cxxflags
+        '''Additional C++ compiler flags required to successfully build this recipe'''
         self.linker_flags = linker_flags
         '''Additional linker flags required to successfully build this recipe'''
         self.override_step = override_step

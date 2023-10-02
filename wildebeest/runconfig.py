@@ -64,7 +64,7 @@ class CompilationSettings:
             if f in self.compiler_flags:
                 self.compiler_flags.remove(f)
 
-    def add_c_cpp_vars_to_env(self, env_dict:dict, lang:str):
+    def add_c_cpp_vars_to_env(self, env_dict:dict, recipe_compiler_flags:List[str], lang:str):
         '''
         Adds CC/CFLAGS or CXX/CXXFLAGS variables to the environment dictionary from
         this instance's relevant settings
@@ -77,11 +77,11 @@ class CompilationSettings:
 
         if self.compiler_path:
             env_dict[compilervar] = str(self.compiler_path)
-        if self.compiler_flags:
+        if self.compiler_flags or recipe_compiler_flags:
             existing = []
             if flagsvar in os.environ and self.append_compiler_flags:
                 existing = os.environ[flagsvar].split()
-            env_dict[flagsvar] = ' '.join([*existing, *self.compiler_flags])
+            env_dict[flagsvar] = ' '.join([*existing, *self.compiler_flags, *recipe_compiler_flags])
 
 class RunConfig:
     '''
@@ -125,22 +125,15 @@ class RunConfig:
     def cpp_options(self) -> CompilationSettings:
         return self.compile_options[LANG_CPP]
 
-    def generate_env(self, recipe_languages:List[str],
-                     recipe_compiler_flags:List[str], recipe_linker_flags:List[str]) -> Dict[str,str]:
+    def generate_env(self, recipe_cflags:List[str],
+                     recipe_cxxflags:List[str], recipe_linker_flags:List[str]) -> Dict[str,str]:
         '''
         Generates a dictionary of environment variable key/value pairs
         representing the RunConfig
         '''
         env_dict = {}
-        self.c_options.add_c_cpp_vars_to_env(env_dict, LANG_C)
-        self.cpp_options.add_c_cpp_vars_to_env(env_dict, LANG_CPP)
-
-        # add recipe-specific compiler flags
-        if recipe_compiler_flags:
-            recipe_settings = CompilationSettings(append_flags=True)
-            recipe_settings.compiler_flags = recipe_compiler_flags
-            for lang in recipe_languages:
-                recipe_settings.add_c_cpp_vars_to_env(env_dict, lang)
+        self.c_options.add_c_cpp_vars_to_env(env_dict, recipe_cflags, LANG_C)
+        self.cpp_options.add_c_cpp_vars_to_env(env_dict, recipe_cxxflags, LANG_CPP)
 
         # add linker flags to LDFLAGS only 1x (not within add_c_cpp_vars multiple times)
         if self.linker_flags or recipe_linker_flags:

@@ -26,6 +26,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            // "args": ["run", "-f", "--from", "build", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/coreutils.exp",
             "console": "integratedTerminal"
         },
