@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "astera_O1",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "cwd": "/home/cls0027/test_builds/astera_O1.exp",
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
             "name": "astera3",
             "type": "python",
             "request": "launch",

@@ -67,7 +67,10 @@ class BuildSystemDriver:
         opts = build.recipe.configure_options
         configure_env = runconfig.generate_env(opts.extra_cflags, opts.extra_cxxflags, opts.linker_flags)
         with env(configure_env):
-            subprocess.run([f'echo Executing {self.name} configure:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
+            subprocess.run([f'echo Executing {self.name} configure:; ' \
+                'echo CC=$CC; echo CFLAGS=$CFLAGS; '
+                'echo CXX=$CXX; echo CXXFLAGS=$CXXFLAGS; ' \
+                'echo LDFLAGS=$LDFLAGS'],
                            shell=True)
             self._do_build_step(runconfig, build, opts, self._do_configure)
 
@@ -78,7 +81,10 @@ class BuildSystemDriver:
         opts = build.recipe.build_options
         build_env = runconfig.generate_env(opts.extra_cflags, opts.extra_cxxflags, opts.linker_flags)
         with env(build_env):
-            subprocess.run([f'echo Executing {self.name} build:; echo CFLAGS=$CFLAGS; echo LDFLAGS=$LDFLAGS'],
+            subprocess.run([f'echo Executing {self.name} build:; ' \
+                'echo CC=$CC; echo CFLAGS=$CFLAGS; '
+                'echo CXX=$CXX; echo CXXFLAGS=$CXXFLAGS; ' \
+                'echo LDFLAGS=$LDFLAGS'],
                            shell=True)
             self._do_build_step(runconfig, build, opts, self._do_build, numjobs=numjobs)
 
