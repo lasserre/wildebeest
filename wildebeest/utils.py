@@ -1,9 +1,31 @@
+from datetime import timedelta
 import os
 from pathlib import Path
 import psutil
 import socket
+import time
 from typing import Dict
 from yaml import load, dump, Loader
+
+class PrintRuntime:
+    def __init__(self) -> None:
+        '''
+        newpath: The path to change directories to. Once the with block exits,
+                 the current directory will be restored.
+        '''
+        self.start_time = 0.0
+        self.stop_time = 0.0
+
+    def __enter__(self):
+        self.start_time = time.time()
+
+    def __exit__(self, etype, value, traceback):
+        self.stop_time = time.time()
+        print(f'Runtime: {timedelta(seconds=int(self.runtime_sec))}')
+
+    @property
+    def runtime_sec(self) -> float:
+        return self.stop_time - self.start_time
 
 class cd:
     def __init__(self, newpath:Path) -> None:
