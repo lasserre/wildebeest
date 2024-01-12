@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "ffmpeg",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "cwd": "/home/cls0027/test_builds/ffmpeg.exp",
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
             "name": "astera",
             "type": "python",
             "request": "launch",
@@ -12,7 +22,6 @@
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/astera.exp",
             "console": "integratedTerminal",
-            // "justMyCode": false
         },
         {
             "name": "astera_instrument",
