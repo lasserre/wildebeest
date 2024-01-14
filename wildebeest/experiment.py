@@ -299,6 +299,7 @@ class Experiment:
 
         # pass this flag along to the experiment
         self.params['debug_docker'] = debug_docker
+        self.params['debug_in_process'] = debug_in_process
 
         # ----------------------------
         # init/reset
