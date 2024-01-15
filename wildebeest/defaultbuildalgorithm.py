@@ -163,7 +163,14 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
 
     # create exp image if it DNE
     if not docker_image_exists(exp_docker_image):
-        dockerfile_lines = [f'FROM {BASE_DOCKER_IMAGE}']
+        dockerfile_lines = [
+            f'FROM {BASE_DOCKER_IMAGE}',
+
+            # NOTE: this could be a separate layer in-between BASE and EXP images, but
+            # I just need to separate it from llvm-features so when I make wdb changes I
+            # can QUICKLY pull the latest in docker and rerun. Not worth a dedicated layer right now
+            'RUN pip install git+https://github.com/lasserre/wildebeest.git'
+        ]
 
         if 'exp_docker_cmds' in params:
             for cmd in params['exp_docker_cmds']:

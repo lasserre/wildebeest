@@ -57,5 +57,3 @@ RUN export Clang_DIR=/llvm-build && \
     cmake --build .
 
 ENV PATH="${PATH}:/llvm-build/bin"
-
-RUN pip install git+https://github.com/lasserre/wildebeest.git
