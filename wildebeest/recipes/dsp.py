@@ -6,16 +6,18 @@ from typing import List
 
 from .. import RunConfig, ProjectBuild
 
+def add_cc_option(rc:RunConfig, pb:ProjectBuild):
+    # CLS: first attempt at dynamically-generated configure options!
+    # OPTION 2: rc.c_options.compiler_path
+    print('IN CONFIGURE PREPROCESS')
+    pb.recipe.configure_options.cmdline_options.append(f'--cc=$CC')
+
 dsp_recipes = [
     CreateProjectRecipe(build_system='make',
         git_remote='https://github.com/FFmpeg/FFmpeg.git',
         source_languages=[LANG_C],
         apt_deps=['nasm'],
-        configure_options=BuildStepOptions(
-                # CLS: first attempt at dynamically-generated configure options!
-                # OPTION 2: rc.c_options.compiler_path
-                preprocess=lambda rc, pb: print('IN CONFIGURE PREPROCESS') or pb.recipe.configure_options.cmdline_options.append(f'--cc=$CC')
-            )
+        configure_options=BuildStepOptions(preprocess=add_cc_option)
         ),
 ]
 
