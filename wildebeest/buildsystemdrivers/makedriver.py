@@ -16,7 +16,7 @@ class MakeDriver(BuildSystemDriver):
         configure = build.project_root/'configure' if build.recipe.supports_out_of_tree else './configure'
         import os
         print(f'$CC="{os.environ["CC"]}"')
-        print(f'Running: {" ".join([configure, *configure_opts])}')
+        print(f'Running: {" ".join([str(x) for x in [configure, *configure_opts]])}')
         subprocess.run([configure, *configure_opts], shell=True)
 
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
