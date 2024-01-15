@@ -117,6 +117,9 @@ class RunConfig:
         self.num_build_jobs = 1
         '''Default number of build jobs to use per build (e.g. make -j N)'''
 
+        self.env_vars:Dict[str,str] = {}
+        '''Additional environment variables to use for this run'''
+
     @property
     def c_options(self) -> CompilationSettings:
         return self.compile_options[LANG_C]
@@ -131,7 +134,9 @@ class RunConfig:
         Generates a dictionary of environment variable key/value pairs
         representing the RunConfig
         '''
-        env_dict = {}
+        # start with env_vars so our c_options/cpp_options "win" conflicts
+        env_dict = self.env_vars.copy()
+
         self.c_options.add_c_cpp_vars_to_env(env_dict, recipe_cflags, LANG_C)
         self.cpp_options.add_c_cpp_vars_to_env(env_dict, recipe_cxxflags, LANG_CPP)
 
