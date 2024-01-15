@@ -1,3 +1,4 @@
+import os
 import subprocess
 import shutil
 
@@ -14,7 +15,6 @@ class MakeDriver(BuildSystemDriver):
         # TODO: TEST THIS - IS MY PATH RIGHT HERE??
         # subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
         configure = build.project_root/'configure' if build.recipe.supports_out_of_tree else './configure'
-        import os
         print(f'$CC="{os.environ["CC"]}"')
         print(f'Running: {" ".join([str(x) for x in [configure, *configure_opts]])}')
         subprocess.run([configure, *configure_opts], shell=True)
@@ -23,6 +23,8 @@ class MakeDriver(BuildSystemDriver):
         build_opts = build.recipe.build_options.cmdline_options
         build_cmd = ['make', f'-j{numjobs}', *build_opts]
         print(' '.join(build_cmd))
+        print(f'BUILD: $CC="{os.environ["CC"]}"')
+        print(f'BUILD: $CFLAGS="{os.environ["CFLAGS"]}"')
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
