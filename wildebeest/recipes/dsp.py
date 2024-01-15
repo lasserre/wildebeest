@@ -9,7 +9,6 @@ from .. import RunConfig, ProjectBuild
 def add_cc_option(rc:RunConfig, pb:ProjectBuild):
     # CLS: first attempt at dynamically-generated configure options!
     # OPTION 2: rc.c_options.compiler_path
-    print('IN CONFIGURE PREPROCESS')
     pb.recipe.configure_options.cmdline_options.append(f'--cc=$CC')
 
 dsp_recipes = [
