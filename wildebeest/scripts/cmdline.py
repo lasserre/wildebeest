@@ -10,7 +10,7 @@ from typing import List, Tuple
 from wildebeest import Experiment
 from wildebeest.jobrunner import Job, run_job
 from wildebeest import *
-from wildebeest.defaultbuildalgorithm import build
+from wildebeest.defaultbuildalgorithm import build, docker_run, docker_attach_to_bash
 from wildebeest.run import RunStatus
 
 # Other wdb command line examples/ideas:
@@ -142,6 +142,17 @@ def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_fro
                    run_from_step=run_from_step,
                    no_pre=no_pre, no_post=no_post, buildjobs=buildjobs,
                    debug_in_process=debug, debug_docker=debug_docker)
+
+def cmd_docker_shell(exp:Experiment, run_number:int):
+    matching_runs = [r for r in exp.load_runs() if r.number == run_number]
+    if not matching_runs:
+        print(f'Run number {run_number} does not exist in experiment at {exp.exp_folder}')
+        return 1
+
+    docker_run(matching_runs[0])
+    docker_attach_to_bash(matching_runs[0])
+
+    return 0
 
 def cmd_ls_lists():
     for pl in get_project_list_names():
@@ -357,6 +368,10 @@ def main():
                        choices=['build'])
     rm_p.add_argument('-f', '--force', help='Force option required to remove experiment data', action='store_true')
 
+    # --- docker_shell: Interact with a run's docker container
+    docker_p = subparsers.add_parser('docker_shell', help='Attach to an interactive bash shell for a run\'s docker container')
+    docker_p.add_argument('run_number', help='The run number whose docker container should be launched', type=int)
+
     # job_cmds = run_p.add_subparsers(help='Run commands', dest='runcmd')
     # job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
     # job_run.add_argument('job_yaml',
@@ -384,6 +399,11 @@ def main():
         return cmd_run_exp(get_experiment(args), args.run_numbers, args.numjobs, args.force, args.run_from_step,
                             no_pre=args.no_pre, no_post=args.no_post, buildjobs=args.buildjobs,
                             debug=args.debug, debug_docker=args.debug_docker)
+
+    # --- wdb docker_shell
+    elif args.subcmd == 'docker_shell':
+        return cmd_docker_shell(get_experiment(args), args.run_number)
+
     # --- wdb ls
     elif args.subcmd == 'ls':
         if args.object == 'lists':

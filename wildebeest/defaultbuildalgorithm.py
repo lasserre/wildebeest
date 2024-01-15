@@ -179,11 +179,10 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
     for recipe in exp.projectlist:
         create_recipe_docker_image(exp, recipe)
 
-def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
-    # clone repos
-    outputs = init(run, params, outputs)
-
-    # docker
+def docker_run(run:Run):
+    '''
+    Execute 'docker run' for this Run's container
+    '''
     # NOTE: if needed, I can create a run-specific docker image here derived from the
     # recipe image. But I'm not sure that is needed...
 
@@ -214,6 +213,20 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     p = subprocess.run(docker_run_cmd)
     if p.returncode != 0:
         raise Exception(f'docker run failed for run {run.number} [return code {p.returncode}]')
+
+def docker_attach_to_bash(run:Run):
+    username = getpass.getuser()
+    docker_exec_cmd = ['docker', 'exec', '--user', username, '-it', run.container_name, 'bash']
+    p = subprocess.run(docker_exec_cmd)
+    if p.returncode != 0:
+        raise Exception(f'"docker exec ... bash" failed with return code {p.returncode}')
+
+def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    # clone repos
+    outputs = init(run, params, outputs)
+
+    # docker
+    docker_run(run)
 
     # TODO: allow experiment to specify additional bindmounts? (host, container) pairs
     # TODO: should I use the --rm flag so that the container is auto-deleted when it's done running?
