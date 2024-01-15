@@ -14,10 +14,10 @@ def add_cc_option(rc:RunConfig, pb:ProjectBuild):
 
 dsp_recipes = [
     CreateProjectRecipe(build_system='make',
-        git_remote='https://github.com/FFmpeg/FFmpeg.git',
-        source_languages=[LANG_C],
-        apt_deps=['nasm'],
-        configure_options=BuildStepOptions(preprocess=add_cc_option)
+            git_remote='https://github.com/FFmpeg/FFmpeg.git',
+            source_languages=[LANG_C],
+            apt_deps=['nasm'],
+            configure_options=BuildStepOptions(preprocess=add_cc_option)
         ),
 ]
 

@@ -10,10 +10,10 @@ from .runconfig import RunConfig
 
 class BuildStepOptions:
     def __init__(self,
-            cmdline_options:List[str]=[],
-            extra_cflags:List[str]=[],
-            extra_cxxflags:List[str]=[],
-            linker_flags:List[str]=[],
+            cmdline_options:List[str]=None,
+            extra_cflags:List[str]=None,
+            extra_cxxflags:List[str]=None,
+            linker_flags:List[str]=None,
             override_step:Callable[[RunConfig, 'ProjectBuild'], Any]=None,
             preprocess:Callable[[RunConfig, 'ProjectBuild'], Any]=None,
             postprocess:Callable[[RunConfig, 'ProjectBuild'], Any]=None) -> None:
@@ -32,13 +32,13 @@ class BuildStepOptions:
         preprocess:     Optional callback to run just before this build step
         postprocess:    Optional callback to run immediately after this build step
         '''
-        self.cmdline_options = cmdline_options
+        self.cmdline_options = cmdline_options if cmdline_options else []
         '''Additional options that will be passed on the command line as-is'''
-        self.extra_cflags = extra_cflags
+        self.extra_cflags = extra_cflags if extra_cflags else []
         '''Additional C compiler flags required to successfully build this recipe'''
-        self.extra_cxxflags = extra_cxxflags
+        self.extra_cxxflags = extra_cxxflags if extra_cxxflags else []
         '''Additional C++ compiler flags required to successfully build this recipe'''
-        self.linker_flags = linker_flags
+        self.linker_flags = linker_flags if linker_flags else []
         '''Additional linker flags required to successfully build this recipe'''
         self.override_step = override_step
         '''Overrides the build drivers default implementation for this step'''
