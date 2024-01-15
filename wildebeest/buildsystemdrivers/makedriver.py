@@ -14,7 +14,7 @@ class MakeDriver(BuildSystemDriver):
         # TODO: TEST THIS - IS MY PATH RIGHT HERE??
         # subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
         configure = build.project_root/'configure' if build.recipe.supports_out_of_tree else './configure'
-        subprocess.run([configure, *configure_opts])
+        subprocess.run([configure, *configure_opts], shell=True)
 
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
