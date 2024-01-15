@@ -10,7 +10,7 @@ from typing import List, Tuple
 from wildebeest import Experiment
 from wildebeest.jobrunner import Job, run_job
 from wildebeest import *
-from wildebeest.defaultbuildalgorithm import build, docker_run, docker_attach_to_bash
+from wildebeest.defaultbuildalgorithm import build, docker_run, docker_attach_to_bash, docker_cleanup
 from wildebeest.run import RunStatus
 
 # Other wdb command line examples/ideas:
@@ -151,6 +151,7 @@ def cmd_docker_shell(exp:Experiment, run_number:int):
 
     docker_run(matching_runs[0])
     docker_attach_to_bash(matching_runs[0])
+    docker_cleanup(matching_runs[0], {}, {})
 
     return 0
 
