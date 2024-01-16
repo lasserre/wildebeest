@@ -15,6 +15,15 @@
             // "justMyCode": false
         },
         {
+            "name": "test_programs",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "cwd": "/home/cls0027/test_builds/test_programs.exp",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "astera",
             "type": "python",
             "request": "launch",
