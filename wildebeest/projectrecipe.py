@@ -131,4 +131,5 @@ class ProjectRecipe:
 
     @property
     def docker_image_name(self) -> str:
-        return f'recipe_{self.name}'.lower()
+        # filtering the @ symbol should be good enough for now? lol
+        return f'recipe_{self.name.replace("@", "_")}'.lower()
