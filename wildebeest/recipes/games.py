@@ -10,6 +10,7 @@ from typing import List
 cpp_game_recipes = [
     # CLS: don't want to include C++ right now
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/raceintospace/raceintospace',
+        # git_head='288c36e',     # arbitrary commit that I think used to work?
         git_head='v.2.0beta',
         source_languages=[LANG_CPP, LANG_C],
         apt_deps=['cmake', 'libsdl1.2-dev', 'libboost-dev', 'libpng-dev', 'libjsoncpp-dev', 'libogg-dev',

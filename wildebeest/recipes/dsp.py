@@ -16,7 +16,8 @@ dsp_recipes = [
             git_remote='https://github.com/FFmpeg/FFmpeg.git',
             source_languages=[LANG_C],
             apt_deps=['nasm'],
-            configure_options=BuildStepOptions(preprocess=add_cc_option)
+            configure_options=BuildStepOptions(preprocess=add_cc_option,
+                cmdline_options=['--disable-stripping'])
         ),
 ]
 
