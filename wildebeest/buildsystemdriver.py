@@ -85,9 +85,9 @@ class BuildSystemDriver:
                 'echo CC=$CC; echo CFLAGS=$CFLAGS; '
                 'echo CXX=$CXX; echo CXXFLAGS=$CXXFLAGS; ' \
                 'echo LDFLAGS=$LDFLAGS; ' \
-                'echo C compiler version ($CC):; ' \
+                'echo "C compiler version ($CC):"; ' \
                 '$CC --version; ' \
-                'echo C++ compiler version ($CXX):; ' \
+                'echo "C++ compiler version ($CXX):"; ' \
                 '$CXX --version'],
                            shell=True)
             self._do_build_step(runconfig, build, opts, self._do_build, numjobs=numjobs)
