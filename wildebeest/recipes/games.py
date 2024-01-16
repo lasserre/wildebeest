@@ -10,18 +10,18 @@ from typing import List
 cpp_game_recipes = [
     # CLS: don't want to include C++ right now
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/raceintospace/raceintospace',
+        git_head='v.2.0beta',
         source_languages=[LANG_CPP, LANG_C],
         apt_deps=['cmake', 'libsdl1.2-dev', 'libboost-dev', 'libpng-dev', 'libjsoncpp-dev', 'libogg-dev',
-            'libvorbis-dev', 'libtheora-dev', 'libprotobuf-dev', 'protobuf-compiler', 'build-essential'
-        ]),
+            'libvorbis-dev', 'libtheora-dev', 'libprotobuf-dev', 'protobuf-compiler', 'build-essential']
+    ),
 ]
 
 c_game_recipes = [
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/tek256/astera.git',
         source_languages=[LANG_C],
         apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev', 'xorg-dev',
-            'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev'
-        ]
+            'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
     ),
 ]
 

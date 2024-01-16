@@ -93,8 +93,8 @@ class ProjectRecipe:
         build_options:  Custom build options specific to this project
         clean_options:  Custom clean options specific to this project
         '''
-        self.name = name if name else Path(git_remote.split('/')[-1]).stem
-        '''The unique name for this recipe'''
+        self._name = name
+        '''Overrides the unique name for this recipe'''
         self.build_system = build_system
         '''The name of the build system driver that this project uses'''
         self.git_remote = git_remote
@@ -116,6 +116,18 @@ class ProjectRecipe:
         '''Custom build options specific to this project'''
         self.clean_options = clean_options if clean_options else BuildStepOptions()
         '''Custom clean options specific to this project'''
+
+    @property
+    def git_reponame(self) -> str:
+        '''The name component of the remote git repository'''
+        return Path(self.git_remote.split('/')[-1]).stem
+
+    @property
+    def name(self) -> str:
+        '''A unique name for this recipe'''
+        if not self._name:
+            return f'{self.git_reponame}@{self.git_head}' if self.git_head else self.git_reponame
+        return self._name
 
     @property
     def docker_image_name(self) -> str:
