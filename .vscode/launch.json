@@ -10,6 +10,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            // "args": ["run", "-f", "--debug"],
             "cwd": "/home/cls0027/test_builds/ffmpeg_O0.exp",
             "console": "integratedTerminal",
             // "justMyCode": false

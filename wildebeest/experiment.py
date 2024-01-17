@@ -22,6 +22,8 @@ class ExpState:
     Finished = 'FINISHED'
     Failed = 'FAILED'
 
+def _get_exp_from_folder(exp_root:Path):
+    return Experiment.load_exp_from_yaml(exp_root)
 
 class Experiment:
     postprocess_outputs:Dict[str,Any]
@@ -194,7 +196,7 @@ class Experiment:
                 build_folder = self.get_build_folder_for_run(project_name, run_number)
                 source_folder = self.get_project_source_folder(recipe)
                 proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
-                run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc, Experiment.load_exp_from_yaml))
+                run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc, _get_exp_from_folder))
                 run_number += 1
         return run_list
 
