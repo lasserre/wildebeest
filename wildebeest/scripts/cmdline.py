@@ -67,9 +67,9 @@ def get_experiment(args) -> Experiment:
         raise Exception(f'{exp_folder} is not an experiment folder')
     return Experiment.load_from_yaml(exp_folder)
 
-def cmd_create_exp(exp_folder:Path, name:str, projectlist=[]):
+def cmd_create_exp(exp_folder:Path, name:str, projectlist=[], **kwargs):
     try:
-        exp = create_experiment(name, exp_folder=exp_folder, projectlist=projectlist)
+        exp = create_experiment(name, exp_folder=exp_folder, projectlist=projectlist, **kwargs)
         exp.save_to_yaml()
     except Exception as e:
         print(e)
@@ -320,6 +320,7 @@ def main():
     create_p.add_argument('exp_folder', type=Path, default=None, help='The experiment folder', nargs='?')
     create_p.add_argument('-l', '--project-list', type=str, help='The name of the project list to use for this experiment')
     create_p.add_argument('-r', '--recipe', type=str, help='The name of the recipe to use for this experiment (overrides -l)')
+    create_p.add_argument('-p', '--params', nargs='+', help='Experiment-specific params to pass as-is to the experiment')
 
     # --- run: execute experiment/runs
     run_p = subparsers.add_parser('run', help='Run the experiment or specific runs/jobs')
@@ -392,7 +393,9 @@ def main():
             proj_list = [get_recipe(args.recipe)]
         elif args.project_list:
             proj_list = get_project_list(args.project_list)
-        return cmd_create_exp(exp_folder, name, proj_list)
+
+        exp_kwargs = {k: v for k,  v in [p.split('=') for p in args.params]} if args.params else {}
+        return cmd_create_exp(exp_folder, name, proj_list, **exp_kwargs)
     # --- wdb run
     elif args.subcmd == 'run':
         if args.job is not None:
