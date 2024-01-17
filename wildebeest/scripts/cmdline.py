@@ -65,7 +65,7 @@ def get_experiment(args) -> Experiment:
     exp_folder = args.exp
     if not Experiment.is_exp_folder(exp_folder):
         raise Exception(f'{exp_folder} is not an experiment folder')
-    return Experiment.load_from_yaml(exp_folder)
+    return Experiment.load_exp_from_yaml(exp_folder)
 
 def cmd_create_exp(exp_folder:Path, name:str, projectlist=[], **kwargs):
     try:
@@ -256,7 +256,7 @@ def cmd_status_exp(exp:Experiment):
 
 def load_job_from_id(exp:Experiment, jobid:int) -> Job:
     yamlfile = Job.yamlfile_from_id(exp.workload_folder, jobid)
-    return Job.load_from_yaml(yamlfile) if yamlfile.exists() else None
+    return Job.load_job_from_yaml(yamlfile) if yamlfile.exists() else None
 
 def cmd_kill_job(exp:Experiment, jobid:int, quiet:bool=False):
     job = load_job_from_id(exp, jobid)

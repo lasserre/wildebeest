@@ -76,7 +76,7 @@ class Experiment:
         return (exp_folder/ExpRelPaths.ExpYaml).exists()
 
     @staticmethod
-    def load_from_yaml(exp_folder:Path) -> 'Experiment':
+    def load_exp_from_yaml(exp_folder:Path) -> 'Experiment':
         yamlfile = exp_folder/ExpRelPaths.ExpYaml
         exp = load_from_yaml(yamlfile)
         orig_folder = exp.exp_folder
@@ -194,7 +194,7 @@ class Experiment:
                 build_folder = self.get_build_folder_for_run(project_name, run_number)
                 source_folder = self.get_project_source_folder(recipe)
                 proj_build = ProjectBuild(self.exp_folder, source_folder, build_folder, recipe)
-                run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc, Experiment.load_from_yaml))
+                run_list.append(Run(run_name, run_number, self.exp_folder, proj_build, rc, Experiment.load_exp_from_yaml))
                 run_number += 1
         return run_list
 

@@ -256,7 +256,7 @@ class Job:
         self.save_to_yaml()
 
     @staticmethod
-    def load_from_yaml(yaml:Path) -> 'Job':
+    def load_job_from_yaml(yaml:Path) -> 'Job':
         return load_from_yaml(yaml)
 
     def save_to_yaml(self):
@@ -492,7 +492,7 @@ class JobRunner:
 
         # load any updated state from job process BEFORE setting any
         # new properties on this job
-        j = Job.load_from_yaml(j.yamlfile)
+        j = Job.load_job_from_yaml(j.yamlfile)
 
         if failed:
             self.mark_job_finished(j, failed)
@@ -570,5 +570,5 @@ class JobRunner:
         return [j.task for j in self.failed_jobs]
 
 def run_job(yaml:Path, from_step:str='', to_step:str='') -> int:
-    job = Job.load_from_yaml(yaml)
+    job = Job.load_job_from_yaml(yaml)
     return job.run(from_step, to_step)

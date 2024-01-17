@@ -48,7 +48,7 @@ def load_experiment(exp_folder:Path) -> Experiment:
 
     Helper function for API parity with create_experiment :)
     '''
-    return Experiment.load_from_yaml(exp_folder)
+    return Experiment.load_exp_from_yaml(exp_folder)
 
 def get_experiment_names() -> List[str]:
     repo = _get_exp_repo()
