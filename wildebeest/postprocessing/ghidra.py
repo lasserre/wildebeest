@@ -17,6 +17,7 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
         raise Exception(f"Required parameters '{missing_keys}' not in params dict")
 
     binary_key = params['binary_key']
+    prescript:Path = params['prescript'] if 'prescript' in params else None
     postscript:Path = params['postscript'] if 'postscript' in params else None
     repo = params[GhidraKeys.GHIDRA_REPO]
     ghidra_home = Path(params[GhidraKeys.GHIDRA_INSTALL])
@@ -40,6 +41,11 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
         # CLS: try doing this in 2 steps to avoid "Function @ 0x... not fully decompiled
         # (no structure present)" error I was getting a ton of...
         import_cmd = [*analyze_cmd_BASE, "-import", f'{bin_symlink}', '-overwrite']
+
+        if prescript:
+            import_cmd.extend([ '-scriptPath', prescript.parent,
+                                '-preScript', prescript.name])
+
         analyze_cmd = []
 
         if postscript:
@@ -62,25 +68,33 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
             fb.data['stripped_asts'] = ast_folder
         ast_folder.mkdir(exist_ok=True, parents=True)     # folder has to exist or we don't get output!
 
-        # import the binary first, run autoanalysis
+        # ------------------------------------------------------
+        # import the binary first, run prescript & autoanalysis
+        # ------------------------------------------------------
         rcode = subprocess.call(import_cmd)
         if rcode != 0:
             raise Exception(f'Ghidra import failed with return code {rcode}')
 
-        # write AST config file, process the imported binary
-        with open(ast_config, 'w') as f:
-            f.write(json.dumps({'output_folder': str(ast_folder)}))
+        # ------------------------------------------------------
+        # now run post-processing via postscript (export ASTs)
+        # ------------------------------------------------------
+        if analyze_cmd:
+            # write AST config file, process the imported binary
+            with open(ast_config, 'w') as f:
+                f.write(json.dumps({'output_folder': str(ast_folder)}))
 
-        with env({'GHIDRA_AST_CONFIG_FILE': str(ast_config)}):
-            rcode = subprocess.call(analyze_cmd)
-            if rcode != 0:
-                raise Exception(f'Ghidra postscript processing failed with return code {rcode}')
+            with env({'GHIDRA_AST_CONFIG_FILE': str(ast_config)}):
+                rcode = subprocess.call(analyze_cmd)
+                if rcode != 0:
+                    raise Exception(f'Ghidra postscript processing failed with return code {rcode}')
+        else:
+            print(f'Warning: no Ghidra post-processing performed for {bin_symlink}')
 
     # import IPython; IPython.embed()
 
 def ghidra_import(binary_key:str='', postscript:Path=None,
     get_postscriptargs:Callable[[FlatLayoutBinary], List[str]]=None,
-    ghidra_path:str='') -> RunStep:
+    ghidra_path:str='', prescript:Path=None) -> RunStep:
     '''
     binary_key: Optionally specifies a key for FlatLayoutBinary.data that ghidra_import
                 should use to retrieve a path to the modified/processed binary instead
@@ -96,4 +110,6 @@ def ghidra_import(binary_key:str='', postscript:Path=None,
         params['postscript'] = postscript
     if get_postscriptargs:
         params['get_postscriptargs'] = get_postscriptargs
+    if prescript:
+        params['prescript'] = prescript
     return RunStep(f'ghidra_import_{binary_key}', do_import_binary_to_ghidra, params)

@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "ffmpeg",
+            "name": "ffmpeg_O0",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
-            "cwd": "/home/cls0027/test_builds/ffmpeg.exp",
+            "cwd": "/home/cls0027/test_builds/ffmpeg_O0.exp",
             "console": "integratedTerminal",
             // "justMyCode": false
         },
@@ -24,12 +24,12 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "test_programs",
+            "name": "cpp_test",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
-            "cwd": "/home/cls0027/test_builds/test_programs.exp",
+            "cwd": "/home/cls0027/test_builds/cpp_test.exp",
             "console": "integratedTerminal",
         },
         {
