@@ -22,15 +22,17 @@ class Run:
     This really encapsulates the state of the run and NOT the algorithm - the
     ExperimentAlgorithm does that and is able to execute a Run.
     '''
-    def __init__(self, name:str, number:int, exp_root:Path, build:ProjectBuild, config:RunConfig) -> None:
+    def __init__(self, name:str, number:int, exp_root:Path, build:ProjectBuild, config:RunConfig,
+                get_exp_from_folder:Callable[[Path], Any]) -> None:
         '''
         name: The name for this run
         number: The run number within the experiment
         exp_root: The root experiment folder
         build: Project build for this run
         config: Run configuration
-        runstates_folder: The experiment runstates folder
-        rundata_folder: The experiment rundata folder
+        get_exp_from_folder: Callable that will return the Experiment object given
+                             the exp_root folder (we can't type hint since we can't know about
+                             Experiment class from here)
         '''
         self.exp_root = exp_root
         '''The root experiment folder. We save this so we can rebase if needed'''
@@ -50,6 +52,7 @@ class Run:
         self.workload_id = None     # filled in by JobRunner
         '''The workload id, which is unique & deterministic per exp folder location'''
 
+        self._get_exp_from_folder = get_exp_from_folder
         self._last_completed_step = ''
         self._failed_step = ''
         self._outputs = {}
@@ -60,6 +63,11 @@ class Run:
         self._runtime:timedelta = None
         self._step_starttimes:Dict[str,datetime] = {}
         self._step_runtimes:Dict[str,timedelta] = {}
+
+    @property
+    def experiment(self) -> Any:
+        '''Returns the Experiment for this run'''
+        return self._get_exp_from_folder(self.exp_root)
 
     @property
     def container_name(self) -> str:

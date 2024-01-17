@@ -214,8 +214,7 @@ def docker_run(run:Run):
         docker_run_cmd.append('-v')
         docker_run_cmd.append(bm)
 
-    exp_name = Experiment.load_from_yaml(run.exp_root).name
-    docker_run_cmd.append(run.build.recipe.docker_image_name(exp_name))
+    docker_run_cmd.append(run.build.recipe.docker_image_name(run.experiment.name))
 
     # -t: TTY, -d: run in background
     p = subprocess.run(docker_run_cmd)
