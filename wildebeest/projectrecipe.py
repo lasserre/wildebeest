@@ -129,7 +129,6 @@ class ProjectRecipe:
             return f'{self.git_reponame}@{self.git_head}' if self.git_head else self.git_reponame
         return self._name
 
-    @property
-    def docker_image_name(self) -> str:
+    def docker_image_name(self, exp_name:str) -> str:
         # filtering the @ symbol should be good enough for now? lol
-        return f'recipe_{self.name.replace("@", "_")}'.lower()
+        return f'recipe_{self.name.replace("@", "_")}-{exp_name}'.lower()

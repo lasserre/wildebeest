@@ -125,7 +125,7 @@ class TemporaryDockerfile:
         self.tdref.__exit__(etype, value, traceback)
 
 def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
-    if docker_image_exists(recipe.docker_image_name):
+    if docker_image_exists(recipe.docker_image_name(exp.name)):
         return
 
     dockerfile_lines = [
@@ -136,7 +136,7 @@ def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
         dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
 
     with TemporaryDockerfile(dockerfile_lines) as tdf:
-        rcode = tdf.docker_build(recipe.docker_image_name)
+        rcode = tdf.docker_build(recipe.docker_image_name(exp.name))
         if rcode != 0:
             raise Exception(f'docker build failed to build recipe image for {recipe.name} [return code {rcode}]')
 
@@ -214,7 +214,8 @@ def docker_run(run:Run):
         docker_run_cmd.append('-v')
         docker_run_cmd.append(bm)
 
-    docker_run_cmd.append(run.build.recipe.docker_image_name)
+    exp_name = Experiment.load_from_yaml(run.exp_root).name
+    docker_run_cmd.append(run.build.recipe.docker_image_name(exp_name))
 
     # -t: TTY, -d: run in background
     p = subprocess.run(docker_run_cmd)
