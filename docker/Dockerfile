@@ -41,19 +41,22 @@ RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 # install llvm-features by default
 RUN --mount=type=ssh git clone git@github.com:lasserre/llvm-features.git
-RUN --mount=type=ssh git clone git@github.com:lasserre/clang-dtlabels.git
 
-# build LLVM
+# don't need clang-dtlabels right now...leave out unless/until we need it again
+# RUN --mount=type=ssh git clone git@github.com:lasserre/clang-dtlabels.git
+
+# build LLVM lld
+# for lld + clang use: -DLLVM_ENABLE_PROJECTS="clang;lld"
 RUN cd llvm-features && mkdir build && cd build && \
-    cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" -DLLVM_TARGETS_TO_BUILD="X86" \
+    cmake -G Ninja -DLLVM_ENABLE_PROJECTS="lld" -DLLVM_TARGETS_TO_BUILD="X86" \
             -DCMAKE_INSTALL_PREFIX=/llvm-build ../llvm && \
     cmake --build . -j80 && \
     cmake --install .
 
 # build clang-dtlabels plugin
-RUN export Clang_DIR=/llvm-build && \
-    cd clang-dtlabels && mkdir build && cd build && \
-    cmake .. && \
-    cmake --build .
+# RUN export Clang_DIR=/llvm-build && \
+#     cd clang-dtlabels && mkdir build && cd build && \
+#     cmake .. && \
+#     cmake --build .
 
 ENV PATH="${PATH}:/llvm-build/bin"
