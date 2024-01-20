@@ -267,13 +267,13 @@ def docker_cleanup(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     if p.returncode != 0:
         print(f'Failed to remove run {run.number} docker container [return code {p.returncode}]')
 
-def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
-     pre_init_steps:List[RunStep]=[],
-     pre_configure_steps:List[RunStep]=[],
-     pre_build_steps:List[RunStep]=[],
-     extra_build_steps:List[RunStep]=[],
-     post_build_steps:List[RunStep]=[],
-     postprocess_steps:List[ExpStep]=[]):
+def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=None,
+     pre_init_steps:List[RunStep]=None,
+     pre_configure_steps:List[RunStep]=None,
+     pre_build_steps:List[RunStep]=None,
+     extra_build_steps:List[RunStep]=None,
+     post_build_steps:List[RunStep]=None,
+     postprocess_steps:List[ExpStep]=None):
     '''
     Creates a new instance of the docker build algorithm
 
@@ -285,6 +285,28 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
     extra_build_steps: Additional steps to run just after the build, before docker cleanup (these can be inside docker)
     post_build_steps: Additional steps to append after the build step (these are outside docker)
     '''
+    # use None as default param bc of Python's issues with using [] as a default parameter
+    if preprocess_steps is None:
+        preprocess_steps = []
+    if pre_init_steps is None:
+        pre_init_steps = []
+    if pre_configure_steps is None:
+        pre_configure_steps = []
+    if pre_build_steps is None:
+        pre_build_steps = []
+    if extra_build_steps is None:
+        extra_build_steps = []
+    if post_build_steps is None:
+        post_build_steps = []
+    if postprocess_steps is None:
+        postprocess_steps = []
+
+    # insert docker_cleanup step after the final docker step
+    post_build_modified = post_build_steps.copy()
+    docker_indices = [i for i, step in enumerate(post_build_modified) if step.run_in_docker]
+    last_docker_idx = max(docker_indices) if docker_indices else 0
+    post_build_modified.insert(last_docker_idx+1, RunStep('docker_cleanup', docker_cleanup))
+
     return ExperimentAlgorithm(
             preprocess_steps=[
                 clone_repos(),
@@ -299,12 +321,11 @@ def DockerBuildAlgorithm(preprocess_steps:List[ExpStep]=[],
                 *pre_build_steps,
                 RunStep('build', build, run_in_docker=True),
                 *extra_build_steps,
-                RunStep('docker_cleanup', docker_cleanup),
 
                 # reset_data resets the data folder if it exists, so if we want to
                 # clean and rerun postprocessing, this is the spot to run from
                 RunStep('reset_data', reset_data_folder),
-                *post_build_steps
+                *post_build_modified
             ],
             postprocess_steps=postprocess_steps
         )

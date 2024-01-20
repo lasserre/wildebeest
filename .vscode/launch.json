@@ -5,11 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: Attach using Process Id",
+            "type": "python",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "justMyCode": true
+        },
+        {
             "name": "ffmpeg_O0",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             // "args": ["run", "-f", "--debug"],
             "cwd": "/home/cls0027/test_builds/ffmpeg_O0.exp",
             "console": "integratedTerminal",
@@ -20,7 +34,16 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["create", "-r", "astera", "basic-dataset", "paramtest.exp", "-p", "opt=03,02", "compilers=gcc:g++,clang:clang++"],
+            "args": [
+                "create",
+                "-r",
+                "test-programs-cbasic",
+                "basic-dataset",
+                "aarch64test.exp",
+                // "-p",
+                // "opt=03,02",
+                // "compilers=gcc:g++,clang:clang++"
+            ],
             "cwd": "/home/cls0027/test_builds",
             "console": "integratedTerminal",
         },
@@ -29,7 +52,14 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             "cwd": "/home/cls0027/test_builds/cpp_test.exp",
             "console": "integratedTerminal",
         },
@@ -38,7 +68,14 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             "cwd": "/home/cls0027/test_builds/astera.exp",
             "console": "integratedTerminal",
         },
@@ -51,9 +88,15 @@
             // "args": ["run", "1", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
             // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
-
             // "args": ["run", "-f", "--to", "configure"],
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             // "args": ["run", "-f", "--from", "ghidra_import_debug_binaries", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/astera_instrument.exp",
             "console": "integratedTerminal"
@@ -63,7 +106,14 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             // "args": ["run", "-f", "--from", "build", "--debug", "--no-pre"],
             "cwd": "/home/cls0027/test_builds/coreutils.exp",
             "console": "integratedTerminal"
@@ -74,7 +124,14 @@
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             // "args": ["run", "-f", "--to", "configure"],
-            "args": ["run", "-f", "--from", "extract_debuginfo_labels", "--debug", "--no-pre"],
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
             "cwd": "/home/cls0027/test_builds/source_ast.exp",
             "console": "integratedTerminal"
         },

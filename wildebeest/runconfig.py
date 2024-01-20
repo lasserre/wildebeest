@@ -105,6 +105,9 @@ class RunConfig:
         self.compile_options[LANG_C] = CompilationSettings()
         self.compile_options[LANG_CPP] = CompilationSettings()
 
+        self.strip_executable:str = 'strip'     # override for cross-compilation, (e.g. aarch64-linux-gnu-strip)
+        '''Path to the strip executable'''
+
         # linker flags (LDFLAGS) apply to both C and C++ using this mechanism
         # if we need C/C++-specific linker settings, use compiler flags to pass
         # linker flags through (e.g. -Wl)

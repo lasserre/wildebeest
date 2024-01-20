@@ -98,7 +98,7 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         origcopy = stripped.with_suffix('.debug')
         shutil.copy(fb.binary_file, origcopy)
         shutil.copy(fb.binary_file, stripped)
-        subprocess.call(['strip', '-s', stripped])
+        subprocess.call([run.config.strip_executable, '-s', stripped])
         fb.data['strip_binaries'] = stripped
         fb.data['debug_binaries'] = origcopy
         fb.debug_binary_file = origcopy
@@ -106,4 +106,4 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     # import IPython; IPython.embed()
 
 def strip_binaries() -> RunStep:
-    return RunStep('strip_binaries', _do_strip_binaries)
+    return RunStep('strip_binaries', _do_strip_binaries, run_in_docker=True)
