@@ -25,6 +25,10 @@ def uninstall_cc_wrapper():
     subprocess.run(['hash', '-r'], shell=True)  # apparently bash caches program locations... https://unix.stackexchange.com/a/91176
 
 def do_install_cc_wrapper(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    if run.build.recipe.no_cc_wrapper:
+        print(f'Skipping install_cc_wrapper for recipe {run.build.recipe.name}')
+        return
+
     # find full path to target compiler
     c_compiler_path = Path(subprocess.check_output(['which', run.config.c_options.compiler_path]).decode('utf-8').strip())
     cpp_compiler_path = Path(subprocess.check_output(['which', run.config.cpp_options.compiler_path]).decode('utf-8').strip())
