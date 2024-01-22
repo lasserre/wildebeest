@@ -132,6 +132,9 @@ def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
         f'FROM {get_exp_docker_imagename(exp)}',
     ]
 
+    if recipe.no_cc_wrapper:
+        dockerfile_lines.append('RUN rm -rf /wrapper_bin && hash -r')
+
     if recipe.apt_deps:
         dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
 

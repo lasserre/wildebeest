@@ -83,6 +83,19 @@ class CompilationSettings:
                 existing = os.environ[flagsvar].split()
             env_dict[flagsvar] = ' '.join([*existing, *self.compiler_flags, *recipe_compiler_flags])
 
+def recognized_opt_levels() -> List[str]:
+    return [
+            # '-O', # this is an opt level and also a valid linker argument, but
+            '-O0',
+            '-O1',
+            '-O2',
+            '-O3',
+            '-Os',
+            '-Ofast',
+            '-Oz',
+            '-Og',
+        ]
+
 class RunConfig:
     '''
     Settings that describe the configuration for a single run of an experiment
@@ -104,6 +117,9 @@ class RunConfig:
         '''
         self.compile_options[LANG_C] = CompilationSettings()
         self.compile_options[LANG_CPP] = CompilationSettings()
+
+        self.opt_level:str = '-O0'
+        '''Optimization level (-O0, -O1, -O2, -O3, -Os, -Ofast, -Oz, or -Og)'''
 
         self.strip_executable:str = 'strip'     # override for cross-compilation, (e.g. aarch64-linux-gnu-strip)
         '''Path to the strip executable'''
@@ -140,8 +156,13 @@ class RunConfig:
         # start with env_vars so our c_options/cpp_options "win" conflicts
         env_dict = self.env_vars.copy()
 
-        self.c_options.add_c_cpp_vars_to_env(env_dict, recipe_cflags, LANG_C)
-        self.cpp_options.add_c_cpp_vars_to_env(env_dict, recipe_cxxflags, LANG_CPP)
+        if self.opt_level not in recognized_opt_levels():
+            raise Exception(f'opt_level {self.opt_level} is not a recognized optimization level')
+
+        env_dict['OPT_LEVEL'] = self.opt_level
+
+        self.c_options.add_c_cpp_vars_to_env(env_dict, [*recipe_cflags, self.opt_level], LANG_C)
+        self.cpp_options.add_c_cpp_vars_to_env(env_dict, [*recipe_cxxflags, self.opt_level], LANG_CPP)
 
         # add linker flags to LDFLAGS only 1x (not within add_c_cpp_vars multiple times)
         if self.linker_flags or recipe_linker_flags:

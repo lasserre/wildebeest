@@ -72,7 +72,8 @@ class ProjectRecipe:
             apt_deps:List[str]=[],
             configure_options:BuildStepOptions=None,
             build_options:BuildStepOptions=None,
-            clean_options:BuildStepOptions=None) -> None:
+            clean_options:BuildStepOptions=None,
+            no_cc_wrapper:bool=False) -> None:
         '''
         name: A unique name for this recipe that can be used to identify it later
         build_system: The name of the build system (driver) that this project uses
@@ -92,6 +93,7 @@ class ProjectRecipe:
         configure_options: Custom configure options specific to this project
         build_options:  Custom build options specific to this project
         clean_options:  Custom clean options specific to this project
+        no_cc_wrapper:  Prevents building this project with the cc_wrapper
         '''
         self._name = name
         '''Overrides the unique name for this recipe'''
@@ -116,6 +118,8 @@ class ProjectRecipe:
         '''Custom build options specific to this project'''
         self.clean_options = clean_options if clean_options else BuildStepOptions()
         '''Custom clean options specific to this project'''
+        self.no_cc_wrapper = no_cc_wrapper     # binutils in particular I couldn't get working with cc_wrapper
+        '''Set this flag if the project cannot be built successfully with the cc_wrapper technique'''
 
     @property
     def git_reponame(self) -> str:

@@ -1,11 +1,13 @@
 import pandas as pd
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any, Dict
 
 from ..run import Run
 from ..experimentalgorithm import RunStep
+from ..runconfig import recognized_opt_levels
 
 class FlatLayoutBinary:
     def __init__(self, binary_id:int, binary_file:Path, linker_objs:Path,
@@ -80,6 +82,19 @@ def flatten_binaries() -> RunStep:
     '''
     return RunStep('flatten_binaries', _do_flatten_binaries)
 
+def validate_optimization_level(run:Run, binfile:Path):
+    '''Validate that no other optimization levels appear in DW_AT_producer strings in the binary's DWARF info'''
+    dw_at_producer = subprocess.check_output(f'readelf --debug-dump=info {binfile} | grep DW_AT_producer', shell=True).decode('utf-8')
+    other_levels = [x for x in recognized_opt_levels() if x != run.config.opt_level]
+
+    # NOTE: remember, if multiple flags appear then the last one wins. But right now just validate
+    # that no other flags appear. If we can't avoid multiple in the future, we can add logic to
+    # validate that our flag always appears last in the multiple flags case
+
+    m = re.match(f'.*({"|".join(other_levels)}).*', dw_at_producer)
+    if m:
+        raise Exception(f'Binary {binfile} compiled with different optimization than configured (opt_level={run.config.opt_level}). Found {m.groups()[0]}')
+
 def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     # STRIP:
     # -------
@@ -102,6 +117,8 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         fb.data['strip_binaries'] = stripped
         fb.data['debug_binaries'] = origcopy
         fb.debug_binary_file = origcopy
+
+        validate_optimization_level(run, origcopy)      # can't validate on stripped since we need debug info
 
     # import IPython; IPython.embed()
 
