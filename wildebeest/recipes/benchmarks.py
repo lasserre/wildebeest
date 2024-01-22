@@ -28,7 +28,8 @@ binutils_v2_36 = CreateProjectRecipe(git_remote='git://sourceware.org/git/binuti
     source_languages=[LANG_C],
     out_of_tree=True,   # not sure...
     apt_deps = ['texinfo', 'build-essential'],
-    # if build-essential doesn't work, --disable-nls seems to be a popular option...
+    configure_options=BuildStepOptions(cmdline_options=['--disable-nls']),
+    # also missing flex/bison...
 )
 
 benchmark_recipes = [
