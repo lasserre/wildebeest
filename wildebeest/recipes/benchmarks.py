@@ -21,8 +21,19 @@ coreutils_v8_32 = CreateProjectRecipe(build_system='make', git_remote='https://g
                               'perl', 'rsync', 'texinfo', 'wget']
                     )
 
+binutils_v2_36 = CreateProjectRecipe(git_remote='git://sourceware.org/git/binutils-gdb.git',
+    name='binutils-2_36',
+    build_system='make',
+    git_head='binutils-2_36',
+    source_languages=[LANG_C],
+    out_of_tree=True,   # not sure...
+)
+
 benchmark_recipes = [
     coreutils_v8_32,
+    binutils_v2_36,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
+
+stateformer33 = ProjectList('stateformer33', lambda: [binutils_v2_36().name])
