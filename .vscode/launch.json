@@ -12,6 +12,24 @@
             "justMyCode": true
         },
         {
+            "name": "binutils_TEST",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "ghidra_import_debug_binaries",
+                "--debug",
+                "--no-pre"
+            ],
+            // "args": ["run", "-f", "--debug"],
+            "cwd": "/home/cls0027/test_builds/binutils.exp",
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
             "name": "ffmpeg_O0",
             "type": "python",
             "request": "launch",

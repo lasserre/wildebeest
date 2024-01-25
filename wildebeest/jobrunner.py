@@ -11,6 +11,8 @@ import traceback
 from typing import Any, Callable, List
 
 from .utils import *
+from .defaultbuildalgorithm import docker_container_exists, docker_run
+
 from wildebeest.run import Run, RunStatus
 from wildebeest import experimentalgorithm
 
@@ -284,6 +286,10 @@ class Job:
         '''
         Starts the job in docker (via a subprocess), returning its PID
         '''
+        # create/start the run container if it does not already exist
+        if not docker_container_exists(self.task.run):
+            docker_run(self.task.run)
+
         # we can use this exp_folder cwd since we exactly mirror it within the container
         cwd = self.exp_folder if self.exp_folder else Path().cwd()  # in case this wasn't specified
 

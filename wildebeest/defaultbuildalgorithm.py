@@ -189,6 +189,10 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
     for recipe in exp.projectlist:
         create_recipe_docker_image(exp, recipe)
 
+def docker_container_exists(run:Run) -> bool:
+    outstr = subprocess.check_output(['docker', 'container', 'ls', '-a']).decode('utf-8')
+    return run.container_name in outstr
+
 def docker_run(run:Run):
     '''
     Execute 'docker run' for this Run's container
@@ -236,7 +240,8 @@ def docker_init(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     outputs = init(run, params, outputs)
 
     # docker
-    docker_run(run)
+    if not docker_container_exists(run):
+        docker_run(run)
 
     # TODO: allow experiment to specify additional bindmounts? (host, container) pairs
     # TODO: should I use the --rm flag so that the container is auto-deleted when it's done running?
