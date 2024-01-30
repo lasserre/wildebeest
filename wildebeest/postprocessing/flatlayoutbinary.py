@@ -21,6 +21,7 @@ class FlatLayoutBinary:
         '''
         self.binary_file:Path = binary_file
         self.debug_binary_file:Path = None  # filled out by strip_binaries
+        self.stripped_binary_file:Path = None   # filled out by strip_binaries
         self.linker_objs = linker_objs
         self.data_folder:Path = run.data_folder/f'{binary_id}.{binary_file.stem}'
         self.id:int = binary_id
@@ -117,6 +118,7 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         fb.data['strip_binaries'] = stripped
         fb.data['debug_binaries'] = origcopy
         fb.debug_binary_file = origcopy
+        fb.stripped_binary_file = stripped
 
         validate_optimization_level(run, origcopy)      # can't validate on stripped since we need debug info
 
