@@ -83,14 +83,14 @@ def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,A
 
     # import IPython; IPython.embed()
 
-def ghidra_import(debug_binaries:bool, postscript:Path=None,
+def ghidra_import(debug:bool, postscript:Path=None,
     get_postscriptargs:Callable[[FlatLayoutBinary], List[str]]=None,
     ghidra_path:str='', prescript:Path=None) -> RunStep:
     '''
     debug_binaries: import debug binaries if set, otherwise import stripped binaries
     '''
     params = {
-        'debug_binaries': debug_binaries
+        'debug_binaries': debug
     }
     if ghidra_path:
         params[GhidraKeys.GHIDRA_INSTALL] = ghidra_path
@@ -100,4 +100,4 @@ def ghidra_import(debug_binaries:bool, postscript:Path=None,
         params['get_postscriptargs'] = get_postscriptargs
     if prescript:
         params['prescript'] = prescript
-    return RunStep(f'ghidra_import_{"debug" if debug_binaries else "strip"}', do_import_binary_to_ghidra, params)
+    return RunStep(f'ghidra_import_{"debug" if debug else "strip"}', do_import_binary_to_ghidra, params)
