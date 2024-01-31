@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 from termcolor import colored
 from typing import List, Tuple
+from rich.console import Console
+from rich.table import Table
 
 from wildebeest import Experiment
 from wildebeest.jobrunner import Job, run_job
@@ -254,6 +256,33 @@ def cmd_status_exp(exp:Experiment):
     # print(colored(f'[{j.task.name} FAILED]: {j.error_msg}', 'red', attrs=['bold']))
     return 0
 
+def cmd_runtimes_exp(exp:Experiment):
+    console = Console()
+    runs = exp.load_runs()
+    for r in runs:
+        table = Table(title=f'{exp.name} Run {r.number} - {r.name}', header_style='default', title_style='default')
+        table.add_column('Step')
+        table.add_column('Runtime')
+
+        highest_runtimes = sorted(r.step_runtimes.values(), reverse=True)
+        for s in exp.algorithm.steps:
+            if s.name in r.step_runtimes:
+                fmt = ''
+                if r.step_runtimes[s.name] == highest_runtimes[0]:
+                    fmt = 'bold red'
+                elif r.step_runtimes[s.name] in highest_runtimes[1:4]:
+                    fmt = 'bold yellow'
+                tdprecise = r.step_runtimes[s.name]
+                td = timedelta(days=tdprecise.days, seconds=tdprecise.seconds)
+                table.add_row(s.name, str(td), style=fmt)
+                # console.print(f'{fmt}{s.name}: {r.step_runtimes[s.name]}')
+            else:
+                table.add_row(s.name, '--')
+                # console.print(f'{s.name}: --')
+        table.add_row('Total', str(r.runtime), style='bold bright_black')
+        console.print(table)
+    return 0
+
 def load_job_from_id(exp:Experiment, jobid:int) -> Job:
     yamlfile = Job.yamlfile_from_id(exp.workload_folder, jobid)
     return Job.load_job_from_yaml(yamlfile) if yamlfile.exists() else None
@@ -359,6 +388,9 @@ def main():
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
 
+    # --- runtimes: Print experiment step runtimes
+    runtimes_p = subparsers.add_parser('runtimes', help='Show runtimes of experiment steps')
+
     # --- kill: Kill running jobs
     kill_p = subparsers.add_parser('kill', help='Kill experiments or jobs')
     kill_p.add_argument('--job', help='Job number to kill', type=int)
@@ -427,6 +459,9 @@ def main():
     elif args.subcmd == 'status':
         exp = get_experiment(args)
         return cmd_status_exp(exp)
+    elif args.subcmd == 'runtimes':
+        exp = get_experiment(args)
+        return cmd_runtimes_exp(exp)
     # --- wdb kill
     elif args.subcmd == 'kill':
         exp = get_experiment(args)
