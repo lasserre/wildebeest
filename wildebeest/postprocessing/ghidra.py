@@ -17,14 +17,14 @@ def get_binary_symlink_name(fb:FlatLayoutBinary, binary:Path) -> Path:
     return fb.data_folder/f'{fb.data_folder.name}{debug_suffix}'
 
 def get_ghidra_folder_for_run(run:Run) -> str:
-    return f'run{run.number}.{run.config.name}.{run.build.recipe.name}'
+    return f'/run{run.number}.{run.config.name}.{run.build.recipe.name}'
 
 def get_analyze_headless_cmd_BASE(ghidra_home:str, repo:str, ghidra_folder:str):
     analyze_headless = ghidra_home/'support'/'analyzeHeadless'  # assuming linux for now
-    return [analyze_headless, f"ghidra://localhost/{repo}/{ghidra_folder}"]
+    return [analyze_headless, f"ghidra://localhost/{repo}{ghidra_folder}"]
 
 def do_import_binary_to_ghidra(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
-    req_keys = [GhidraKeys.GHIDRA_INSTALL, GhidraKeys.GHIDRA_REPO, 'binary_key']
+    req_keys = [GhidraKeys.GHIDRA_INSTALL, GhidraKeys.GHIDRA_REPO]
 
     missing_keys = set(req_keys) - params.keys()
     if missing_keys:

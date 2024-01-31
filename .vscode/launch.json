@@ -12,7 +12,7 @@
             "justMyCode": true
         },
         {
-            "name": "binutils_TEST",
+            "name": "cbasic_test",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
@@ -20,12 +20,12 @@
                 "run",
                 "-f",
                 "--from",
-                "ghidra_import_debug_binaries",
+                "export_asts_strip",
                 "--debug",
                 "--no-pre"
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/test_builds/binutils.exp",
+            "cwd": "/home/cls0027/test_builds/cbasic.exp",
             "console": "integratedTerminal",
             // "justMyCode": false
         },
