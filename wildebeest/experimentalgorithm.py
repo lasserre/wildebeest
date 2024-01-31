@@ -59,16 +59,17 @@ class ExperimentAlgorithm:
         start_idx: The index of the first step in the sequence
         '''
         docker_flags = [s.run_in_docker for s in self.steps[start_idx:]]
-        try:
-            change_idx = docker_flags.index(not docker_flags[0])
-        except ValueError:
-            return start_idx + len(docker_flags) - 1    # all steps are the same, return last index
+        change_val = not docker_flags[0]
 
-        # add start_idx to adjust for where we started from relative to the
-        # whole list of steps
-        # (change_idx-1) to refer to the last step with the SAME docker_flag value as start_idx
-        # (change_idx is the index of the first step with a DIFFERENT docker_flag value...)
-        return (change_idx-1) + start_idx
+        if change_val in docker_flags:
+            change_idx = docker_flags.index(change_val)
+
+            # add start_idx to adjust for where we started from relative to the whole list of steps
+            # (change_idx-1) is the last step with the SAME docker_flag value as start_idx
+            # (change_idx is the index of the first step with a DIFFERENT docker_flag value...)
+            return (change_idx-1) + start_idx
+        else:
+            return start_idx + len(docker_flags) - 1    # all steps are the same, return last index
 
     def has_step(self, step_name:str) -> bool:
         '''True if this algorithm contains a step with the given name'''
