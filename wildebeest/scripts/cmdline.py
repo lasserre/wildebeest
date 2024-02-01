@@ -275,15 +275,17 @@ def cmd_runtimes_exp(exp:Experiment):
         totalrt = r.runtime
 
         for s in exp.algorithm.steps:
-            if s.name == r.current_step:
+            if s.name == r.current_step and r.status == RunStatus.RUNNING:
                 steprt, totalrt = calc_inprogress_runtime(r)
-                table.add_row(s.name, str(steprt), style='bold green')
+                table.add_row(s.name, str(steprt), style='bold cyan')
             elif s.name in r.step_runtimes:
                 fmt = ''
                 if r.step_runtimes[s.name] == highest_runtimes[0]:
-                    fmt = 'bold red'
+                    fmt = 'bold blue'
                 elif r.step_runtimes[s.name] in highest_runtimes[1:4]:
                     fmt = 'bold yellow'
+                elif s.name == r.current_step and r.status == RunStatus.FAILED:
+                    fmt = 'bold red'
                 tdprecise = r.step_runtimes[s.name]
                 td = timedelta(days=tdprecise.days, seconds=tdprecise.seconds)
                 table.add_row(s.name, str(td), style=fmt)
@@ -293,14 +295,24 @@ def cmd_runtimes_exp(exp:Experiment):
                 # console.print(f'{s.name}: --')
 
         # show total of current run (resets to zero if you restart from an intermediate step)
-        table.add_row('Total (current run)', str(totalrt), style='bold bright_black')
+        current_total_fmt = 'bold cyan' if r.status == RunStatus.RUNNING else 'bold bright_black'
+        table.add_section()
+        table.add_row('Total (current run)', str(totalrt), style=current_total_fmt)
 
         # calculate a total of all completed steps
         all_runtimes = list(r.step_runtimes.values())
         all_steps_rt = steprt
         for x in all_runtimes:
             all_steps_rt += x
-        table.add_row('Total (all steps)', str(all_steps_rt), style='bold bright_black')
+        all_steps_rt = timedelta(days=all_steps_rt.days, seconds=all_steps_rt.seconds)  # remove subsecond precision
+
+        total_fmt = 'bold bright_black'
+        if r.status == RunStatus.FINISHED:
+            total_fmt = 'bold green'
+        elif r.status == RunStatus.FAILED:
+            total_fmt = 'bold red'
+
+        table.add_row('Total (all steps)', str(all_steps_rt), style=total_fmt)
         console.print(table)
     return 0
 
