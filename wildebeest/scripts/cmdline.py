@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime, timedelta
 import shutil
+from itertools import chain
 import argcomplete
 from pathlib import Path
 import pandas as pd
@@ -232,9 +233,16 @@ def cmd_info_exp(exp1:Experiment):
     print(f'Total # of runs = {num_runs}')
     return 0
 
+def calc_inprogress_runtime(r:'Run') -> Tuple[timedelta, timedelta]:
+    now = datetime.now()
+    totalrt = now - r.starttime
+    totalrt = timedelta(days=totalrt.days, seconds=totalrt.seconds)    # remove subsecond precision
+    steprt = now - r.step_starttimes[r.current_step]
+    steprt = timedelta(days=steprt.days, seconds=steprt.seconds)
+    return steprt, totalrt
+
 def cmd_status_exp(exp:Experiment):
     runs = exp.load_runs()
-    now = datetime.now()
     for r in runs:
         if r.status == RunStatus.FINISHED:
             print(colored(f'Run {r.number} ({r.name}) - finished [{r.runtime}]', 'green'))
@@ -242,10 +250,7 @@ def cmd_status_exp(exp:Experiment):
             print(colored(f'Run {r.number} ({r.name}) - FAILED during "{r.current_step}" [{r.runtime}]', 'red', attrs=['bold']))
             print(colored(f'\t{r.error_msg}', 'red', attrs=['bold']))
         elif r.status == RunStatus.RUNNING:
-            rt = now - r.starttime
-            rt = timedelta(days=rt.days, seconds=rt.seconds)    # remove subsecond precision
-            steprt = now - r.step_starttimes[r.current_step]
-            steprt = timedelta(days=steprt.days, seconds=steprt.seconds)
+            steprt, rt = calc_inprogress_runtime(r)
             print(f'Run {r.number} ({r.name}) running "{r.current_step}" [{steprt}] Total: [{rt}]')
         else:
             print(f'Run {r.number} ({r.name}) - {r.status}')
@@ -265,8 +270,15 @@ def cmd_runtimes_exp(exp:Experiment):
         table.add_column('Runtime')
 
         highest_runtimes = sorted(r.step_runtimes.values(), reverse=True)
+        reftime = datetime.now()
+        steprt = reftime - reftime  # default to zero delta if there is no current step
+        totalrt = r.runtime
+
         for s in exp.algorithm.steps:
-            if s.name in r.step_runtimes:
+            if s.name == r.current_step:
+                steprt, totalrt = calc_inprogress_runtime(r)
+                table.add_row(s.name, str(steprt), style='bold green')
+            elif s.name in r.step_runtimes:
                 fmt = ''
                 if r.step_runtimes[s.name] == highest_runtimes[0]:
                     fmt = 'bold red'
@@ -279,7 +291,16 @@ def cmd_runtimes_exp(exp:Experiment):
             else:
                 table.add_row(s.name, '--')
                 # console.print(f'{s.name}: --')
-        table.add_row('Total', str(r.runtime), style='bold bright_black')
+
+        # show total of current run (resets to zero if you restart from an intermediate step)
+        table.add_row('Total (current run)', str(totalrt), style='bold bright_black')
+
+        # calculate a total of all completed steps
+        all_runtimes = list(r.step_runtimes.values())
+        all_steps_rt = steprt
+        for x in all_runtimes:
+            all_steps_rt += x
+        table.add_row('Total (all steps)', str(all_steps_rt), style='bold bright_black')
         console.print(table)
     return 0
 
