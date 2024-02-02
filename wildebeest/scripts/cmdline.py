@@ -10,7 +10,7 @@ from typing import List, Tuple
 from rich.console import Console
 from rich.table import Table
 
-from wildebeest import Experiment
+from wildebeest import Experiment, ExpState
 from wildebeest.jobrunner import Job, run_job
 from wildebeest import *
 from wildebeest.defaultbuildalgorithm import build, docker_run, docker_attach_to_bash, docker_cleanup
@@ -316,6 +316,36 @@ def cmd_runtimes_exp(exp:Experiment):
         console.print(table)
     return 0
 
+def cmd_dashboard(exp_parent_folder:Path):
+    console = Console()
+    table = Table(title=f'wdb dashboard {exp_parent_folder}', header_style='default', title_style='default')
+    table.add_column('Folder')
+    table.add_column('Exp name')
+    table.add_column('Run #')
+    table.add_column('Run Name')
+    table.add_column('Status')
+    table.add_column('Runtime')
+
+    for exp_folder in sorted([x for x in exp_parent_folder.iterdir() if not x.is_file()]):
+        if not Experiment.is_exp_folder(exp_folder):
+            return
+        exp = Experiment.load_exp_from_yaml(exp_folder)
+        # console.rule(f'{exp.exp_folder.name} ({exp.name})')
+        # if exp.state == ExpState.Finished:
+        # cmd_status_exp(exp)
+        run_fmts = {
+            RunStatus.RUNNING: 'bold cyan',
+            RunStatus.READY: '',
+            RunStatus.FAILED: 'bold red',
+            RunStatus.FINISHED: 'bold green',
+        }
+        for r in exp.load_runs():
+            fmt = run_fmts[r.status]
+            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(r.runtime), style=fmt)
+
+    console.print(table)
+    return 0
+
 def load_job_from_id(exp:Experiment, jobid:int) -> Job:
     yamlfile = Job.yamlfile_from_id(exp.workload_folder, jobid)
     return Job.load_job_from_yaml(yamlfile) if yamlfile.exists() else None
@@ -421,6 +451,10 @@ def main():
     status_p = subparsers.add_parser('status', help='Show status of in-progress experiments')
     # status_p.add_argument
 
+    # --- dashboard: Print experiment/run status for all experiments in a folder
+    dashboard_p = subparsers.add_parser('dashboard', help='Show status of all in-progress experiments')
+    dashboard_p.add_argument('exp_parent_folder', help='Folder containing all experiments to be monitored')
+
     # --- runtimes: Print experiment step runtimes
     runtimes_p = subparsers.add_parser('runtimes', help='Show runtimes of experiment steps')
 
@@ -492,9 +526,13 @@ def main():
     elif args.subcmd == 'status':
         exp = get_experiment(args)
         return cmd_status_exp(exp)
+    # --- wdb runtimes
     elif args.subcmd == 'runtimes':
         exp = get_experiment(args)
         return cmd_runtimes_exp(exp)
+    # --- wdb dashboard
+    elif args.subcmd == 'dashboard':
+        return cmd_dashboard(Path(args.exp_parent_folder))
     # --- wdb kill
     elif args.subcmd == 'kill':
         exp = get_experiment(args)
@@ -516,7 +554,8 @@ def main():
         if args.object == 'build':
             return cmd_rm_build(exp, args.force)
     import sys
-    print(f'Unhandled cmd-line: {sys.argv}')
+    print(f'Unhandled cmd-line: {" ".join(sys.argv)}')
+    p.print_help()
     return 1
 
 if __name__ == '__main__':

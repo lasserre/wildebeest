@@ -83,7 +83,7 @@ class Experiment:
         exp = load_from_yaml(yamlfile)
         orig_folder = exp.exp_folder
 
-        if exp_folder != orig_folder:
+        if exp_folder.absolute() != orig_folder.absolute():
             exp._rebase(orig_folder, exp_folder)
 
         return exp

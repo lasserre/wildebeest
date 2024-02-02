@@ -1,6 +1,6 @@
 from .buildsystemdriver import BuildSystemDriver, get_buildsystem_driver
 from .defaultbuildalgorithm import DefaultBuildAlgorithm, DockerBuildAlgorithm
-from .experiment import Experiment
+from .experiment import Experiment, ExpState
 from .gitrepository import GitRepository
 from .projectbuild import ProjectBuild, GitRepository
 from .projectrecipe import ProjectRecipe
