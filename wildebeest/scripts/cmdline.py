@@ -241,6 +241,13 @@ def calc_inprogress_runtime(r:'Run') -> Tuple[timedelta, timedelta]:
     steprt = timedelta(days=steprt.days, seconds=steprt.seconds)
     return steprt, totalrt
 
+run_formats = {
+    RunStatus.RUNNING: 'bold cyan',
+    RunStatus.READY: '',
+    RunStatus.FAILED: 'bold red',
+    RunStatus.FINISHED: 'bold green',
+}
+
 def cmd_status_exp(exp:Experiment):
     runs = exp.load_runs()
     for r in runs:
@@ -317,6 +324,8 @@ def cmd_runtimes_exp(exp:Experiment):
     return 0
 
 def cmd_dashboard(exp_parent_folder:Path):
+    global run_formats
+
     console = Console()
     table = Table(title=f'wdb dashboard {exp_parent_folder}', header_style='default', title_style='default')
     table.add_column('Folder')
@@ -330,17 +339,8 @@ def cmd_dashboard(exp_parent_folder:Path):
         if not Experiment.is_exp_folder(exp_folder):
             return
         exp = Experiment.load_exp_from_yaml(exp_folder)
-        # console.rule(f'{exp.exp_folder.name} ({exp.name})')
-        # if exp.state == ExpState.Finished:
-        # cmd_status_exp(exp)
-        run_fmts = {
-            RunStatus.RUNNING: 'bold cyan',
-            RunStatus.READY: '',
-            RunStatus.FAILED: 'bold red',
-            RunStatus.FINISHED: 'bold green',
-        }
         for r in exp.load_runs():
-            fmt = run_fmts[r.status]
+            fmt = run_formats[r.status]
             table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(r.runtime), style=fmt)
 
     console.print(table)
