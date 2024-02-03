@@ -241,6 +241,20 @@ def calc_inprogress_runtime(r:'Run') -> Tuple[timedelta, timedelta]:
     steprt = timedelta(days=steprt.days, seconds=steprt.seconds)
     return steprt, totalrt
 
+def calc_total_completed_runtime(r:'Run', step_rt:timedelta=None) -> timedelta:
+    '''
+    step_rt: In-progress step runtime, if applicable
+    '''
+    all_runtimes = list(r.step_runtimes.values())
+    if step_rt:
+        all_runtimes.append(step_rt)
+    all_steps_rt = all_runtimes[0]
+    for x in all_runtimes[1:]:
+        all_steps_rt += x
+    all_steps_rt = timedelta(days=all_steps_rt.days, seconds=all_steps_rt.seconds)  # remove subsecond precision
+
+    return all_steps_rt
+
 run_formats = {
     RunStatus.RUNNING: 'bold cyan',
     RunStatus.READY: '',
@@ -277,8 +291,7 @@ def cmd_runtimes_exp(exp:Experiment):
         table.add_column('Runtime')
 
         highest_runtimes = sorted(r.step_runtimes.values(), reverse=True)
-        reftime = datetime.now()
-        steprt = reftime - reftime  # default to zero delta if there is no current step
+        steprt = None
         totalrt = r.runtime
 
         for s in exp.algorithm.steps:
@@ -307,11 +320,7 @@ def cmd_runtimes_exp(exp:Experiment):
         table.add_row('Total (current run)', str(totalrt), style=current_total_fmt)
 
         # calculate a total of all completed steps
-        all_runtimes = list(r.step_runtimes.values())
-        all_steps_rt = steprt
-        for x in all_runtimes:
-            all_steps_rt += x
-        all_steps_rt = timedelta(days=all_steps_rt.days, seconds=all_steps_rt.seconds)  # remove subsecond precision
+        all_steps_rt = calc_total_completed_runtime(r, steprt)
 
         total_fmt = 'bold bright_black'
         if r.status == RunStatus.FINISHED:
@@ -334,6 +343,10 @@ def cmd_dashboard(exp_parent_folder:Path):
     table.add_column('Run Name')
     table.add_column('Status')
     table.add_column('Runtime')
+    table.add_column('Current Step')
+    table.add_column('Step Progress')
+    table.add_column('Step Runtime')
+    table.add_column('Total Runtime')
 
     for exp_folder in sorted([x for x in exp_parent_folder.iterdir() if not x.is_file()]):
         if not Experiment.is_exp_folder(exp_folder):
@@ -342,10 +355,17 @@ def cmd_dashboard(exp_parent_folder:Path):
         for r in exp.load_runs():
             fmt = run_formats[r.status]
             if r.status == RunStatus.RUNNING:
-                _, run_runtime = calc_inprogress_runtime(r)
+                step_rt, run_runtime = calc_inprogress_runtime(r)
             else:
+                step_rt = '--'
                 run_runtime = r.runtime
-            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(run_runtime), style=fmt)
+            step_num = exp.algorithm.get_index_of_step(r.current_step)+1 if r.current_step else 1
+            num_steps = len(exp.algorithm.steps)
+            step_prog = f'{step_num}/{num_steps} ({step_num/num_steps*100:.1f}%)'
+            overall_rt = calc_total_completed_runtime(r, None if step_rt == '--' else step_rt)
+            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(run_runtime),
+                        f'[yellow]{r.current_step}', step_prog,
+                        f'[yellow]{str(step_rt)}', f'[red]{overall_rt}', style=fmt)
 
     console.print(table)
     return 0
