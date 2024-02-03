@@ -1,9 +1,11 @@
 from datetime import timedelta
 import os
+import sys
 from pathlib import Path
 import psutil
 import socket
 import time
+from tqdm import tqdm
 from typing import Dict
 from yaml import load, dump, Loader
 
@@ -66,6 +68,34 @@ class env:
     def __exit__(self, etype, value, traceback):
         os.environ.clear()
         os.environ.update(self.originalenv)
+
+def show_progress(iterator, total:int, use_tqdm:bool=None, progress_period:int=500):
+    '''
+    Show a progress indicator - either using tqdm progress bar (ideal for console output)
+    or a (much less frequent) periodic print statement showing how far we have come
+    (ideal for log files)
+
+    iterator: The object being iterated over (as long as it behaves like an iterator and
+              you unpack the values properly it should work)
+    total:    Total number of items in the iterator, this gives flexibility with the iterator
+              not being required to support len()
+    use_tqdm: Use tqdm if true, print statement if false. If not specified, use_tqdm will be
+              detected from sys.stdout.isatty()
+    progress_period: How many items should be iterated over before a progress line is printed
+    '''
+    if use_tqdm is None:
+        use_tqdm = sys.stdout.isatty()
+
+    if use_tqdm:
+        for x in tqdm(iterator, total=total):
+            yield x
+    else:
+        ctr = 1
+        for x in iterator:
+            if ctr % progress_period == 0:
+                print(f'{ctr}/{total} ({ctr/total*100:.1f}%)...', flush=True)
+            ctr += 1
+            yield x
 
 def load_from_yaml(yamlfile:Path):
     '''
