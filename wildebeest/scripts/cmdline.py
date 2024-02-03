@@ -343,8 +343,8 @@ def cmd_dashboard(exp_parent_folder:Path):
     table.add_column('Run Name')
     table.add_column('Status')
     table.add_column('Runtime')
-    table.add_column('Current Step')
     table.add_column('Step Progress')
+    table.add_column('Current Step')
     table.add_column('Step Runtime')
     table.add_column('Total Runtime')
 
@@ -362,10 +362,20 @@ def cmd_dashboard(exp_parent_folder:Path):
             step_num = exp.algorithm.get_index_of_step(r.current_step)+1 if r.current_step else 1
             num_steps = len(exp.algorithm.steps)
             step_prog = f'{step_num}/{num_steps} ({step_num/num_steps*100:.1f}%)'
+            step_color = '[yellow]' if r.status == RunStatus.RUNNING else ''
+            overall_rt_color = '[blue]' if r.status == RunStatus.RUNNING else ''
+
             overall_rt = calc_total_completed_runtime(r, None if step_rt == '--' else step_rt)
-            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(run_runtime),
-                        f'[yellow]{r.current_step}', step_prog,
-                        f'[yellow]{str(step_rt)}', f'[red]{overall_rt}', style=fmt)
+            table.add_row(exp_folder.name,
+                        exp.name,
+                        f'Run {r.number}',
+                        r.config.name,
+                        r.status,
+                        str(run_runtime),
+                        step_prog,
+                        f'{step_color}{r.current_step}',
+                        f'{step_color}{str(step_rt)}',
+                        f'{overall_rt_color}{overall_rt}', style=fmt)
 
     console.print(table)
     return 0
