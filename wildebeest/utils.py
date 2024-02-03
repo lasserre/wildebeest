@@ -7,7 +7,11 @@ import time
 from typing import Dict
 from yaml import load, dump, Loader
 
-class PrintRuntime:
+class print_runtime:
+    '''
+    Times the code inside the with block, then prints out the elapsed runtime
+    when the code finished
+    '''
     def __init__(self) -> None:
         '''
         newpath: The path to change directories to. Once the with block exits,

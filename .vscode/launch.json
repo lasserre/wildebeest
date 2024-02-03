@@ -83,7 +83,7 @@
         },
         {
             "name": "astera",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
@@ -94,7 +94,7 @@
                 "--debug",
                 "--no-pre"
             ],
-            "cwd": "/home/cls0027/test_builds/astera.exp",
+            "cwd": "/home/cls0027/exp_builds/astera.exp",
             "console": "integratedTerminal",
         },
         {

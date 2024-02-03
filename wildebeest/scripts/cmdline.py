@@ -341,7 +341,11 @@ def cmd_dashboard(exp_parent_folder:Path):
         exp = Experiment.load_exp_from_yaml(exp_folder)
         for r in exp.load_runs():
             fmt = run_formats[r.status]
-            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(r.runtime), style=fmt)
+            if r.status == RunStatus.RUNNING:
+                _, run_runtime = calc_inprogress_runtime(r)
+            else:
+                run_runtime = r.runtime
+            table.add_row(exp_folder.name, exp.name, f'Run {r.number}', r.config.name, r.status, str(run_runtime), style=fmt)
 
     console.print(table)
     return 0
