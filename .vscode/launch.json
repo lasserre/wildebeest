@@ -48,33 +48,33 @@
             // "justMyCode": false
         },
         {
-            "name": "create",
-            "type": "python",
+            "name": "decompile_all",
+            "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            // "program": "ghidra_decompile_all",
+            "program": "/home/cls0027/dev/astlib/src/ghidralib/export_ast.py",
             "args": [
-                "create",
-                "-r",
-                "test-programs-cbasic",
-                "basic-dataset",
-                "aarch64test.exp",
-                // "-p",
-                // "opt=03,02",
-                // "compilers=gcc:g++,clang:clang++"
+                "/home/cls0027/exp_builds/coreutils.exp/rundata/run1/8.dir/ast_dumps/debug",
+                "localhost",
+                "coreutils",
+                "/run1.gcc-O0.coreutils_v8.32",
+                "8.dir.debug",
+                "--timeout_sec", "240",
+                "--ast-only"
             ],
             "cwd": "/home/cls0027/test_builds",
             "console": "integratedTerminal",
         },
         {
             "name": "coreutils",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
                 "run",
                 "-f",
                 "--from",
-                "extract_debuginfo_labels",
+                "export_asts_debug",
                 "--debug",
                 "--no-pre"
             ],
