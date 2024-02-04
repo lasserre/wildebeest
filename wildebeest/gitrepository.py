@@ -65,7 +65,7 @@ class GitRepository:
             print(f'Warning: {self.project_root} exists and is nonempty - no git operations performed')
             return
 
-        if self.git_remote.endswith('.tar.gz'):
+        if self.git_remote.endswith('.tar.gz') or self.git_remote.endswith('.tar.xz') or self.git_remote.endswith('.tar'):
             # download and unzip instead of clone
             source_folder = self.project_root.parent    # source/ folder is parent of project_root
             source_folder.mkdir(parents=True)
@@ -73,10 +73,10 @@ class GitRepository:
             # download and unpack in parent 'source' folder
             with cd(source_folder):
                 subprocess.run(['wget', self.git_remote])
-                tar_gz_name = self.git_remote.split('/')[-1]
-                subprocess.run(['tar', 'xvzf', tar_gz_name])
+                tar_name = self.git_remote.split('/')[-1]
+                subprocess.run(['tar', 'xvf', tar_name])
 
-                untarred_folder = [x for x in Path.cwd().iterdir() if x.name != tar_gz_name][0]
+                untarred_folder = [x for x in Path.cwd().iterdir() if x.name != tar_name][0]
                 untarred_folder.rename(self.project_root)
         else:
             # normal git repo

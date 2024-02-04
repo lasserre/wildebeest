@@ -81,6 +81,55 @@ busybox_v1_33_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busy
     configure_options=BuildStepOptions(override_step=do_make_defconfig),
 )
 
+cflow_v1_6 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/cflow/cflow-1.6.tar.gz',
+    name='cflow-v1.6',
+    build_system='make',
+    source_languages=[LANG_C],
+    out_of_tree=False,
+)
+
+curl_v7_75_0 = CreateProjectRecipe(git_remote='https://github.com/curl/curl/releases/download/curl-7_75_0/curl-7.75.0.tar.gz',
+    name='curl-v7.75.0',
+    build_system='make',
+    apt_deps = ['libssl-dev'],
+    source_languages=[LANG_C],
+    configure_options=BuildStepOptions(cmdline_options=['--with-openssl', '--enable-debug',
+            'CC=$CC', 'CFLAGS=$CFLAGS', 'LDFLAGS=$LDFLAGS']),
+)
+
+diffutils_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/diffutils/diffutils-3.7.tar.xz',
+    name='diffutils-v3.7',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+dpkg_v1_20_6 = CreateProjectRecipe(git_remote='https://snapshot.debian.org/archive/debian-debug/20210108T082358Z/pool/main/d/dpkg/dpkg_1.20.6.tar.xz',
+    name='dpkg_v1.20.6',
+    build_system='make',
+    source_languages=[LANG_C],
+    apt_deps = ['perl', 'pkg-config'],
+)
+
+findutils_v4_8_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/findutils/findutils-4.8.0.tar.xz',
+    name='findutils-v4.8.0',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+gawk_v5_1_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gawk/gawk-5.1.0.tar.xz',
+    name='gawk-v5.1.0',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+# todo: more here...
+
+imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.0.11-0.tar.gz',
+    name='imagemagick-v7.0.11-0',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
 openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/openssl.git',
     name='openssl_1_1_1k',
     git_head='OpenSSL_1_1_1k',
@@ -91,12 +140,20 @@ openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/open
 )
 
 benchmark_recipes = [
-    coreutils_v8_32,
     binutils_v2_36,
     bash_v5_2,
     bc_v1_07,
     bison_v3_7,
     busybox_v1_33_1,
+    cflow_v1_6,
+    coreutils_v8_32,
+    curl_v7_75_0,
+    diffutils_v3_7,
+    dpkg_v1_20_6,
+    findutils_v4_8_0,
+    gawk_v5_1_0,
+
+    imagemagick_v7_0_11_0,
     openssl_1_1_1k,
 ]
 
@@ -105,5 +162,17 @@ coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
 # Jan 2021 is my date for approximating "latest versions" used in StateFormer benchmarks
 stateformer33 = ProjectList('stateformer33', lambda: [
     bash_v5_2().name,
+    bc_v1_07().name,
     binutils_v2_36().name,
+    bison_v3_7().name,
+    busybox_v1_33_1().name,
+    cflow_v1_6().name,
+    coreutils_v8_32().name,
+    curl_v7_75_0().name,
+    diffutils_v3_7().name,
+    dpkg_v1_20_6().name,
+    findutils_v4_8_0().name,
+    gawk_v5_1_0().name,
+
+    imagemagick_v7_0_11_0().name,
 ])
