@@ -49,7 +49,7 @@ class BuildSystemDriver:
             if opts.preprocess:
                 opts.preprocess(runconfig, build)
             if opts.override_step:
-                opts.override_step(runconfig, build)
+                opts.override_step(runconfig, build, **kwargs)
             else:
                 do_step(runconfig, build, **kwargs)
             if opts.postprocess:

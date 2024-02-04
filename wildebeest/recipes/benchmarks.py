@@ -32,11 +32,59 @@ binutils_v2_36 = CreateProjectRecipe(git_remote='git://sourceware.org/git/binuti
     no_cc_wrapper=True,
 )
 
+bc_v1_07 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bc/bc-1.07.tar.gz',
+    name='bc_v1.07',
+    build_system='make',
+    source_languages=[LANG_C],
+    out_of_tree=False,
+    apt_deps = ['ed'],
+)
+
+bash_v5_1 = CreateProjectRecipe(git_remote='https://github.com/bminor/bash.git',
+    name='bash_v5.1',
+    git_head = 'bash-5.1',
+    build_system='make',
+    source_languages=[LANG_C],
+    out_of_tree=False,
+)
+
+bison_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bison/bison-3.7.tar.gz',
+    name='bison_v3.7',
+    build_system='make',
+    source_languages=[LANG_C],
+    out_of_tree=False,
+    apt_deps = [],
+)
+
+def do_make_defconfig(runconfig: RunConfig, build: ProjectBuild):
+    import subprocess
+    p = subprocess.run(['make', 'defconfig'])
+    if p.returncode != 0:
+        raise Exception(f'{runconfig.name} make defconfig failed with return code {p.returncode}')
+
+busybox_v1_32_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busybox.git',
+    name='busybox_v1.32.1',
+    git_head='1_32_1',
+    build_system='make',
+    source_languages=[LANG_C],
+    out_of_tree=False,
+    apt_deps = [],
+    configure_options=BuildStepOptions(override_step=do_make_defconfig),
+)
+
 benchmark_recipes = [
     coreutils_v8_32,
     binutils_v2_36,
+    bash_v5_1,
+    bc_v1_07,
+    bison_v3_7,
+    busybox_v1_32_1,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
 
-stateformer33 = ProjectList('stateformer33', lambda: [binutils_v2_36().name])
+# Jan 2021 is my date for approximating "latest versions" used in StateFormer benchmarks
+stateformer33 = ProjectList('stateformer33', lambda: [
+    bash_v5_1().name,
+    binutils_v2_36().name,
+])

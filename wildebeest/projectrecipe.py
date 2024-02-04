@@ -69,7 +69,7 @@ class ProjectRecipe:
             source_languages:List[str]=[],
             out_of_tree:bool=True,
             git_head:str='',
-            apt_deps:List[str]=[],
+            apt_deps:List[str]=None,
             configure_options:BuildStepOptions=None,
             build_options:BuildStepOptions=None,
             clean_options:BuildStepOptions=None,
@@ -110,7 +110,7 @@ class ProjectRecipe:
         '''
         self.git_head = git_head
         '''If specified, check out this revision of the project instead of the default'''
-        self.apt_deps = apt_deps
+        self.apt_deps = apt_deps if apt_deps else []
         '''List of apt packages which are build dependencies for this project'''
         self.configure_options = configure_options if configure_options else BuildStepOptions()
         '''Custom configure options specific to this project'''

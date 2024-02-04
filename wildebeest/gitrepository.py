@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import shutil
 
 from .utils import cd
 
@@ -64,9 +65,24 @@ class GitRepository:
             print(f'Warning: {self.project_root} exists and is nonempty - no git operations performed')
             return
 
-        subprocess.run(['git', 'clone', self.git_remote, str(self.project_root)])
+        if self.git_remote.endswith('.tar.gz'):
+            # download and unzip instead of clone
+            source_folder = self.project_root.parent    # source/ folder is parent of project_root
+            source_folder.mkdir(parents=True)
 
-        with cd(self.project_root):
-            if self.head:
-                subprocess.run(['git', 'checkout', self.head])
-            subprocess.run(['git', 'submodule', 'update', '--init', '--recursive'])
+            # download and unpack in parent 'source' folder
+            with cd(source_folder):
+                subprocess.run(['wget', self.git_remote])
+                tar_gz_name = self.git_remote.split('/')[-1]
+                subprocess.run(['tar', 'xvzf', tar_gz_name])
+
+                untarred_folder = [x for x in Path.cwd().iterdir() if x.name != tar_gz_name][0]
+                untarred_folder.rename(self.project_root)
+        else:
+            # normal git repo
+            subprocess.run(['git', 'clone', self.git_remote, str(self.project_root)])
+
+            with cd(self.project_root):
+                if self.head:
+                    subprocess.run(['git', 'checkout', self.head])
+                subprocess.run(['git', 'submodule', 'update', '--init', '--recursive'])
