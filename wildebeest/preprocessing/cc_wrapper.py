@@ -109,6 +109,9 @@ def main():
     # print(f'Filtered {FLAGS_VAR}: {filtered_flags}', file=sys.stderr)
     # print(f'Called with: {sys.argv}', file=sys.stderr)
     # print(f'Filtered to: {compiler_args}', file=sys.stderr)
+    for x in compiler_args:
+        if '\\' in x:
+            print(f'Found argument {x} with backslash')
 
     with env(envdict):
         # print(f'sys.arv was: {" ".join(sys.argv)}', flush=True)

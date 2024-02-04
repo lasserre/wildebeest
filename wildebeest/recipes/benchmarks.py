@@ -40,12 +40,13 @@ bc_v1_07 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bc/bc
     apt_deps = ['ed'],
 )
 
-bash_v5_1 = CreateProjectRecipe(git_remote='https://github.com/bminor/bash.git',
-    name='bash_v5.1',
-    git_head = 'bash-5.1',
+bash_v5_2 = CreateProjectRecipe(git_remote='https://github.com/bminor/bash.git',
+    name='bash_v5.2',
+    git_head = 'bash-5.2',
     build_system='make',
     source_languages=[LANG_C],
     out_of_tree=False,
+    no_cc_wrapper=True,
 )
 
 bison_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bison/bison-3.7.tar.gz',
@@ -54,20 +55,28 @@ bison_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bis
     source_languages=[LANG_C],
     out_of_tree=False,
     apt_deps = [],
+    no_cc_wrapper=True,
 )
 
 def do_make_defconfig(runconfig: RunConfig, build: ProjectBuild):
     import subprocess
+    print(f'Running make defconfig...')
+    if runconfig.opt_level == '-O0':
+        config_file = build.build_folder/'.config'
+        print(f'Fixing config file {config_file}')
+        subprocess.run(f"sed -e 's/.*CONFIG_DEBUG\s.*/CONFIG_DEBUG=y/' -i {config_file}", shell=True)
+        subprocess.run(f"sed -e 's/.*DEBUG_PESSIMIZE.*/CONFIG_DEBUG_PESSIMIZE=y/' -i {config_file}", shell=True)
     p = subprocess.run(['make', 'defconfig'])
     if p.returncode != 0:
         raise Exception(f'{runconfig.name} make defconfig failed with return code {p.returncode}')
 
-busybox_v1_32_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busybox.git',
-    name='busybox_v1.32.1',
-    git_head='1_32_1',
+busybox_v1_33_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busybox.git',
+    name='busybox_v1_33_1',
+    git_head='1_33_1',
     build_system='make',
     source_languages=[LANG_C],
     out_of_tree=False,
+    # no_cc_wrapper=True,
     apt_deps = [],
     configure_options=BuildStepOptions(override_step=do_make_defconfig),
 )
@@ -75,16 +84,16 @@ busybox_v1_32_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busy
 benchmark_recipes = [
     coreutils_v8_32,
     binutils_v2_36,
-    bash_v5_1,
+    bash_v5_2,
     bc_v1_07,
     bison_v3_7,
-    busybox_v1_32_1,
+    busybox_v1_33_1,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
 
 # Jan 2021 is my date for approximating "latest versions" used in StateFormer benchmarks
 stateformer33 = ProjectList('stateformer33', lambda: [
-    bash_v5_1().name,
+    bash_v5_2().name,
     binutils_v2_36().name,
 ])
