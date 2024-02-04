@@ -85,7 +85,9 @@ openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/open
     name='openssl_1_1_1k',
     git_head='OpenSSL_1_1_1k',
     build_system='make',
+    source_languages=[LANG_C],
     config_script_name='config',
+    apt_deps = [],
 )
 
 benchmark_recipes = [
@@ -95,6 +97,7 @@ benchmark_recipes = [
     bc_v1_07,
     bison_v3_7,
     busybox_v1_33_1,
+    openssl_1_1_1k,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])

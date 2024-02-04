@@ -109,17 +109,13 @@ def main():
     # print(f'Filtered {FLAGS_VAR}: {filtered_flags}', file=sys.stderr)
     # print(f'Called with: {sys.argv}', file=sys.stderr)
     # print(f'Filtered to: {compiler_args}', file=sys.stderr)
-    converted_args = []
-    for x in compiler_args:
-        if '"' in x:
-            print(f'Found argument {x} with quotes', file=sys.stderr, flush=True)
-            converted_args.append(x.replace('"', r'\"'))    # escape quotes
-        else:
-            converted_args.append(x)
+
+    # have to escape quotes since we are running with shell=True
+    escaped_args = [x.replace('"', r'\"') for x in compiler_args]
 
     with env(envdict):
         # print(f'sys.arv was: {" ".join(sys.argv)}', flush=True)
         # print(f'sys.arv was: {" ".join(sys.argv)}', file=sys.stderr, flush=True)
         # print(f'CALLING COMPILER: {" ".join([compiler, *compiler_args])}', flush=True)
         # print(f'CALLING COMPILER: {" ".join([compiler, *compiler_args])}', file=sys.stderr, flush=True)
-        return subprocess.run(' '.join([compiler, *compiler_args]), shell=True).returncode
+        return subprocess.run(' '.join([compiler, *escaped_args]), shell=True).returncode
