@@ -58,7 +58,7 @@ bison_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bis
     no_cc_wrapper=True,
 )
 
-def do_make_defconfig(runconfig: RunConfig, build: ProjectBuild):
+def do_make_defconfig(runconfig: RunConfig, build: ProjectBuild, **kwargs):
     import subprocess
     print(f'Running make defconfig...')
     if runconfig.opt_level == '-O0':
