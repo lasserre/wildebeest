@@ -150,6 +150,9 @@ imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/Image
     name='imagemagick-v7.0.11-0',
     build_system='make',
     source_languages=[LANG_C],
+    configure_options=BuildStepOptions(cmdline_options=['--without-magick-plus-plus', 'CC=$CC', 'CFLAGS="$CFLAGS"', 'LDFLAGS="$LDFLAGS"']),
+    no_cc_wrapper=True,
+    out_of_tree=False,
 )
 
 openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/openssl.git',

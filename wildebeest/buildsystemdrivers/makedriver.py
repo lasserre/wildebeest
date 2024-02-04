@@ -16,7 +16,7 @@ class MakeDriver(BuildSystemDriver):
         print(f'$CC="{os.environ["CC"]}"')
         print(f'Running: {" ".join([str(x) for x in [configure, *configure_opts]])}')
 
-        subprocess.run(" ".join([configure, *configure_opts]), shell=True)
+        subprocess.run(" ".join(str(x) for x in [configure, *configure_opts]), shell=True)
 
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
