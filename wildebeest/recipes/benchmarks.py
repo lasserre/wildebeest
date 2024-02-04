@@ -93,8 +93,11 @@ curl_v7_75_0 = CreateProjectRecipe(git_remote='https://github.com/curl/curl/rele
     build_system='make',
     apt_deps = ['libssl-dev'],
     source_languages=[LANG_C],
-    configure_options=BuildStepOptions(cmdline_options=['--with-openssl', '--enable-debug',
-            'CC=$CC', 'CFLAGS=$CFLAGS', 'LDFLAGS=$LDFLAGS']),
+    # --enable-debug --with-ssl CFLAGS='-g -O0'
+    configure_options=BuildStepOptions(cmdline_options=['--enable-debug', '--with-ssl',
+            'CC=$CC', 'CFLAGS="$CFLAGS"', 'LDFLAGS="$LDFLAGS"']),
+    no_cc_wrapper=True,
+    out_of_tree=False,
 )
 
 diffutils_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/diffutils/diffutils-3.7.tar.xz',
@@ -118,6 +121,25 @@ findutils_v4_8_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/g
 
 gawk_v5_1_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gawk/gawk-5.1.0.tar.xz',
     name='gawk-v5.1.0',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+grep_v3_6 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/grep/grep-3.6.tar.xz',
+    name='grep-v3.6',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+gtypist_v2_9 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gtypist/gtypist-2.9.tar.xz',
+    name='gtypist-2.9',
+    build_system='make',
+    source_languages=[LANG_C],
+    apt_deps = ['help2man'],
+)
+
+gzip_v1_10 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gzip/gzip-1.10.tar.xz',
+    name='gzip-v1.10',
     build_system='make',
     source_languages=[LANG_C],
 )
@@ -152,6 +174,9 @@ benchmark_recipes = [
     dpkg_v1_20_6,
     findutils_v4_8_0,
     gawk_v5_1_0,
+    grep_v3_6,
+    gtypist_v2_9,
+    gzip_v1_10,
 
     imagemagick_v7_0_11_0,
     openssl_1_1_1k,
@@ -173,6 +198,9 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     dpkg_v1_20_6().name,
     findutils_v4_8_0().name,
     gawk_v5_1_0().name,
+    grep_v3_6().name,
+    gtypist_v2_9().name,
+    gzip_v1_10().name,
 
     imagemagick_v7_0_11_0().name,
 ])
