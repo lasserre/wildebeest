@@ -109,9 +109,13 @@ def main():
     # print(f'Filtered {FLAGS_VAR}: {filtered_flags}', file=sys.stderr)
     # print(f'Called with: {sys.argv}', file=sys.stderr)
     # print(f'Filtered to: {compiler_args}', file=sys.stderr)
+    converted_args = []
     for x in compiler_args:
-        if '\\' in x:
-            print(f'Found argument {x} with backslash', file=sys.stderr, flush=True)
+        if '"' in x:
+            print(f'Found argument {x} with quotes', file=sys.stderr, flush=True)
+            converted_args.append(x.replace('"', r'\"'))    # escape quotes
+        else:
+            converted_args.append(x)
 
     with env(envdict):
         # print(f'sys.arv was: {" ".join(sys.argv)}', flush=True)

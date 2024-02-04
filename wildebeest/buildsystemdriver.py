@@ -65,6 +65,7 @@ class BuildSystemDriver:
         # setting these variables so each driver doesn't have to replicate that. If
         # a specific build system requires something different, that driver can implement it
         opts = build.recipe.configure_options
+        script_name = build.recipe.config_script_name
         configure_env = runconfig.generate_env(opts.extra_cflags, opts.extra_cxxflags, opts.linker_flags)
         with env(configure_env):
             subprocess.run([f'echo Executing {self.name} configure:; ' \
@@ -72,7 +73,7 @@ class BuildSystemDriver:
                 'echo CXX=$CXX; echo CXXFLAGS=$CXXFLAGS; ' \
                 'echo LDFLAGS=$LDFLAGS'],
                            shell=True)
-            self._do_build_step(runconfig, build, opts, self._do_configure)
+            self._do_build_step(runconfig, build, opts, self._do_configure, script_name=script_name)
 
     def build(self, runconfig:RunConfig, build:ProjectBuild, numjobs:int=1):
         '''

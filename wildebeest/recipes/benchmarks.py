@@ -81,6 +81,13 @@ busybox_v1_33_1 = CreateProjectRecipe(git_remote='https://github.com/mirror/busy
     configure_options=BuildStepOptions(override_step=do_make_defconfig),
 )
 
+openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/openssl.git',
+    name='openssl_1_1_1k',
+    git_head='OpenSSL_1_1_1k',
+    build_system='make',
+    config_script_name='config',
+)
+
 benchmark_recipes = [
     coreutils_v8_32,
     binutils_v2_36,

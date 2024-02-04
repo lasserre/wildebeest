@@ -9,14 +9,13 @@ class MakeDriver(BuildSystemDriver):
     def __init__(self) -> None:
         super().__init__('make')
 
-    def _do_configure(self, runconfig: RunConfig, build: ProjectBuild):
+    def _do_configure(self, runconfig: RunConfig, build: ProjectBuild, script_name:str='configure'):
         configure_opts = build.recipe.configure_options.cmdline_options
 
-        # TODO: TEST THIS - IS MY PATH RIGHT HERE??
-        # subprocess.run(['echo CALEB TEST: PATH=$PATH'], shell=True)
-        configure = build.project_root/'configure' if build.recipe.supports_out_of_tree else './configure'
+        configure = build.project_root/f'{script_name}' if build.recipe.supports_out_of_tree else f'./{script_name}'
         print(f'$CC="{os.environ["CC"]}"')
         print(f'Running: {" ".join([str(x) for x in [configure, *configure_opts]])}')
+
         subprocess.run([configure, *configure_opts], shell=True)
 
     def _do_build(self, runconfig: RunConfig, build:ProjectBuild, numjobs:int = 1):
