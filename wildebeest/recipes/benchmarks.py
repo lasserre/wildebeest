@@ -204,6 +204,8 @@ libtomcrypt_v1_18_2 = CreateProjectRecipe(git_remote='https://github.com/libtom/
     # looks like no configure step, just "make"
     configure_options=BuildStepOptions(override_step=do_nothing),
     build_options=BuildStepOptions(cmdline_options=['-f', 'makefile.shared']),  # build shared library instead of just static one
+    out_of_tree=False,
+    apt_deps = ['libtool-bin'],
 )
 
 nano_v5_5 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/nano/nano-5.5.tar.xz',
@@ -225,7 +227,8 @@ def cd_to_unix(rc, build):
     import os
     os.chdir('unix')
 
-putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/archive/refs/tags/0.74.tar.gz',
+# putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/archive/refs/tags/0.74.tar.gz',
+putty_v0_74 = CreateProjectRecipe(git_remote='https://the.earth.li/~sgtatham/putty/0.74/putty-0.74.tar.gz',
     name='putty-0.74',
     build_system='make',
     source_languages=[LANG_C],
@@ -246,6 +249,27 @@ sg3_utils_v1_45 = CreateProjectRecipe(git_remote='https://github.com/hreinecke/s
     name='sg3-utils-1.45',
     build_system='make',
     source_languages=[LANG_C],
+)
+
+sqlite_v3_34_1 = CreateProjectRecipe(git_remote='https://github.com/sqlite/sqlite/archive/refs/tags/version-3.34.1.tar.gz',
+    name='sqlite-3.34.1',
+    build_system='make',
+    source_languages=[LANG_C],
+    apt_deps = ['tcl'],
+)
+
+def pre_config_usbutils(rc:RunConfig, build:ProjectBuild, **kwargs):
+    import subprocess
+    rc = subprocess.run('autoreconf --install --symlink', shell=True).returncode
+    if rc != 0:
+        raise Exception(f'autoreconf failed with return code {rc}')
+
+usbutils_v013 = CreateProjectRecipe(git_remote='https://github.com/gregkh/usbutils/archive/refs/tags/v013.tar.gz',
+    name='usbutils-v013',
+    build_system='make',
+    source_languages=[LANG_C],
+    apt_deps = ['libusb-dev'],
+    configure_options=BuildStepOptions(preprocess=pre_config_usbutils),
 )
 
 benchmark_recipes = [
@@ -277,6 +301,7 @@ benchmark_recipes = [
     putty_v0_74,
     sed_v4_8,
     sg3_utils_v1_45,
+    sqlite_v3_34_1,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
@@ -311,4 +336,5 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     putty_v0_74().name,
     sed_v4_8().name,
     sg3_utils_v1_45().name,
+    sqlite_v3_34_1().name,
 ])
