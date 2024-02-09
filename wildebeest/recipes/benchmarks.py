@@ -290,7 +290,7 @@ wget_v1_21_1 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/w
     name='wget-1.21.1',
     build_system='make',
     source_languages=[LANG_C],
-    apt_deps = ['pkg-config', 'gnutls-bin'],
+    apt_deps = ['pkg-config', 'libgnutls28-dev'],
 )
 
 zlib_v1_2_13 = CreateProjectRecipe(git_remote='https://github.com/madler/zlib/archive/refs/tags/v1.2.13.tar.gz',
