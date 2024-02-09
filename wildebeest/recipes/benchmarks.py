@@ -158,9 +158,10 @@ indent_v2_2_12 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu
     name='indent-2.2.12',
     build_system='make',
     source_languages=[LANG_C],
-    configure_options=BuildStepOptions(cmdline_options=['-Wno-error']),
+    configure_options=BuildStepOptions(cmdline_options=['--localedir=/usr/share/locale/']),
     no_cc_wrapper=True,
     out_of_tree=False,
+    apt_deps = ['build-essential'],
 )
 
 inetutils_v2_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/inetutils/inetutils-2.0.tar.gz',
