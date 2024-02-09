@@ -268,6 +268,7 @@ usbutils_v013 = CreateProjectRecipe(git_remote='https://github.com/gregkh/usbuti
     source_languages=[LANG_C],
     apt_deps = ['libusb-dev'],
     configure_options=BuildStepOptions(preprocess=pre_config_usbutils),
+    out_of_tree=False,
 )
 
 def pre_config_util_linux(rc:RunConfig, build:ProjectBuild, **kwargs):
@@ -282,6 +283,19 @@ util_linux_v2_36_1 = CreateProjectRecipe(git_remote='https://github.com/util-lin
     source_languages=[LANG_C],
     apt_deps = ['libtool', 'gettext'],
     configure_options=BuildStepOptions(preprocess=pre_config_util_linux),
+    out_of_tree=False,
+)
+
+wget_v1_21_1 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/wget/wget-1.21.1.tar.gz',
+    name='wget-1.21.1',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+zlib_v1_2_13 = CreateProjectRecipe(git_remote='https://github.com/madler/zlib/archive/refs/tags/v1.2.13.tar.gz',
+    name='zlib-1.2.13',
+    build_system='make',
+    source_languages=[LANG_C],
 )
 
 benchmark_recipes = [
@@ -316,6 +330,8 @@ benchmark_recipes = [
     sqlite_v3_34_1,
     usbutils_v013,
     util_linux_v2_36_1,
+    wget_v1_21_1,
+    zlib_v1_2_13,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
@@ -353,4 +369,6 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     sqlite_v3_34_1().name,
     usbutils_v013().name,
     util_linux_v2_36_1().name,
+    wget_v1_21_1().name,
+    zlib_v1_2_13().name,
 ])
