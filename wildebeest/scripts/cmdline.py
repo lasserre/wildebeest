@@ -13,7 +13,7 @@ from rich.table import Table
 from wildebeest import Experiment, ExpState
 from wildebeest.jobrunner import Job, run_job
 from wildebeest import *
-from wildebeest.defaultbuildalgorithm import build, docker_run, docker_attach_to_bash, docker_cleanup
+from wildebeest.defaultbuildalgorithm import *
 from wildebeest.run import RunStatus
 
 # Other wdb command line examples/ideas:
@@ -152,9 +152,17 @@ def cmd_docker_shell(exp:Experiment, run_number:int):
         print(f'Run number {run_number} does not exist in experiment at {exp.exp_folder}')
         return 1
 
-    docker_run(matching_runs[0])
-    docker_attach_to_bash(matching_runs[0])
-    docker_cleanup(matching_runs[0], {}, {})
+    run = matching_runs[0]
+
+    if not docker_is_running(run):
+        if docker_container_exists(run):
+            print(f'Restarting existing container...')
+            docker_restart(run)
+        else:
+            print(f'Starting up the container...')
+            docker_run(run)
+    docker_attach_to_bash(run)
+    docker_cleanup(run, {}, {})
 
     return 0
 

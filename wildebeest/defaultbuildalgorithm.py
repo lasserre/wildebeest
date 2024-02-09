@@ -228,6 +228,21 @@ def docker_run(run:Run):
     if p.returncode != 0:
         raise Exception(f'docker run failed for run {run.number} [return code {p.returncode}]')
 
+def docker_restart(run:Run):
+    '''Restarts the container for this run'''
+    rcode = subprocess.run(f'docker restart {run.container_name}', shell=True).returncode
+    if rcode != 0:
+        raise Exception(f'docker restart failed for run {run.number} [return code {rcode}] - container {run.container_name}')
+
+def docker_is_running(run:Run) -> bool:
+    '''True if the docker container for this run is running'''
+    grep_rcode = subprocess.run(f'docker ps | grep {run.container_name} > /dev/null', shell=True).returncode
+    return bool(grep_rcode == 0)
+
+def docker_container_exists(run:Run) -> bool:
+    grep_rcode = subprocess.run(f'docker container ls -a | grep {run.container_name} > /dev/null', shell=True).returncode
+    return bool(grep_rcode == 0)
+
 def docker_attach_to_bash(run:Run):
     username = getpass.getuser()
     docker_exec_cmd = ['docker', 'exec', '--user', username, '-it', run.container_name, 'bash']

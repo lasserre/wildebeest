@@ -153,15 +153,15 @@ imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/Image
     out_of_tree=False,
 )
 
-# we could try -std=c90? first try others...
 indent_v2_2_12 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/indent/indent-2.2.12.tar.xz',
     name='indent-2.2.12',
     build_system='make',
     source_languages=[LANG_C],
-    configure_options=BuildStepOptions(cmdline_options=['--localedir=/usr/share/locale/']),
+    # their configure system is broken - configure should have defined HAVE_LOCALE_H
+    configure_options=BuildStepOptions(cmdline_options=['CFLAGS="$CFLAGS -DHAVE_LOCALE_H"']),
     no_cc_wrapper=True,
     out_of_tree=False,
-    apt_deps = ['build-essential'],
+    apt_deps = ['build-essential', 'gperf', 'gettext'],
 )
 
 inetutils_v2_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/inetutils/inetutils-2.0.tar.gz',
