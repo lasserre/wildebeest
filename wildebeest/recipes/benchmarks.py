@@ -220,19 +220,17 @@ openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/open
     apt_deps = [],
 )
 
-def cd_to_folder(rel_folder:str):
-    def do_cd_to_folder(rc, build):
-        import os
-        os.chdir(rel_folder)
-    return do_cd_to_folder
+def cd_to_unix(rc, build):
+    import os
+    os.chdir('unix')
 
 putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/archive/refs/tags/0.74.tar.gz',
     name='putty-0.74',
     build_system='make',
     source_languages=[LANG_C],
-    configure_options=BuildStepOptions(preprocess=cd_to_folder('unix')),
-    build_options=BuildStepOptions(preprocess=cd_to_folder('unix')),
-    clean_options=BuildStepOptions(preprocess=cd_to_folder('unix')),
+    configure_options=BuildStepOptions(preprocess=cd_to_unix),
+    build_options=BuildStepOptions(preprocess=cd_to_unix),
+    clean_options=BuildStepOptions(preprocess=cd_to_unix),
     no_cc_wrapper=True,
     out_of_tree=False,
 )
