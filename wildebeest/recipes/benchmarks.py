@@ -144,8 +144,6 @@ gzip_v1_10 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gzi
     source_languages=[LANG_C],
 )
 
-# todo: more here...
-
 imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.0.11-0.tar.gz',
     name='imagemagick-v7.0.11-0',
     build_system='make',
@@ -155,6 +153,57 @@ imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/Image
     out_of_tree=False,
 )
 
+indent_v2_2_12 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/indent/indent-2.2.12.tar.xz',
+    name='indent-2.2.12',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+inetutils_v2_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/inetutils/inetutils-2.0.tar.gz',
+    name='inetutils_v2.0',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+less_v563 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/less/less-563.tar.gz',
+    name='less-563',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+gmp_v6_2_1 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/gmp/gmp-6.2.1.tar.xz',
+    name='gmp-6.2.1',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+libmicrohttpd_v0_9_72 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/libmicrohttpd/libmicrohttpd-0.9.72.tar.gz',
+    name='libmicrohttpd-0.9.72',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+libpng_v1_6_37 = CreateProjectRecipe(git_remote='https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.37.tar.gz',
+    name='libpng-1.6.37',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+libtomcrypt_v1_18_2 = CreateProjectRecipe(git_remote='https://github.com/libtom/libtomcrypt/archive/refs/tags/v1.18.2.tar.gz',
+    name='libtomcrypt-1.18.2',
+    build_system='make',
+    source_languages=[LANG_C],
+    # looks like no configure step, just "make"
+    configure_options=BuildStepOptions(override_step=lambda rc, build: None),
+    build_options=BuildStepOptions(cmdline_options=['-f', 'makefile.shared']),  # build shared library instead of just static one
+)
+
+nano_v5_5 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/nano/nano-5.5.tar.xz',
+    name='nano-5.5',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
 openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/openssl.git',
     name='openssl_1_1_1k',
     git_head='OpenSSL_1_1_1k',
@@ -162,6 +211,12 @@ openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/open
     source_languages=[LANG_C],
     config_script_name='config',
     apt_deps = [],
+)
+
+putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/archive/refs/tags/0.74.tar.gz',
+    name='putty-0.74',
+    build_system='make',
+    source_languages=[LANG_C],
 )
 
 benchmark_recipes = [
@@ -180,9 +235,17 @@ benchmark_recipes = [
     grep_v3_6,
     gtypist_v2_9,
     gzip_v1_10,
-
     imagemagick_v7_0_11_0,
+    indent_v2_2_12,
+    inetutils_v2_0,
+    less_v563,
+    gmp_v6_2_1,
+    libmicrohttpd_v0_9_72,
+    libpng_v1_6_37,
+    libtomcrypt_v1_18_2,
+    nano_v5_5,
     openssl_1_1_1k,
+    putty_v0_74,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
@@ -204,6 +267,15 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     grep_v3_6().name,
     gtypist_v2_9().name,
     gzip_v1_10().name,
-
     imagemagick_v7_0_11_0().name,
+    indent_v2_2_12().name,
+    inetutils_v2_0().name,
+    less_v563().name,
+    gmp_v6_2_1().name,
+    libmicrohttpd_v0_9_72().name,
+    libpng_v1_6_37().name,
+    libtomcrypt_v1_18_2().name,
+    nano_v5_5().name,
+    openssl_1_1_1k().name,
+    putty_v0_74().name,
 ])

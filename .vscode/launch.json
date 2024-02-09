@@ -12,8 +12,8 @@
             "justMyCode": true
         },
         {
-            "name": "binutils",
-            "type": "python",
+            "name": "openssl",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
@@ -25,13 +25,13 @@
                 "--no-pre"
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/exp_builds/binutils.exp",
+            "cwd": "/home/cls0027/exp_builds/openssl.exp",
             "console": "integratedTerminal",
             // "justMyCode": false
         },
         {
-            "name": "ffmpeg_O0",
-            "type": "python",
+            "name": "busybox",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
@@ -43,7 +43,7 @@
                 "--no-pre"
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/test_builds/ffmpeg_O0.exp",
+            "cwd": "/home/cls0027/exp_builds/busybox.exp",
             "console": "integratedTerminal",
             // "justMyCode": false
         },
