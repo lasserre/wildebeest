@@ -153,10 +153,14 @@ imagemagick_v7_0_11_0 = CreateProjectRecipe(git_remote='https://github.com/Image
     out_of_tree=False,
 )
 
+# we could try -std=c90? first try others...
 indent_v2_2_12 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/indent/indent-2.2.12.tar.xz',
     name='indent-2.2.12',
     build_system='make',
     source_languages=[LANG_C],
+    configure_options=BuildStepOptions(cmdline_options=['-Wno-error']),
+    no_cc_wrapper=True,
+    out_of_tree=False,
 )
 
 inetutils_v2_0 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/inetutils/inetutils-2.0.tar.gz',
@@ -189,12 +193,15 @@ libpng_v1_6_37 = CreateProjectRecipe(git_remote='https://github.com/pnggroup/lib
     source_languages=[LANG_C],
 )
 
+def do_nothing(rc, build):
+    pass
+
 libtomcrypt_v1_18_2 = CreateProjectRecipe(git_remote='https://github.com/libtom/libtomcrypt/archive/refs/tags/v1.18.2.tar.gz',
     name='libtomcrypt-1.18.2',
     build_system='make',
     source_languages=[LANG_C],
     # looks like no configure step, just "make"
-    configure_options=BuildStepOptions(override_step=lambda rc, build: None),
+    configure_options=BuildStepOptions(override_step=do_nothing),
     build_options=BuildStepOptions(cmdline_options=['-f', 'makefile.shared']),  # build shared library instead of just static one
 )
 
@@ -217,6 +224,9 @@ putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/ar
     name='putty-0.74',
     build_system='make',
     source_languages=[LANG_C],
+    config_script_name='unix/configure',
+    no_cc_wrapper=True,
+    out_of_tree=False,
 )
 
 benchmark_recipes = [
