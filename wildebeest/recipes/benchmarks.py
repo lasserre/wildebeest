@@ -194,7 +194,7 @@ libpng_v1_6_37 = CreateProjectRecipe(git_remote='https://github.com/pnggroup/lib
     source_languages=[LANG_C],
 )
 
-def do_nothing(rc, build):
+def do_nothing(rc, build, **kwargs):
     pass
 
 libtomcrypt_v1_18_2 = CreateProjectRecipe(git_remote='https://github.com/libtom/libtomcrypt/archive/refs/tags/v1.18.2.tar.gz',
@@ -236,6 +236,18 @@ putty_v0_74 = CreateProjectRecipe(git_remote='https://github.com/github/putty/ar
     out_of_tree=False,
 )
 
+sed_v4_8 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/sed/sed-4.8.tar.xz',
+    name='sed-4.8',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
+sg3_utils_v1_45 = CreateProjectRecipe(git_remote='https://github.com/hreinecke/sg3_utils/archive/refs/tags/v1.45.tar.gz',
+    name='sg3-utils-1.45',
+    build_system='make',
+    source_languages=[LANG_C],
+)
+
 benchmark_recipes = [
     binutils_v2_36,
     bash_v5_2,
@@ -263,6 +275,8 @@ benchmark_recipes = [
     nano_v5_5,
     openssl_1_1_1k,
     putty_v0_74,
+    sed_v4_8,
+    sg3_utils_v1_45,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
@@ -295,4 +309,6 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     nano_v5_5().name,
     openssl_1_1_1k().name,
     putty_v0_74().name,
+    sed_v4_8().name,
+    sg3_utils_v1_45().name,
 ])
