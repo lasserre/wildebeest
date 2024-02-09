@@ -1,3 +1,4 @@
+import subprocess
 from wildebeest.sourcelanguages import LANG_C, LANG_CPP
 from . import CreateProjectRecipe
 
@@ -5,7 +6,6 @@ from ..projectrecipe import BuildStepOptions
 from .. import RunConfig, ProjectBuild, ProjectList
 
 def pre_config_coreutils(rc:RunConfig, build:ProjectBuild):
-    import subprocess
     p = subprocess.run(['./bootstrap'], shell=True)
     if p.returncode != 0:
         raise Exception(f'./bootstrap script failed with code {p.returncode}')
@@ -59,7 +59,6 @@ bison_v3_7 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/bis
 )
 
 def do_make_defconfig(runconfig: RunConfig, build: ProjectBuild, **kwargs):
-    import subprocess
     print(f'Running make defconfig...')
     if runconfig.opt_level == '-O0':
         config_file = build.build_folder/'.config'
@@ -259,7 +258,6 @@ sqlite_v3_34_1 = CreateProjectRecipe(git_remote='https://github.com/sqlite/sqlit
 )
 
 def pre_config_usbutils(rc:RunConfig, build:ProjectBuild, **kwargs):
-    import subprocess
     rc = subprocess.run('autoreconf --install --symlink', shell=True).returncode
     if rc != 0:
         raise Exception(f'autoreconf failed with return code {rc}')
@@ -270,6 +268,20 @@ usbutils_v013 = CreateProjectRecipe(git_remote='https://github.com/gregkh/usbuti
     source_languages=[LANG_C],
     apt_deps = ['libusb-dev'],
     configure_options=BuildStepOptions(preprocess=pre_config_usbutils),
+)
+
+def pre_config_util_linux(rc:RunConfig, build:ProjectBuild, **kwargs):
+    # ./autogen.sh && ./configure && make
+    rc = subprocess.run('./autogen.sh', shell=True).returncode
+    if rc != 0:
+        raise Exception(f'./autogen.sh failed with return code {rc}')
+
+util_linux_v2_36_1 = CreateProjectRecipe(git_remote='https://github.com/util-linux/util-linux/archive/refs/tags/v2.36.1.tar.gz',
+    name='util-linux-2.36.1',
+    build_system='make',
+    source_languages=[LANG_C],
+    apt_deps = ['libtool', 'gettext'],
+    configure_options=BuildStepOptions(preprocess=pre_config_util_linux),
 )
 
 benchmark_recipes = [
@@ -302,6 +314,8 @@ benchmark_recipes = [
     sed_v4_8,
     sg3_utils_v1_45,
     sqlite_v3_34_1,
+    usbutils_v013,
+    util_linux_v2_36_1,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
@@ -337,4 +351,6 @@ stateformer33 = ProjectList('stateformer33', lambda: [
     sed_v4_8().name,
     sg3_utils_v1_45().name,
     sqlite_v3_34_1().name,
+    usbutils_v013().name,
+    util_linux_v2_36_1().name,
 ])
