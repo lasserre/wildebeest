@@ -266,7 +266,7 @@ usbutils_v013 = CreateProjectRecipe(git_remote='https://github.com/gregkh/usbuti
     name='usbutils-v013',
     build_system='make',
     source_languages=[LANG_C],
-    apt_deps = ['libusb-dev'],
+    apt_deps = ['libusb-1.0-0-dev', 'libglib2.0-dev', 'libtool', 'libudev-dev'],
     configure_options=BuildStepOptions(preprocess=pre_config_usbutils),
     out_of_tree=False,
 )
@@ -281,15 +281,16 @@ util_linux_v2_36_1 = CreateProjectRecipe(git_remote='https://github.com/util-lin
     name='util-linux-2.36.1',
     build_system='make',
     source_languages=[LANG_C],
-    apt_deps = ['libtool', 'gettext'],
     configure_options=BuildStepOptions(preprocess=pre_config_util_linux),
     out_of_tree=False,
+    apt_deps = ['libtool', 'gettext', 'bison', 'autopoint', 'pkg-config'],
 )
 
 wget_v1_21_1 = CreateProjectRecipe(git_remote='https://mirrors.ibiblio.org/gnu/wget/wget-1.21.1.tar.gz',
     name='wget-1.21.1',
     build_system='make',
     source_languages=[LANG_C],
+    apt_deps = ['pkg-config', 'gnutls-bin'],
 )
 
 zlib_v1_2_13 = CreateProjectRecipe(git_remote='https://github.com/madler/zlib/archive/refs/tags/v1.2.13.tar.gz',
