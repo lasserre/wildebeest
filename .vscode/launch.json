@@ -12,20 +12,20 @@
             "justMyCode": true
         },
         {
-            "name": "openssl",
+            "name": "dragon build",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "program": "/home/cls0027/dev/datatype-recovery-experiments/datatype_recovery/dragon_cmdline.py",
             "args": [
-                "run",
-                "-f",
-                "--from",
-                "extract_debuginfo_labels",
-                "--debug",
-                "--no-pre"
+                "build",
+                "--drop-comp",
+                "--inmem",
+                "trainset_astera_5hops_nocomp",
+                "5",
+                "/home/cls0027/exp_builds/astera.exp/rundata/run1"
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/exp_builds/openssl.exp",
+            "cwd": "/home/cls0027",
             "console": "integratedTerminal",
             // "justMyCode": false
         },

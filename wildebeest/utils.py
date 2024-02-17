@@ -146,3 +146,13 @@ def is_port_open(port:int, host:str='localhost') -> bool:
     result = sock.connect_ex((host, port))
     sock.close()
     return result == 0
+
+def pretty_memsize_str(num_bytes:int, num_dec_places:int=2) -> str:
+    if num_bytes > 2**30:
+        return f'{num_bytes/2**30:,.{num_dec_places}f} GB'
+    elif num_bytes > 2**20:
+        return f'{num_bytes/2**20:,.{num_dec_places}f} MB'
+    elif num_bytes > 2**10:
+        return f'{num_bytes/2**10:,.{num_dec_places}f} KB'
+    else:
+        return f'{num_bytes:,.{num_dec_places}f} B'
