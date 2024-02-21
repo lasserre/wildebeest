@@ -12,6 +12,25 @@
             "justMyCode": true
         },
         {
+            "name": "dragon create",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/home/cls0027/dev/datatype-recovery-experiments/datatype_recovery/dragon_cmdline.py",
+            "args": [
+                "create",
+                "dragon_test.pt",
+                "DRAGON",
+                "-p",
+                "max_seq_len=4",
+                "num_hops=4",
+                "include_component=False",
+            ],
+            // "args": ["run", "-f", "--debug"],
+            "cwd": "/home/cls0027/trained_models",
+            "console": "integratedTerminal",
+            // "justMyCode": false
+        },
+        {
             "name": "dragon build",
             "type": "debugpy",
             "request": "launch",
@@ -20,12 +39,12 @@
                 "build",
                 "--drop-comp",
                 "--inmem",
-                "trainset_astera_5hops_nocomp",
+                "coreutils_full_5hops",
                 "5",
-                "/home/cls0027/exp_builds/astera.exp/rundata/run1"
+                "/home/cls0027/exp_builds/coreutils.exp/rundata/run1"
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027",
+            "cwd": "/home/cls0027/datasets",
             "console": "integratedTerminal",
             // "justMyCode": false
         },

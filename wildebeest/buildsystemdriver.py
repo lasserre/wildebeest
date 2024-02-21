@@ -119,7 +119,7 @@ class BuildSystemDriver:
         if p.returncode != 0:
             raise Exception(f'{self.name} build failed with return code {p.returncode}')
 
-    def _do_configure(self, runconfig:RunConfig, build:ProjectBuild):
+    def _do_configure(self, runconfig:RunConfig, build:ProjectBuild, **kwargs):
         '''
         Performs the build-system-specific configure step using the given options.
 
