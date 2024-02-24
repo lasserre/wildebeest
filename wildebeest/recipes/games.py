@@ -21,7 +21,8 @@ cpp_game_recipes = [
 c_game_recipes = [
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/tek256/astera.git',
         source_languages=[LANG_C],
-        apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev', 'xorg-dev',
+        apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev',
+            'xorg-dev:all',     # use :all to prevent substituting :apt_arch
             'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
     ),
 ]
