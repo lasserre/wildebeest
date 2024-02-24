@@ -9,8 +9,8 @@ class CmakeDriver(BuildSystemDriver):
 
     def _do_configure(self, runconfig: RunConfig, build: ProjectBuild, **kwargs):
         configure_opts = build.recipe.configure_options.cmdline_options
-        # I think the configure options (e.g. -Dxyz) have to come before the path
-        subprocess.run(['cmake', *configure_opts, build.project_root])
+        print(f'cmake commandline: {" ".join(["cmake", build.project_root, *configure_opts])}')
+        subprocess.run(['cmake', build.project_root, *configure_opts])
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
