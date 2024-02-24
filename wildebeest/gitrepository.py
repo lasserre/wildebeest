@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import shutil
+import time
 
 from .utils import cd
 
@@ -70,11 +71,26 @@ class GitRepository:
             source_folder = self.project_root.parent    # source/ folder is parent of project_root
             self.project_root.mkdir(parents=True)
 
+            unpack_folder = (source_folder/f'{self.project_root.name}_unpack').absolute()
+            unpack_folder.mkdir()
+
+            # this is a relative path, so save absolute before we chdir
+            proj_root = self.project_root.absolute()
+
             # download and unpack in parent 'source' folder
-            with cd(source_folder):
+            with cd(unpack_folder):
                 subprocess.run(['wget', self.git_remote])
                 tar_name = self.git_remote.split('/')[-1]
-                subprocess.run(['tar', 'xvf', tar_name, '-C', self.project_root])
+                subprocess.run(['tar', 'xvf', tar_name])
+
+                untarred_folder = [x for x in Path.cwd().iterdir() if x.name != tar_name][0]
+                untarred_folder.rename(proj_root)   # move out of here to source/ folder
+
+                # move tar file up a level
+                tar_file = Path(tar_name)
+                tar_file.rename(unpack_folder.parent/tar_file.name)
+
+            unpack_folder.rmdir()   # clean up unpack folder
         else:
             # normal git repo
             subprocess.run(['git', 'clone', self.git_remote, str(self.project_root)])

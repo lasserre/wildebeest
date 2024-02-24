@@ -49,20 +49,18 @@
             // "justMyCode": false
         },
         {
-            "name": "busybox",
+            "name": "stateformer",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
                 "run",
                 "-f",
-                "--from",
-                "extract_debuginfo_labels",
-                "--debug",
-                "--no-pre"
+                "-j10",
+                "-b8",
             ],
             // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/exp_builds/busybox.exp",
+            "cwd": "/home/cls0027/exp_builds/stateformer33.exp",
             "console": "integratedTerminal",
             // "justMyCode": false
         },
