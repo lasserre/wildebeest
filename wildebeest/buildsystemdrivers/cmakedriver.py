@@ -13,7 +13,7 @@ class CmakeDriver(BuildSystemDriver):
         cmdline = ["cmake", build.project_root, *configure_opts]
 
         print(f'cmake commandline: {" ".join(str(x) for x in cmdline)}')
-        subprocess.run(cmdline)
+        subprocess.run(" ".join(str(x) for x in cmdline), shell=True)
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
