@@ -22,7 +22,12 @@ cpp_game_recipes = [
 c_game_recipes = [
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/tek256/astera.git',
         source_languages=[LANG_C],
-        configure_options=BuildStepOptions(cmdline_options=['-DASTERA_HARDEN_ENGINE=OFF']),
+        configure_options=BuildStepOptions(cmdline_options=[
+            # CLS: I think this is a bug in their CMakeLists.txt, but you have to have Release enabled
+            # in order to change the default of ASTERA_HARDEN_ENGINE (which defaults to ON? doesn't make sense for debug builds)
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DASTERA_HARDEN_ENGINE=OFF'
+        ]),
         apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev',
             'xorg-dev:all',     # use :all to prevent substituting :apt_arch
             'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
