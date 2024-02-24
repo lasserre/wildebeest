@@ -121,6 +121,8 @@ class RunConfig:
         self.opt_level:str = '-O0'
         '''Optimization level (-O0, -O1, -O2, -O3, -Os, -Ofast, -Oz, or -Og)'''
 
+        self.apt_arch:str = ''  # override for cross-compilation (e.g. "arm64" will change apt install libxyz to apt install libxyz:arm64)
+
         self.strip_executable:str = 'strip'     # override for cross-compilation, (e.g. aarch64-linux-gnu-strip)
         '''Path to the strip executable'''
 
@@ -138,6 +140,9 @@ class RunConfig:
 
         self.env_vars:Dict[str,str] = {}
         '''Additional environment variables to use for this run'''
+
+        self.new_params:Dict[str,str] = {}
+        '''Add new parameters here so we don't break RunConfig for existing experiments'''
 
     @property
     def c_options(self) -> CompilationSettings:

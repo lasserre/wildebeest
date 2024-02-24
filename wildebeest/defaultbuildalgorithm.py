@@ -124,7 +124,7 @@ class TemporaryDockerfile:
     def __exit__(self, etype, value, traceback):
         self.tdref.__exit__(etype, value, traceback)
 
-def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
+def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe, other_apt_archs:List[str]):
     if docker_image_exists(recipe.docker_image_name(exp.name)):
         return
 
@@ -136,7 +136,13 @@ def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe):
         dockerfile_lines.append('RUN rm -rf /wrapper_bin && hash -r')
 
     if recipe.apt_deps:
-        dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(recipe.apt_deps)}')
+        apt_deps = recipe.apt_deps.copy()
+        if other_apt_archs:
+            for arch in other_apt_archs:
+                apt_deps.extend([f'{dep}:{arch}' for dep in apt_deps])
+
+        # CLS: try installing deps for all archs we want to target in the same docker image
+        dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(apt_deps)}')
 
     with TemporaryDockerfile(dockerfile_lines) as tdf:
         rcode = tdf.docker_build(recipe.docker_image_name(exp.name))
@@ -186,8 +192,10 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
             if p.returncode != 0:
                 raise Exception(f'docker build failed to create experiment image "{exp_docker_image}" with return code {p.returncode}')
 
+    other_apt_archs = list(set(rc.apt_arch for rc in exp.runconfigs if rc.apt_arch))
+
     for recipe in exp.projectlist:
-        create_recipe_docker_image(exp, recipe)
+        create_recipe_docker_image(exp, recipe, other_apt_archs)
 
 def docker_container_exists(run:Run) -> bool:
     outstr = subprocess.check_output(['docker', 'container', 'ls', '-a']).decode('utf-8')
