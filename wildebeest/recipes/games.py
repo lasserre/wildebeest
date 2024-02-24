@@ -1,6 +1,7 @@
 from wildebeest.sourcelanguages import LANG_C, LANG_CPP
 from . import CreateProjectRecipe
 from .. import ProjectList
+from ..projectrecipe import BuildStepOptions
 from typing import List
 
 # this wouldn't work because raceintospace is an instance, not a callable!
@@ -21,6 +22,7 @@ cpp_game_recipes = [
 c_game_recipes = [
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/tek256/astera.git',
         source_languages=[LANG_C],
+        configure_options=BuildStepOptions(cmdline_options=['-DASTERA_HARDEN_ENGINE=OFF']),
         apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev',
             'xorg-dev:all',     # use :all to prevent substituting :apt_arch
             'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
