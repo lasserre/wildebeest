@@ -68,16 +68,13 @@ class GitRepository:
         if self.git_remote.endswith('.tar.gz') or self.git_remote.endswith('.tar.xz') or self.git_remote.endswith('.tar'):
             # download and unzip instead of clone
             source_folder = self.project_root.parent    # source/ folder is parent of project_root
-            source_folder.mkdir(parents=True)
+            self.project_root.mkdir(parents=True)
 
             # download and unpack in parent 'source' folder
             with cd(source_folder):
                 subprocess.run(['wget', self.git_remote])
                 tar_name = self.git_remote.split('/')[-1]
-                subprocess.run(['tar', 'xvf', tar_name])
-
-                untarred_folder = [x for x in Path.cwd().iterdir() if x.name != tar_name][0]
-                untarred_folder.rename(self.project_root)
+                subprocess.run(['tar', 'xvf', tar_name, '-C', self.project_root])
         else:
             # normal git repo
             subprocess.run(['git', 'clone', self.git_remote, str(self.project_root)])

@@ -356,7 +356,9 @@ def cmd_dashboard(exp_parent_folder:Path):
     table.add_column('Step Runtime')
     table.add_column('Total Runtime')
 
-    for exp_folder in sorted([x for x in exp_parent_folder.iterdir() if not x.is_file()]):
+    exp_folders = [exp_parent_folder] if Experiment.is_exp_folder(exp_parent_folder) else [x for x in exp_parent_folder.iterdir() if not x.is_file()]
+
+    for exp_folder in sorted(exp_folders):
         if not Experiment.is_exp_folder(exp_folder):
             return
         exp = Experiment.load_exp_from_yaml(exp_folder)
