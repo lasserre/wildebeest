@@ -49,15 +49,13 @@
             // "justMyCode": false
         },
         {
-            "name": "stateformer",
+            "name": "stateformer_db",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
-                "run",
-                "-f",
-                "-j10",
-                "-b8",
+                "dashboard",
+                "."
             ],
             // "args": ["run", "-f", "--debug"],
             "cwd": "/home/cls0027/exp_builds/stateformer33.exp",

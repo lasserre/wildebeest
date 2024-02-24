@@ -256,7 +256,7 @@ def calc_total_completed_runtime(r:'Run', step_rt:timedelta=None) -> timedelta:
     all_runtimes = list(r.step_runtimes.values())
     if step_rt:
         all_runtimes.append(step_rt)
-    all_steps_rt = all_runtimes[0]
+    all_steps_rt = all_runtimes[0] if all_runtimes else timedelta(days=0, seconds=0)
     for x in all_runtimes[1:]:
         all_steps_rt += x
     all_steps_rt = timedelta(days=all_steps_rt.days, seconds=all_steps_rt.seconds)  # remove subsecond precision
@@ -362,7 +362,7 @@ def cmd_dashboard(exp_parent_folder:Path):
         if not Experiment.is_exp_folder(exp_folder):
             return
         exp = Experiment.load_exp_from_yaml(exp_folder)
-        for r in exp.load_runs():
+        for r in sorted(exp.load_runs(), key=lambda r: r.number):
             fmt = run_formats[r.status]
             if r.status == RunStatus.RUNNING:
                 step_rt, run_runtime = calc_inprogress_runtime(r)
@@ -375,8 +375,10 @@ def cmd_dashboard(exp_parent_folder:Path):
             step_color = '[yellow]' if r.status == RunStatus.RUNNING else ''
             overall_rt_color = '[blue]' if r.status == RunStatus.RUNNING else ''
 
+            folder_name = r.build.recipe.name if len(exp_folders) == 1 else exp_folder.name
+
             overall_rt = calc_total_completed_runtime(r, None if step_rt == '--' else step_rt)
-            table.add_row(exp_folder.name,
+            table.add_row(folder_name,
                         exp.name,
                         f'Run {r.number}',
                         r.config.name,

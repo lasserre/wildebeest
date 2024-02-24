@@ -196,6 +196,7 @@ class Run:
     def rebase(self, exp_root:Path):
         '''Rebase this Run onto the given experiment root path by
         fixing any absolute paths'''
+        exp_root = exp_root.absolute()      # use absolute path for rebase
         print(f'Rebasing {self.name} from {self.exp_root} to {exp_root}...any saved full paths may be obsolete')
         self.exp_root = exp_root
         self.build.rebase(exp_root)
