@@ -138,8 +138,8 @@ def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe, other_apt
     if recipe.apt_deps:
         apt_deps = recipe.apt_deps.copy()
         if other_apt_archs:
-            for arch in [x for x in other_apt_archs if not x.endswith(':all')]:
-                apt_deps.extend([f'{dep}:{arch}' for dep in apt_deps])
+            for arch in other_apt_archs:
+                apt_deps.extend([f'{dep}:{arch}' for dep in apt_deps if not dep.endswith(':all')])
 
         # CLS: try installing deps for all archs we want to target in the same docker image
         dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(apt_deps)}')
