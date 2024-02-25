@@ -49,13 +49,18 @@
             // "justMyCode": false
         },
         {
-            "name": "stateformer_db",
+            "name": "stateformer_putty",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
             "args": [
-                "dashboard",
-                "."
+                "run",
+                "26",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre",
+                "-f",
             ],
             // "args": ["run", "-f", "--debug"],
             "cwd": "/home/cls0027/exp_builds/stateformer33.exp",

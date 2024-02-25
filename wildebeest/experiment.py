@@ -230,7 +230,7 @@ class Experiment:
         Loads the serialized experiment runs from the runstate folder
         '''
         yaml_files = list(self.runstates_folder.glob('*.run.yaml'))
-        return [Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files]
+        return sorted([Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files], key=lambda r: r.number)
 
     def generate_workload_id(self) -> str:
         '''
