@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Dict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -74,7 +74,9 @@ class ProjectRecipe:
             build_options:BuildStepOptions=None,
             clean_options:BuildStepOptions=None,
             no_cc_wrapper:bool=False,
-            config_script_name:str='configure') -> None:
+            config_script_name:str='configure',
+            max_build_jobs:int=None,
+            new_params:Dict[str,str]=None) -> None:
         '''
         name: A unique name for this recipe that can be used to identify it later
         build_system: The name of the build system (driver) that this project uses
@@ -124,6 +126,10 @@ class ProjectRecipe:
         '''Set this flag if the project cannot be built successfully with the cc_wrapper technique'''
         self.config_script_name = config_script_name
         '''Override name of configure script (some projects use ./config)'''
+        self.max_build_jobs = max_build_jobs if max_build_jobs is not None else -1
+        '''Limit the max # of build jobs for this recipe (some projects don't build correctly with >1 job...yes, this is sad)'''
+        self.new_params:Dict[str,str] = {} if new_params is None else new_params
+        '''Add new parameters here so we don't break Recipe deserialization for existing experiments'''
 
     @property
     def git_reponame(self) -> str:

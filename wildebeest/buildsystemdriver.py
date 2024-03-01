@@ -80,6 +80,7 @@ class BuildSystemDriver:
         Builds the project directing the build system to use the specified number of jobs
         '''
         opts = build.recipe.build_options
+        numjobs = build.recipe.max_build_jobs if build.recipe.max_build_jobs > 0 else numjobs
         build_env = runconfig.generate_env(opts.extra_cflags, opts.extra_cxxflags, opts.linker_flags)
         with env(build_env):
             subprocess.run([f'echo Executing {self.name} build:; ' \
