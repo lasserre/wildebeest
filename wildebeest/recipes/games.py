@@ -8,6 +8,9 @@ from typing import List
 # raceintospace = ProjectRecipe('cmake', 'https://github.com/raceintospace/raceintospace',
     #     source_languages=[])
 
+def do_nothing(rc, build, **kwargs):
+    pass
+
 cpp_game_recipes = [
     # CLS: don't want to include C++ right now
     CreateProjectRecipe(build_system='cmake', git_remote='https://github.com/raceintospace/raceintospace',
@@ -31,6 +34,21 @@ c_game_recipes = [
         apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev',
             'xorg-dev:all',     # use :all to prevent substituting :apt_arch
             'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/angband/angband/releases/download/4.2.5/Angband-4.2.5.tar.gz',
+        build_system='make',
+        name='angband',
+        source_languages=[LANG_C],
+        apt_deps=['xorg-dev:all'],
+        out_of_tree=False,
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/id-Software/Quake-2.git',
+        build_system='make',
+        name='quake2',
+        source_languages=[LANG_C],
+        configure_options=BuildStepOptions(override_step=do_nothing),
     ),
 ]
 
