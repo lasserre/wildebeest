@@ -23,7 +23,11 @@ class MesonDriver(BuildSystemDriver):
         # https://mesonbuild.com/howtox.html#set-extra-compiler-and-linker-flags-from-the-outside-when-eg-building-distro-packages)
 
         cmdline = f'meson setup --buildtype=plain -Dc_args="{cflags}" -Dcpp_args="{cxxflags}" '\
-            f'{build.project_root} {" ".join(str(x) for x in cmdline_opts)}'
+            f'{build.project_root}'
+
+        if cmdline_opts:
+            cmdline += ' '
+            cmdline += ' '.join(str(x) for x in cmdline_opts)
 
         print(f'MESON CONFIGURE CMD: {cmdline}', flush=True)
         subprocess.run(cmdline, shell=True)
@@ -34,7 +38,13 @@ class MesonDriver(BuildSystemDriver):
         if build_opts:
             build_cmd.extend(str(x) for x in build_opts)
         print(f'MESON BUILD CMD: {" ".join(str(x) for x in build_cmd)}', flush=True)
-        self._do_subprocess_build(build, build_cmd)
+
+        # self._do_subprocess_build(build, build_cmd)
+
+        # NOTE: try with shell=True
+        p = subprocess.run(" ".join(str(x) for x in build_cmd), shell=True)
+        if p.returncode != 0:
+            raise Exception(f'{self.name} build failed with return code {p.returncode}')
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
         raise Exception(f'_do_clean not implemented for meson')
