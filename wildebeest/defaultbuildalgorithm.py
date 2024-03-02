@@ -251,8 +251,8 @@ def docker_container_exists(run:Run) -> bool:
     grep_rcode = subprocess.run(f'docker container ls -a | grep {run.container_name} > /dev/null', shell=True).returncode
     return bool(grep_rcode == 0)
 
-def docker_attach_to_bash(run:Run):
-    username = getpass.getuser()
+def docker_attach_to_bash(run:Run, as_root:bool=False):
+    username = 'root' if as_root else getpass.getuser()
     docker_exec_cmd = ['docker', 'exec', '--user', username, '-it', run.container_name, 'bash']
     p = subprocess.run(docker_exec_cmd)
     if p.returncode != 0:

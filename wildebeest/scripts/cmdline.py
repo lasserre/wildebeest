@@ -146,7 +146,7 @@ def cmd_run_exp(exp:Experiment, run_spec:str='', numjobs=1, force=False, run_fro
                    no_pre=no_pre, no_post=no_post, buildjobs=buildjobs,
                    debug_in_process=debug, debug_docker=debug_docker)
 
-def cmd_docker_shell(exp:Experiment, run_number:int):
+def cmd_docker_shell(exp:Experiment, run_number:int, run_as_root:bool):
     matching_runs = [r for r in exp.load_runs() if r.number == run_number]
     if not matching_runs:
         print(f'Run number {run_number} does not exist in experiment at {exp.exp_folder}')
@@ -161,7 +161,7 @@ def cmd_docker_shell(exp:Experiment, run_number:int):
         else:
             print(f'Starting up the container...')
             docker_run(run)
-    docker_attach_to_bash(run)
+    docker_attach_to_bash(run, run_as_root)
     docker_cleanup(run, {}, {})
 
     return 0
@@ -518,6 +518,7 @@ def main():
     # --- docker_shell: Interact with a run's docker container
     docker_p = subparsers.add_parser('docker_shell', help='Attach to an interactive bash shell for a run\'s docker container')
     docker_p.add_argument('run_number', help='The run number whose docker container should be launched', type=int)
+    docker_p.add_argument('--root', action='store_true', help='Attach to container as root')
 
     # job_cmds = run_p.add_subparsers(help='Run commands', dest='runcmd')
     # job_run = job_cmds.add_parser('run', help='Run a wildebeest job specified by the yaml file')
@@ -551,7 +552,7 @@ def main():
 
     # --- wdb docker_shell
     elif args.subcmd == 'docker_shell':
-        return cmd_docker_shell(get_experiment(args), args.run_number)
+        return cmd_docker_shell(get_experiment(args), args.run_number, args.root)
 
     # --- wdb ls
     elif args.subcmd == 'ls':

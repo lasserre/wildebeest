@@ -73,12 +73,17 @@ misc_c_recipes = [
         source_languages=[LANG_C],
     ),
 
-    CreateProjectRecipe(git_remote='https://github.com/videolan/vlc/archive/refs/tags/3.0.18.tar.gz',
+    CreateProjectRecipe(git_remote='https://github.com/videolan/vlc.git',
+        git_head='3.0.18',
         build_system='make',
         name='vlc',
         source_languages=[LANG_C],
-        apt_deps=['libtool', 'automake', 'autopoint', 'pkg-config', 'flex', 'bison', 'lua5.2'],
+        apt_deps=['libtool', 'automake', 'autopoint', 'gettext', 'pkg-config', 'flex', 'bison', 'lua5.2', 'liblua5.2-dev', 'libavcodec-dev',
+                'libavformat-dev', 'libswscale-dev', 'liba52-0.7.4-dev', 'xcb', 'libxcb1-dev', 'libxcb-shm0-dev', 'libxcb-composite0-dev',
+                'libxcb-xv0-dev', 'libxcb-randr0-dev', 'libasound2-dev'],
         # git g++ make libtool automake autopoint pkg-config flex bison lua5.2
         configure_options=BuildStepOptions(preprocess=run_bootstrap),
+        out_of_tree=False,
+        no_cc_wrapper=False,    # try the wrapper
     ),
 ]
