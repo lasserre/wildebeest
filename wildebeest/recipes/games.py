@@ -44,12 +44,13 @@ c_game_recipes = [
         out_of_tree=False,
     ),
 
-    CreateProjectRecipe(git_remote='https://github.com/id-Software/Quake-2.git',
-        build_system='make',
-        name='quake2',
-        source_languages=[LANG_C],
-        configure_options=BuildStepOptions(override_step=do_nothing),
-    ),
+    # this looks like alot of work to get actually building...
+    # CreateProjectRecipe(git_remote='https://github.com/id-Software/Quake-2.git',
+    #     build_system='make',
+    #     name='quake2',
+    #     source_languages=[LANG_C],
+    #     configure_options=BuildStepOptions(override_step=do_nothing),
+    # ),
 ]
 
 # def create_game_list() -> List[str]:

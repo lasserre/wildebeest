@@ -3,6 +3,12 @@ from . import CreateProjectRecipe
 from .. import ProjectList
 from ..projectrecipe import BuildStepOptions
 from typing import List
+import subprocess
+
+def run_autoreconf(rc, build, **kwargs):
+    p = subprocess.run('autoreconf -fiv', shell=True)
+    if p.returncode != 0:
+        raise Exception(f'autoreconf failed with return code {p.returncode}')
 
 misc_c_recipes = [
     # CLS: don't want to include C++ right now
@@ -37,5 +43,19 @@ misc_c_recipes = [
         source_languages=[LANG_C],
         apt_deps = ['freeglut3-dev', 'libxmu-dev', 'libxrandr-dev', 'libx11-dev'],
         no_cc_wrapper=False,    # try the wrapper
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/glfw/glfw/archive/refs/tags/3.4.tar.gz',
+        build_system='cmake',
+        name='glfw',
+        source_languages=[LANG_C],
+        apt_deps=['libwayland-dev', 'libxkbcommon-dev', 'xorg-dev:all'],
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/allinurl/goaccess/archive/refs/tags/v1.9.1.tar.gz',
+        build_system='make',
+        name='goaccess',
+        source_languages=[LANG_C],
+        configure_options=BuildStepOptions(cmdline_options=['--enable-utf8', '--enable-geoip=mmdb'], preprocess=run_autoreconf),
     ),
 ]
