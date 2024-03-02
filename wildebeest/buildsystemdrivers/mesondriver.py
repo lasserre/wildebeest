@@ -26,7 +26,9 @@ class MesonDriver(BuildSystemDriver):
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
-        build_cmd = ['meson', 'compile', '-j', str(numjobs), " ".join(str(x) for x in build_opts)]
+        build_cmd = ['meson', 'compile', '-j', str(numjobs)]
+        if build_opts:
+            build_cmd.extend(str(x) for x in build_opts)
         print(f'MESON BUILD CMD: {" ".join(str(x) for x in build_cmd)}', flush=True)
         self._do_subprocess_build(build, build_cmd)
 
