@@ -16,9 +16,13 @@ class MesonDriver(BuildSystemDriver):
         configure_env = runconfig.generate_env(config_opts.extra_cflags, config_opts.extra_cxxflags, config_opts.linker_flags)
         cflags = configure_env['CFLAGS']
         cxxflags = configure_env['CXXFLAGS']
-        ldflags = configure_env['LDFLAGS'] if 'LDFLAGS' in configure_env else ''
 
-        cmdline = f'meson setup --buildtype=plain -Dc_args="{cflags}" -Dcpp_args="{cxxflags}" -Dc_link_args="{ldflags}" -Dcpp_link_args="{ldflags}" '\
+        # NOTE: rely on LDFLAGS env var for linker flags since I ran into issues trying
+        # to supply -Dc_link_args="" ...I think it overwrote needed flags instead of appending
+        # (untested since I'm not using linker flags right now, but I think it will work based on:
+        # https://mesonbuild.com/howtox.html#set-extra-compiler-and-linker-flags-from-the-outside-when-eg-building-distro-packages)
+
+        cmdline = f'meson setup --buildtype=plain -Dc_args="{cflags}" -Dcpp_args="{cxxflags}" '\
             f'{build.project_root} {" ".join(str(x) for x in cmdline_opts)}'
 
         print(f'MESON CONFIGURE CMD: {cmdline}', flush=True)
