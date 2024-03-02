@@ -10,6 +10,11 @@ def run_autoreconf(rc, build, **kwargs):
     if p.returncode != 0:
         raise Exception(f'autoreconf failed with return code {p.returncode}')
 
+def run_bootstrap(rc, build, **kwargs):
+    p = subprocess.run('./bootstrap', shell=True)
+    if p.returncode != 0:
+        raise Exception(f'./bootstrap failed with return code {p.returncode}')
+
 misc_c_recipes = [
     # CLS: don't want to include C++ right now
     CreateProjectRecipe(
@@ -55,7 +60,25 @@ misc_c_recipes = [
     CreateProjectRecipe(git_remote='https://github.com/allinurl/goaccess/archive/refs/tags/v1.9.1.tar.gz',
         build_system='make',
         name='goaccess',
+        out_of_tree=False,
         source_languages=[LANG_C],
         configure_options=BuildStepOptions(cmdline_options=['--enable-utf8', '--enable-geoip=mmdb'], preprocess=run_autoreconf),
+        apt_deps=['autopoint', 'gettext', 'libmaxminddb-dev'],
+        no_cc_wrapper=False,    # try the wrapper
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/jedisct1/libsodium/releases/download/1.0.19-RELEASE/libsodium-1.0.19.tar.gz',
+        build_system='make',
+        name='libsodium',
+        source_languages=[LANG_C],
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/videolan/vlc/archive/refs/tags/3.0.18.tar.gz',
+        build_system='make',
+        name='vlc',
+        source_languages=[LANG_C],
+        apt_deps=['libtool', 'automake', 'autopoint', 'pkg-config', 'flex', 'bison', 'lua5.2'],
+        # git g++ make libtool automake autopoint pkg-config flex bison lua5.2
+        configure_options=BuildStepOptions(preprocess=run_bootstrap),
     ),
 ]
