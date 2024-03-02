@@ -21,12 +21,13 @@ class MesonDriver(BuildSystemDriver):
         cmdline = f'meson setup --buildtype=plain -Dc_args="{cflags}" -Dcpp_args="{cxxflags}" -Dc_link_args="{ldflags}" -Dcpp_link_args="{ldflags}" '\
             f'{build.project_root} {" ".join(str(x) for x in cmdline_opts)}'
 
-        print(f'meson commandline: {cmdline}')
+        print(f'MESON CONFIGURE CMD: {cmdline}', flush=True)
         subprocess.run(cmdline, shell=True)
 
     def _do_build(self, runconfig: RunConfig, build: ProjectBuild, numjobs:int = 1):
         build_opts = build.recipe.build_options.cmdline_options
         build_cmd = ['meson', 'compile', '-j', str(numjobs), " ".join(str(x) for x in build_opts)]
+        print(f'MESON BUILD CMD: {" ".join(str(x) for x in build_cmd)}', flush=True)
         self._do_subprocess_build(build, build_cmd)
 
     def _do_clean(self, runconfig: RunConfig, build: ProjectBuild):
