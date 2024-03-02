@@ -73,7 +73,7 @@ class ProjectRecipe:
             configure_options:BuildStepOptions=None,
             build_options:BuildStepOptions=None,
             clean_options:BuildStepOptions=None,
-            no_cc_wrapper:bool=False,
+            no_cc_wrapper:bool=True,
             config_script_name:str='configure',
             max_build_jobs:int=None,
             new_params:Dict[str,str]=None) -> None:
