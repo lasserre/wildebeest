@@ -86,4 +86,48 @@ misc_c_recipes = [
         out_of_tree=False,
         no_cc_wrapper=False,    # try the wrapper
     ),
+
+    CreateProjectRecipe(git_remote='https://github.com/python/cpython.git',
+        name='cpython',
+        git_head='v3.12.2',
+        build_system='make',
+        source_languages=[LANG_C],
+        # from https://devguide.python.org/getting-started/setup-building/#build-dependencies
+        apt_deps=['build-essential', 'gdb', 'lcov', 'pkg-config', 'libbz2-dev', 'libffi-dev', 'libgdbm-dev', 'libgdbm-compat-dev', 'liblzma-dev',
+                'libncurses5-dev', 'libreadline6-dev', 'libsqlite3-dev', 'libssl-dev', 'lzma', 'lzma-dev', 'tk-dev', 'uuid-dev', 'zlib1g-dev'],
+        no_cc_wrapper=False,    # try the wrapper
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/kraj/musl.git',
+        name='musl',
+        git_head='v1.2.5',
+        build_system='make',
+        source_languages=[LANG_C],
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/wine-mirror/wine.git',
+        name='wine',
+        git_head='wine-9.3',
+        build_system='make',
+        source_languages=[LANG_C],
+        configure_options=BuildStepOptions(cmdline_options=['--enable-win64']),
+        # from https://wiki.winehq.org/Building_Wine
+        apt_deps=['gcc-mingw-w64', 'libasound2-dev', 'libpulse-dev', 'libdbus-1-dev', 'libfontconfig-dev', 'libfreetype-dev', 'libgnutls28-dev',
+                'libgl-dev', 'libunwind-dev', 'libx11-dev', 'libxcomposite-dev', 'libxcursor-dev', 'libxfixes-dev', 'libxi-dev', 'libxrandr-dev',
+                'libxrender-dev', 'libxext-dev', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev', 'libosmesa6-dev', 'libsdl2-dev', 'libudev-dev',
+                'libvulkan-dev', 'libcapi20-dev', 'libcups2-dev', 'libgphoto2-dev', 'libsane-dev', 'libkrb5-dev', 'samba-dev', 'ocl-icd-opencl-dev', 'libpcap-dev',
+                'libusb-1.0-0-dev', 'libv4l-dev',
+                'flex', 'bison']
+    ),
+
+    CreateProjectRecipe(git_remote='https://github.com/redis/redis/archive/refs/tags/7.2.4.tar.gz',
+        name='redis',
+        build_system='make',
+        source_languages=[LANG_C],
+        out_of_tree=False,
+        no_cc_wrapper=False,    # try the wrapper
+        config_script_name='../../../../../../usr/bin/make',
+            # FIXME: hack to try this without remaking the base exp image since things are running
+            # (need to add a skip_configure option really...)
+    ),
 ]

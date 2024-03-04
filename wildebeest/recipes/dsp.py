@@ -17,7 +17,8 @@ dsp_recipes = [
             source_languages=[LANG_C],
             apt_deps=['nasm'],
             configure_options=BuildStepOptions(preprocess=add_cc_option,
-                cmdline_options=['--disable-stripping'])
+                cmdline_options=['--disable-stripping']),
+            no_cc_wrapper=False,    # try the wrapper
         ),
 ]
 

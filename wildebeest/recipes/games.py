@@ -33,7 +33,8 @@ c_game_recipes = [
         ]),
         apt_deps=['mesa-common-dev', 'libx11-dev', 'libxrandr-dev', 'libxi-dev',
             'xorg-dev:all',     # use :all to prevent substituting :apt_arch
-            'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev']
+            'libgl1-mesa-dev', 'libglu1-mesa-dev', 'libopenal-dev'],
+        no_cc_wrapper=False,    # try the wrapper
     ),
 
     CreateProjectRecipe(git_remote='https://github.com/angband/angband/releases/download/4.2.5/Angband-4.2.5.tar.gz',
