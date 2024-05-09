@@ -86,7 +86,7 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "coreutils",
+            "name": "cpython",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
@@ -94,11 +94,11 @@
                 "run",
                 "-f",
                 "--from",
-                "export_asts_debug",
+                "extract_debuginfo_labels",
                 "--debug",
                 "--no-pre"
             ],
-            "cwd": "/home/cls0027/exp_builds/coreutils.exp",
+            "cwd": "/home/cls0027/exp_builds/cpython.exp",
             "console": "integratedTerminal",
         },
         {
