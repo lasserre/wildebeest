@@ -11,8 +11,11 @@ ARG USER_GID=1000
 RUN groupadd -g ${USER_GID} ${USERNAME}
 RUN useradd ${USERNAME} -u ${USER_UID} -g ${USER_GID} -m -s /bin/bash
 
-#  http://www.gtlib.gatech.edu/pub/ubuntu/
-RUN sed -i 's/archive.ubuntu.com/www.gtlib.gatech.edu\/pub/g' /etc/apt/sources.list
+#  http://www.gtlib.gatech.edu/pub/ubuntu/      << this went offline 5/21/24 (temporary? idk)
+#  http://mirror.arizona.edu/ubuntu/
+
+# RUN sed -i 's/archive.ubuntu.com/www.gtlib.gatech.edu\/pub/g' /etc/apt/sources.list
+RUN sed -i 's/archive.ubuntu.com/mirror.arizona.edu/g' /etc/apt/sources.list
 RUN apt update && apt install -y \
     python3.8 \
     python3-pip \

@@ -303,6 +303,22 @@ zlib_v1_2_13 = CreateProjectRecipe(git_remote='https://github.com/madler/zlib/ar
     source_languages=[LANG_C],
 )
 
+R_v433 = CreateProjectRecipe(git_remote='https://cran.rstudio.com/src/base/R-4/R-4.3.3.tar.gz',
+    name='R-v4.3.3',
+    build_system='make',
+    # export R_VERSION=4.3.3
+    # ./configure \
+    #     --prefix=/opt/R/${R_VERSION} \
+    #     --enable-R-shlib \
+    #     --enable-memory-profiling \
+    #     --with-blas \
+    #     --with-lapack
+    configure_options=BuildStepOptions(cmdline_options=[
+        '--prefix=/opt/R/R-4.3.3', '--enable-R-shlib', '--enable-memory-profiling', '--with-blas', '--with-lapack',
+    ]),
+    apt_deps = ['gdebi-core']
+)
+
 benchmark_recipes = [
     binutils_v2_36,
     bash_v5_2,
@@ -337,9 +353,25 @@ benchmark_recipes = [
     util_linux_v2_36_1,
     wget_v1_21_1,
     zlib_v1_2_13,
+    R_v433,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
+
+cati12 = ProjectList('cati12', lambda: [
+    bash_v5_2().name,
+    bison_v3_7().name,
+    cflow_v1_6().name,
+    gawk_v5_1_0().name,
+    grep_v3_6().name,
+    gzip_v1_10().name,
+    inetutils_v2_0().name,
+    less_v563().name,
+    nano_v5_5().name,
+    R_v433().name,
+    sed_v4_8().name,
+    wget_v1_21_1().name,
+])
 
 # Jan 2021 is my date for approximating "latest versions" used in StateFormer benchmarks
 stateformer33 = ProjectList('stateformer33', lambda: [
