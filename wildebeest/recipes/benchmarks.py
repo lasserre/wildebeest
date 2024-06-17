@@ -303,20 +303,18 @@ zlib_v1_2_13 = CreateProjectRecipe(git_remote='https://github.com/madler/zlib/ar
     source_languages=[LANG_C],
 )
 
-R_v433 = CreateProjectRecipe(git_remote='https://cran.rstudio.com/src/base/R-4/R-4.3.3.tar.gz',
-    name='R-v4.3.3',
+R_v433 = CreateProjectRecipe(git_remote='https://cran.rstudio.com/src/base/R-4/R-4.1.0.tar.gz',
+    # tried 4.3.3
+    name='R-v4.1.0',
     build_system='make',
     # export R_VERSION=4.3.3
-    # ./configure \
-    #     --prefix=/opt/R/${R_VERSION} \
-    #     --enable-R-shlib \
-    #     --enable-memory-profiling \
-    #     --with-blas \
-    #     --with-lapack
     configure_options=BuildStepOptions(cmdline_options=[
-        '--prefix=/opt/R/R-4.3.3', '--enable-R-shlib', '--enable-memory-profiling', '--with-blas', '--with-lapack',
+        '--prefix=/opt/R/R-4.1.0', '--enable-R-shlib', '--enable-memory-profiling', '--with-blas', '--with-lapack',
     ]),
-    apt_deps = ['gdebi-core']
+    # actual command they recommend is: sudo apt build-dep r-base
+    apt_deps = ['gdebi-core', 'r-base', 'tzdata', 'libx11-dev', 'xorg-dev', 'libxt-dev',
+        'libcurl4-openssl-dev'
+    ]
 )
 
 benchmark_recipes = [

@@ -102,6 +102,22 @@
             "console": "integratedTerminal",
         },
         {
+            "name": "R",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
+            "args": [
+                "run",
+                "-f",
+                "--from",
+                "extract_debuginfo_labels",
+                "--debug",
+                "--no-pre"
+            ],
+            "cwd": "/home/cls0027/exp_builds/R.exp",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "astera",
             "type": "debugpy",
             "request": "launch",
