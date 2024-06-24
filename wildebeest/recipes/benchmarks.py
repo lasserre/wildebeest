@@ -309,7 +309,9 @@ R_v433 = CreateProjectRecipe(git_remote='https://cran.rstudio.com/src/base/R-4/R
     build_system='make',
     # export R_VERSION=4.3.3
     configure_options=BuildStepOptions(cmdline_options=[
-        '--prefix=/opt/R/R-4.1.0', '--enable-R-shlib', '--enable-memory-profiling', '--with-blas', '--with-lapack',
+        '--prefix=/opt/R/R-4.1.0', '--enable-memory-profiling', '--with-blas', '--with-lapack',
+        '--enable-R-static-lib',
+        # '--enable-R-shlib',
     ]),
     # actual command they recommend is: sudo apt build-dep r-base
     apt_deps = ['gdebi-core', 'r-base', 'tzdata', 'libx11-dev', 'xorg-dev', 'libxt-dev',
