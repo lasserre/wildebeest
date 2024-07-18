@@ -14,20 +14,17 @@ class print_runtime:
     Times the code inside the with block, then prints out the elapsed runtime
     when the code finished
     '''
-    def __init__(self) -> None:
-        '''
-        newpath: The path to change directories to. Once the with block exits,
-                 the current directory will be restored.
-        '''
+    def __init__(self, name:str='') -> None:
         self.start_time = 0.0
         self.stop_time = 0.0
+        self.name = name
 
     def __enter__(self):
         self.start_time = time.time()
 
     def __exit__(self, etype, value, traceback):
         self.stop_time = time.time()
-        print(f'Runtime: {timedelta(seconds=int(self.runtime_sec))}')
+        print((f'{self.name} Runtime: {timedelta(seconds=int(self.runtime_sec))}').strip())
 
     @property
     def runtime_sec(self) -> float:
