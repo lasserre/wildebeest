@@ -31,24 +31,6 @@
             // "justMyCode": false
         },
         {
-            "name": "dragon build",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/home/cls0027/dev/datatype-recovery-experiments/datatype_recovery/dragon_cmdline.py",
-            "args": [
-                "build",
-                "--drop-comp",
-                "--inmem",
-                "coreutils_full_5hops",
-                "5",
-                "/home/cls0027/exp_builds/coreutils.exp/rundata/run1"
-            ],
-            // "args": ["run", "-f", "--debug"],
-            "cwd": "/home/cls0027/datasets",
-            "console": "integratedTerminal",
-            // "justMyCode": false
-        },
-        {
             "name": "stateformer_putty",
             "type": "debugpy",
             "request": "launch",
@@ -86,7 +68,7 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "cpython",
+            "name": "musl",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
@@ -94,11 +76,11 @@
                 "run",
                 "-f",
                 "--from",
-                "extract_debuginfo_labels",
+                "export_asts_strip",
                 "--debug",
                 "--no-pre"
             ],
-            "cwd": "/home/cls0027/exp_builds/cpython.exp",
+            "cwd": "/home/cls0027/exp_builds/musl.exp",
             "console": "integratedTerminal",
         },
         {

@@ -66,7 +66,8 @@ class env:
         os.environ.clear()
         os.environ.update(self.originalenv)
 
-def show_progress(iterator, total:int, use_tqdm:bool=None, progress_period:int=500):
+def show_progress(iterator, total:int, use_tqdm:bool=None, progress_period:int=500,
+                desc:str=None):
     '''
     Show a progress indicator - either using tqdm progress bar (ideal for console output)
     or a (much less frequent) periodic print statement showing how far we have come
@@ -84,7 +85,7 @@ def show_progress(iterator, total:int, use_tqdm:bool=None, progress_period:int=5
         use_tqdm = sys.stdout.isatty()
 
     if use_tqdm:
-        for x in tqdm(iterator, total=total):
+        for x in tqdm(iterator, total=total, desc=desc):
             yield x
     else:
         ctr = 1
