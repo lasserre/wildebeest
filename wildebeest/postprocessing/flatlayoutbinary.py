@@ -87,6 +87,12 @@ def is_cpp_debug_binary(elf:Path, cppnames_thresh:float=0.65) -> bool:
         print(f'No symbols in binary {elf}')
         return False
 
+def _do_find_import_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
+    # don't check optimization level - we didn't build it
+    return {
+        'binaries': find_binaries_in_path(Path(params['BIN_FOLDER']), no_cmake=False)
+    }
+
 def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     debug_bins = find_binaries_in_path(run.build.build_folder, no_cmake=True)
     good_bins = [x for x in debug_bins if validate_optimization_level(run, x)]
@@ -95,7 +101,7 @@ def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
         'binaries': good_bins
     }
 
-def find_binaries() -> RunStep:
+def find_binaries(import_binaries:bool=False) -> RunStep:
     '''
     Creates a RunStep that will find binaries that are 64-bit ELF files
     and contain a debug_info section
@@ -107,6 +113,9 @@ def find_binaries() -> RunStep:
         'binaries': [ list of corresponding binary paths ],
     }
     '''
+    if import_binaries:
+        # flatten_binaries looks for "find_binaries" so name it the same
+        return RunStep('find_binaries', _do_find_import_binaries)
     return RunStep('find_binaries', _do_find_binaries)
 
 def _do_flatten_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
@@ -207,5 +216,5 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 
     # import IPython; IPython.embed()
 
-def strip_binaries() -> RunStep:
-    return RunStep('strip_binaries', _do_strip_binaries, run_in_docker=True)
+def strip_binaries(run_in_docker:bool=True) -> RunStep:
+    return RunStep('strip_binaries', _do_strip_binaries, run_in_docker=run_in_docker)

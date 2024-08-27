@@ -6,7 +6,7 @@ import psutil
 import socket
 import time
 from tqdm import tqdm
-from typing import Dict
+from typing import Dict, List, Tuple
 from yaml import load, dump, Loader
 
 class print_runtime:
@@ -154,3 +154,36 @@ def pretty_memsize_str(num_bytes:int, num_dec_places:int=2) -> str:
         return f'{num_bytes/2**10:,.{num_dec_places}f} KB'
     else:
         return f'{num_bytes:,.{num_dec_places}f} B'
+
+# not a bad function, just probably not going to use it right now...
+# NOTE: hang on to it for now, if I end up totally not needing to look at DWARF or dtlabels
+# source code info then I can discard...
+# ------------------------
+def _print_source_OLD_(srcfile:Path, start_line:int, end_line:int, markers:List[Tuple[int,int]]):
+    '''Print the given lines of the source code file, adding "highlight" lines with carets
+    underneath to show specific line:column locations
+
+    (as specified in markers, which is a list of (line, column) tuples)'''
+    with open(srcfile, 'r') as f:
+        lines = f.readlines()[start_line-1:end_line]
+
+    sorted_markers = sorted(markers, key=lambda m: m[0])
+    for i, line in enumerate(lines):
+        print(line.strip())
+        if sorted_markers and sorted_markers[0][0] == i+start_line:
+            cols = []
+            while sorted_markers and sorted_markers[0][0] == i+start_line:
+                cols.append(sorted_markers[0][1])
+                sorted_markers = sorted_markers[1:]
+            cols = sorted(cols)
+            markers_str = ''
+            last_col = 0
+            for col in cols:
+                delta = col - last_col
+                if delta < 1:
+                    continue
+                if col > -1:
+                    markers_str += f'{"-"*(delta-1)}^'
+                last_col = col
+            markers_str += f" ({','.join(f'{start_line+i}:{col}' for col in cols)})"
+            print(markers_str)
