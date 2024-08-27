@@ -340,7 +340,7 @@ def cmd_runtimes_exp(exp:Experiment):
         console.print(table)
     return 0
 
-def cmd_dashboard(exp_parent_folder:Path):
+def cmd_dashboard(exp_parent_folder:Path, running_only:bool, run_numbers:List[int]=None):
     global run_formats
 
     console = Console()
@@ -361,8 +361,14 @@ def cmd_dashboard(exp_parent_folder:Path):
     for exp_folder in sorted(exp_folders):
         if not Experiment.is_exp_folder(exp_folder):
             return
+
         exp = Experiment.load_exp_from_yaml(exp_folder)
-        for r in sorted(exp.load_runs(), key=lambda r: r.number):
+
+        run_list = sorted([exp.load_run_from_id(n) for n in run_numbers], key=lambda r: r.number) if run_numbers else exp.load_runs()
+        if running_only:
+            run_list = [r for r in run_list if r.status == RunStatus.RUNNING]
+
+        for r in run_list:
             fmt = run_formats[r.status]
             if r.status == RunStatus.RUNNING:
                 step_rt, run_runtime = calc_inprogress_runtime(r)
@@ -500,6 +506,9 @@ def main():
     # --- dashboard: Print experiment/run status for all experiments in a folder
     dashboard_p = subparsers.add_parser('dashboard', help='Show status of all in-progress experiments')
     dashboard_p.add_argument('exp_parent_folder', help='Folder containing all experiments to be monitored')
+    dashboard_p.add_argument('run_numbers', nargs='?', type=str,
+                            help='Subset of runs to execute (e.g. "1", "2-5", "1,4", "1,4-8,9-10")')
+    dashboard_p.add_argument('-r', action='store_true', help='Only show status on currently executing runs')
 
     # --- runtimes: Print experiment step runtimes
     runtimes_p = subparsers.add_parser('runtimes', help='Show runtimes of experiment steps')
@@ -579,7 +588,8 @@ def main():
         return cmd_runtimes_exp(exp)
     # --- wdb dashboard
     elif args.subcmd == 'dashboard':
-        return cmd_dashboard(Path(args.exp_parent_folder))
+        run_numbers = extract_run_numbers(args.run_numbers) if args.run_numbers else None
+        return cmd_dashboard(Path(args.exp_parent_folder), running_only=args.r, run_numbers=run_numbers)
     # --- wdb kill
     elif args.subcmd == 'kill':
         exp = get_experiment(args)

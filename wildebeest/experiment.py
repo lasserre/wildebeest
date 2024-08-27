@@ -83,7 +83,8 @@ class Experiment:
         exp = load_from_yaml(yamlfile)
         orig_folder = exp.exp_folder
 
-        if exp_folder.absolute() != orig_folder.absolute():
+        # CLS: used to be absolute()...I think resolve() is what I was after
+        if exp_folder.resolve() != orig_folder.resolve():
             exp._rebase(orig_folder, exp_folder)
 
         return exp
@@ -231,6 +232,12 @@ class Experiment:
         '''
         yaml_files = list(self.runstates_folder.glob('*.run.yaml'))
         return sorted([Run.load_from_runstate_file(f, self.exp_folder) for f in yaml_files], key=lambda r: r.number)
+
+    def load_run_from_id(self, runid) -> Run:
+        yaml_file = self.runstates_folder/f'run{runid}.run.yaml'
+        if yaml_file.exists():
+            return Run.load_from_runstate_file(yaml_file, self.exp_folder)
+        return None
 
     def generate_workload_id(self) -> str:
         '''
