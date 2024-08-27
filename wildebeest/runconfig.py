@@ -104,7 +104,7 @@ class RunConfig:
     num_build_jobs: int
     linker_flags: List[str]
 
-    def __init__(self, name:str='default') -> None:
+    def __init__(self, name:str='default', new_params:dict=None) -> None:
         '''
         name: An optional human-readable name for the run
         '''
@@ -141,7 +141,7 @@ class RunConfig:
         self.env_vars:Dict[str,str] = {}
         '''Additional environment variables to use for this run'''
 
-        self.new_params:Dict[str,str] = {}
+        self.new_params:Dict[str,str] = new_params if new_params else {}
         '''Add new parameters here so we don't break RunConfig for existing experiments'''
 
     @property

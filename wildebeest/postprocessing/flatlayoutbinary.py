@@ -39,7 +39,7 @@ def elf_has_debuginfo(elf:Path) -> bool:
 
 def find_binaries_in_path(build_path:Path, no_cmake:bool) -> List[Path]:
     # this finds all file that can be executed (no static libraries..)
-    raw_output = subprocess.check_output(f'find {build_path} -type f -executable -print | xargs file | grep "ELF 64-bit"', shell=True).decode('utf-8')
+    raw_output = subprocess.check_output(f'find -L {build_path} -type f -executable -print | xargs file -L | grep "ELF 64-bit"', shell=True).decode('utf-8')
     raw_lines = [x for x in raw_output.split('\n') if x]
 
     regex_results = [re.match('(.*):\s+ELF 64-bit.*', rl) for rl in raw_lines]
@@ -88,9 +88,9 @@ def is_cpp_debug_binary(elf:Path, cppnames_thresh:float=0.65) -> bool:
         return False
 
 def _do_find_import_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
-    # don't check optimization level - we didn't build it
     return {
-        'binaries': find_binaries_in_path(Path(params['BIN_FOLDER']), no_cmake=False)
+        'binaries': [Path(run.config.new_params['binary'])]
+        # 'binaries': find_binaries_in_path(Path(params['BIN_FOLDER']), no_cmake=False)
     }
 
 def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
