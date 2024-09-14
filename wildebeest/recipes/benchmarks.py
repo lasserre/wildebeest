@@ -319,6 +319,14 @@ R_v433 = CreateProjectRecipe(git_remote='https://cran.rstudio.com/src/base/R-4/R
     ]
 )
 
+nginx = CreateProjectRecipe(git_remote='https://nginx.org/download/nginx-1.26.2.tar.gz',
+    name='nginx-1.26.2',
+    build_system='make',
+    out_of_tree=False,
+    configure_options=BuildStepOptions(cmdline_options=['--with-debug']),
+    apt_deps = ['libpcre3-dev']
+)
+
 benchmark_recipes = [
     binutils_v2_36,
     bash_v5_2,
@@ -354,6 +362,7 @@ benchmark_recipes = [
     wget_v1_21_1,
     zlib_v1_2_13,
     R_v433,
+    nginx,
 ]
 
 coreutils_list = ProjectList('coreutils', lambda: [coreutils_v8_32().name])
