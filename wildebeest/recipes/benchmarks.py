@@ -226,6 +226,18 @@ openssl_1_1_1k = CreateProjectRecipe(git_remote='https://github.com/openssl/open
     apt_deps = [],
 )
 
+# NOTE: just copy/pasting this hardcoded for arm build since it is so different
+openssl_1_1_1k_arm64 = CreateProjectRecipe(git_remote='https://github.com/openssl/openssl.git',
+    name='openssl_1_1_1k_arm64',
+    git_head='OpenSSL_1_1_1k',
+    build_system='make',
+    source_languages=[LANG_C],
+    config_script_name='Configure',
+    configure_options=BuildStepOptions(cmdline_options=['linux-aarch64',
+                                                        '--cross-compile-prefix=aarch64-linux-gnu-',
+                                                        'CC=gcc-9']),
+)
+
 def cd_to_unix(rc, build):
     import os
     os.chdir('unix')
@@ -353,6 +365,7 @@ benchmark_recipes = [
     libtomcrypt_v1_18_2,
     nano_v5_5,
     openssl_1_1_1k,
+    openssl_1_1_1k_arm64,
     putty_v0_74,
     sed_v4_8,
     sg3_utils_v1_45,
