@@ -95,13 +95,21 @@ def _do_find_import_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any
 
 def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     debug_bins = find_binaries_in_path(run.build.build_folder, no_cmake=True)
+
+    if 'keep_binaries' in params:
+        keep_binaries = [x.strip() for x in params['keep_binaries'].split(',')]
+        debug_bins = [x for x in debug_bins if x.name in keep_binaries]
+        print(f'Filtered binary list down to:')
+        for b in debug_bins:
+            print(f'\t{b.name}')
+
     good_bins = [x for x in debug_bins if validate_optimization_level(run, x)]
 
     return {
         'binaries': good_bins
     }
 
-def find_binaries(import_binaries:bool=False) -> RunStep:
+def find_binaries(import_binaries:bool=False, keep_binaries:List[str]=None) -> RunStep:
     '''
     Creates a RunStep that will find binaries that are 64-bit ELF files
     and contain a debug_info section
