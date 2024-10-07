@@ -96,7 +96,7 @@ def _do_find_import_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any
 def _do_find_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
     debug_bins = find_binaries_in_path(run.build.build_folder, no_cmake=True)
 
-    if 'keep_binaries' in params:
+    if 'keep_binaries' in params and params['keep_binaries']:
         keep_binaries = [x.strip() for x in params['keep_binaries'].split(',')]
         debug_bins = [x for x in debug_bins if x.name in keep_binaries]
         print(f'Filtered binary list down to:')
