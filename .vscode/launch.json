@@ -100,7 +100,7 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "astera",
+            "name": "astera_input",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
@@ -112,30 +112,8 @@
                 "--debug",
                 "--no-pre"
             ],
-            "cwd": "/home/cls0027/exp_builds/astera.exp",
+            "cwd": "/home/cls0027/exp_imports/astera_input.exp",
             "console": "integratedTerminal",
-        },
-        {
-            "name": "astera_instrument",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceRoot}/wildebeest/scripts/cmdline.py",
-            // "args": ["run", "3", "-j4", "--from", "reset_data", "--no-pre", "--debug"],
-            // "args": ["run", "1", "-j4", "--from", "calculate_similarity_metric", "--no-pre", "--debug"],
-            // "args": ["run", "1", "-j4", "--from", "ghidra_import", "--no-pre", "--debug"],
-            // "args": ["run", "1", "-j1", "-b8", "--no-pre", "-f"],
-            // "args": ["run", "-f", "--to", "configure"],
-            "args": [
-                "run",
-                "-f",
-                "--from",
-                "extract_debuginfo_labels",
-                "--debug",
-                "--no-pre"
-            ],
-            // "args": ["run", "-f", "--from", "ghidra_import_debug_binaries", "--debug", "--no-pre"],
-            "cwd": "/home/cls0027/test_builds/astera_instrument.exp",
-            "console": "integratedTerminal"
         },
         {
             "name": "coreutils",
