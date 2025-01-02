@@ -124,8 +124,8 @@ class TemporaryDockerfile:
     def __exit__(self, etype, value, traceback):
         self.tdref.__exit__(etype, value, traceback)
 
-def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe, other_apt_archs:List[str]):
-    if docker_image_exists(recipe.docker_image_name(exp.name)):
+def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe, apt_arch:str):
+    if docker_image_exists(recipe.docker_image_name(exp.name, apt_arch)):
         return
 
     dockerfile_lines = [
@@ -137,15 +137,15 @@ def create_recipe_docker_image(exp:'Experiment', recipe:ProjectRecipe, other_apt
 
     if recipe.apt_deps:
         apt_deps = recipe.apt_deps.copy()
-        if other_apt_archs:
-            for arch in other_apt_archs:
-                apt_deps.extend([f'{dep}:{arch}' for dep in apt_deps if not dep.endswith(':all')])
+        if apt_arch:
+            # non-default arch
+            apt_deps = [f'{dep}:{apt_arch}' if not dep.endswith(':all') else dep for dep in apt_deps]
 
         # CLS: try installing deps for all archs we want to target in the same docker image
         dockerfile_lines.append(f'RUN apt update && apt install -y {" ".join(apt_deps)}')
 
     with TemporaryDockerfile(dockerfile_lines) as tdf:
-        rcode = tdf.docker_build(recipe.docker_image_name(exp.name))
+        rcode = tdf.docker_build(recipe.docker_image_name(exp.name, apt_arch))
         if rcode != 0:
             raise Exception(f'docker build failed to build recipe image for {recipe.name} [return code {rcode}]')
 
@@ -193,9 +193,11 @@ def docker_exp_setup(exp:'Experiment', params:Dict[str,Any], outputs:Dict[str,An
                 raise Exception(f'docker build failed to create experiment image "{exp_docker_image}" with return code {p.returncode}')
 
     other_apt_archs = list(set(rc.apt_arch for rc in exp.runconfigs if rc.apt_arch))
+    apt_archs = list(set(rc.apt_arch for rc in exp.runconfigs))
 
     for recipe in exp.projectlist:
-        create_recipe_docker_image(exp, recipe, other_apt_archs)
+        for arch in apt_archs:
+            create_recipe_docker_image(exp, recipe, arch)
 
 def docker_container_exists(run:Run) -> bool:
     outstr = subprocess.check_output(['docker', 'container', 'ls', '-a']).decode('utf-8')
@@ -229,7 +231,7 @@ def docker_run(run:Run):
         docker_run_cmd.append('-v')
         docker_run_cmd.append(bm)
 
-    docker_run_cmd.append(run.build.recipe.docker_image_name(run.experiment.name))
+    docker_run_cmd.append(run.build.recipe.docker_image_name(run.experiment.name, run.config.apt_arch))
 
     # -t: TTY, -d: run in background
     p = subprocess.run(docker_run_cmd)
