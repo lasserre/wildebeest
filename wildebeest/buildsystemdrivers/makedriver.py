@@ -12,7 +12,8 @@ class MakeDriver(BuildSystemDriver):
     def _do_configure(self, runconfig: RunConfig, build: ProjectBuild, script_name:str='configure'):
         configure_opts = build.recipe.configure_options.cmdline_options
 
-        if runconfig.apt_arch == 'arm64':
+        # CLS: hacky exception for openssl, but don't have time to do this right at the moment
+        if runconfig.apt_arch == 'arm64' and not build.recipe.name == 'openssl_1_1_1k_arm64':
             configure_opts.append('--host=aarch64-linux-gnu')
 
         configure = build.project_root/f'{script_name}' if build.recipe.supports_out_of_tree else f'./{script_name}'
