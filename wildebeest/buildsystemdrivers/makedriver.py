@@ -12,6 +12,9 @@ class MakeDriver(BuildSystemDriver):
     def _do_configure(self, runconfig: RunConfig, build: ProjectBuild, script_name:str='configure'):
         configure_opts = build.recipe.configure_options.cmdline_options
 
+        if runconfig.apt_arch == 'arm64':
+            configure_opts.append('--host=aarch64-linux-gnu')
+
         configure = build.project_root/f'{script_name}' if build.recipe.supports_out_of_tree else f'./{script_name}'
         print(f'$CC="{os.environ["CC"]}"')
         print(f'Running: {" ".join([str(x) for x in [configure, *configure_opts]])}')
