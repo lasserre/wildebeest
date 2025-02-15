@@ -77,7 +77,7 @@ def cmd_create_exp(exp_folder:Path, name:str, projectlist=[], **kwargs):
     except Exception as e:
         print(e)
         return 1
-    return exp is not None
+    return 0 if exp is not None else 1
 
 def cmd_run_job(args):
     exp = get_experiment(args)
