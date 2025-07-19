@@ -24,7 +24,7 @@ class FlatLayoutBinary:
         self.debug_binary_file:Path = None  # filled out by strip_binaries
         self.stripped_binary_file:Path = None   # filled out by strip_binaries
         self.linker_objs = linker_objs
-        self.data_folder:Path = run.data_folder/f'{binary_id}.{binary_file.stem}'
+        self.data_folder:Path = run.data_folder/f'{binary_id}.{binary_file.name}'
         self.id:int = binary_id
         self.data:Dict[str,Any] = {}
         '''
