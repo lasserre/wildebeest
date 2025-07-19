@@ -213,7 +213,7 @@ def _do_strip_binaries(run:Run, params:Dict[str,Any], outputs:Dict[str,Any]):
 
         stripped = fb.data_folder/f'{fb.binary_file.name}'
         # origcopy is optional...
-        origcopy = stripped.with_suffix('.debug')
+        origcopy = stripped.with_name(f'{stripped.name}.debug')     # with_suffix messes up .so names
         shutil.copy(fb.binary_file, origcopy)
         shutil.copy(fb.binary_file, stripped)
         subprocess.call([run.config.strip_executable, '-s', stripped])
